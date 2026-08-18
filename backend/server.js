@@ -1,10 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const crypto = require("crypto");
 const http = require("http");
 const { Server } = require("socket.io");
-const { Pool } = require("pg");
-require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
@@ -14,21 +11,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-/* =========================================================
-   POSTGRESQL
-========================================================= */
-
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-/* =========================================================
-   SOCKET.IO
-========================================================= */
-
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -36,515 +18,52 @@ const io = new Server(server, {
     }
 });
 
-/* =========================================================
-   DATABASE
-========================================================= */
-
-async function initDatabase() {
-
-    try {
-
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS players (
-                id SERIAL PRIMARY KEY,
-                telegram_id BIGINT UNIQUE NOT NULL,
-                username TEXT,
-                first_name TEXT,
-
-                balance BIGINT NOT NULL DEFAULT 5000,
-
-                xp INTEGER NOT NULL DEFAULT 0,
-                level INTEGER NOT NULL DEFAULT 1,
-                title TEXT,
-
-                wins INTEGER NOT NULL DEFAULT 0,
-                losses INTEGER NOT NULL DEFAULT 0,
-                games INTEGER NOT NULL DEFAULT 0,
-
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-
-        console.log("Database initialized");
-
-    } catch (error) {
-
-        console.error(
-            "Database initialization error:",
-            error
-        );
-
-        throw error;
-    }
-}
-
-/* =========================================================
-   TITLES
-========================================================= */
-
-function getTitle(level) {
-
-    if (level >= 100) {
-        return "Покровитель";
-    }
-
-    if (level >= 80) {
-        return "Попечитель";
-    }
-
-    if (level >= 60) {
-        return "Почётный член клуба";
-    }
-
-    if (level >= 40) {
-        return "Старший член клуба";
-    }
-
-    if (level >= 20) {
-        return "Член клуба";
-    }
-
-    return null;
-}
-
-/* =========================================================
-   TELEGRAM AUTH
-========================================================= */
-
-function validateTelegramInitData(initData) {
-
-    if (!initData) {
-        return null;
-    }
-
-    const botToken =
-        process.env.BOT_TOKEN;
-
-    if (!botToken) {
-        throw new Error(
-            "BOT_TOKEN is not configured"
-        );
-    }
-
-    const params =
-        new URLSearchParams(initData);
-
-    const receivedHash =
-        params.get("hash");
-
-    if (!receivedHash) {
-        return null;
-    }
-
-    params.delete("hash");
-
-    const dataCheckString =
-        Array.from(params.entries())
-            .sort(([a], [b]) =>
-                a.localeCompare(b)
-            )
-            .map(
-                ([key, value]) =>
-                    `${key}=${value}`
-            )
-            .join("\n");
-
-    const secretKey =
-        crypto
-            .createHmac(
-                "sha256",
-                "WebAppData"
-            )
-            .update(botToken)
-            .digest();
-
-    const calculatedHash =
-        crypto
-            .createHmac(
-                "sha256",
-                secretKey
-            )
-            .update(dataCheckString)
-            .digest("hex");
-
-    if (
-        calculatedHash.length !==
-        receivedHash.length
-    ) {
-        return null;
-    }
-
-    if (
-        !crypto.timingSafeEqual(
-            Buffer.from(calculatedHash),
-            Buffer.from(receivedHash)
-        )
-    ) {
-        return null;
-    }
-
-    const authDate =
-        Number(
-            params.get("auth_date")
-        );
-
-    if (!authDate) {
-        return null;
-    }
-
-    const currentTime =
-        Math.floor(
-            Date.now() / 1000
-        );
-
-    /*
-        Не принимаем данные
-        старше 24 часов.
-    */
-
-    if (
-        currentTime - authDate > 86400 ||
-        authDate > currentTime + 60
-    ) {
-        return null;
-    }
-
-    const userString =
-        params.get("user");
-
-    if (!userString) {
-        return null;
-    }
-
-    try {
-
-        return JSON.parse(
-            userString
-        );
-
-    } catch {
-
-        return null;
-    }
-}
-
-/* =========================================================
-   PLAYER
-========================================================= */
-
-async function getOrCreatePlayer(
-    telegramUser
-) {
-
-    const telegramId =
-        telegramUser.id;
-
-    const username =
-        telegramUser.username || null;
-
-    const firstName =
-        telegramUser.first_name || null;
-
-    const existing =
-        await pool.query(
-            `
-            SELECT *
-            FROM players
-            WHERE telegram_id = $1
-            `,
-            [telegramId]
-        );
-
-    if (existing.rows.length > 0) {
-
-        const player =
-            existing.rows[0];
-
-        const updated =
-            await pool.query(
-                `
-                UPDATE players
-
-                SET username = $1,
-                    first_name = $2,
-                    title = $3
-
-                WHERE telegram_id = $4
-
-                RETURNING *
-                `,
-                [
-                    username,
-                    firstName,
-                    getTitle(player.level),
-                    telegramId
-                ]
-            );
-
-        return updated.rows[0];
-    }
-
-    const created =
-        await pool.query(
-            `
-            INSERT INTO players
-            (
-                telegram_id,
-                username,
-                first_name,
-                balance,
-                xp,
-                level,
-                title
-            )
-
-            VALUES
-            (
-                $1,
-                $2,
-                $3,
-                5000,
-                0,
-                1,
-                NULL
-            )
-
-            RETURNING *
-            `,
-            [
-                telegramId,
-                username,
-                firstName
-            ]
-        );
-
-    return created.rows[0];
-}
-
-/* =========================================================
-   BASIC ROUTES
-========================================================= */
-
 app.get("/", (req, res) => {
-
     res.json({
-        success: true,
-        project: "Heavy Lux Card",
-        status: "online",
-        multiplayer: true
+        status: "ok",
+        game: "Heavy Lux Card",
+        mode: "online",
+        players: getOnlinePlayers()
     });
 });
 
-app.get(
-    "/api/health",
-    async (req, res) => {
-
-        try {
-
-            await pool.query(
-                "SELECT NOW()"
-            );
-
-            res.json({
-                success: true,
-                status: "online",
-                database: "connected"
-            });
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-                success: false,
-                database: "error"
-            });
-        }
-    }
-);
-
 /* =========================================================
-   TELEGRAM AUTH
+   CARD DATA
 ========================================================= */
 
-app.post(
-    "/api/auth",
-    async (req, res) => {
-
-        try {
-
-            const {
-                initData
-            } = req.body;
-
-            const telegramUser =
-                validateTelegramInitData(
-                    initData
-                );
-
-            if (!telegramUser) {
-
-                return res
-                    .status(401)
-                    .json({
-                        success: false,
-                        error:
-                            "Invalid Telegram authentication"
-                    });
-            }
-
-            const player =
-                await getOrCreatePlayer(
-                    telegramUser
-                );
-
-            res.json({
-                success: true,
-                player
-            });
-
-        } catch (error) {
-
-            console.error(
-                "AUTH ERROR:",
-                error
-            );
-
-            res.status(500).json({
-                success: false,
-                error:
-                    "Authentication server error"
-            });
-        }
-    }
-);
-
-/* =========================================================
-   GET PLAYER
-========================================================= */
-
-app.get(
-    "/api/player/:telegram_id",
-    async (req, res) => {
-
-        try {
-
-            const telegramId =
-                req.params.telegram_id;
-
-            const result =
-                await pool.query(
-                    `
-                    SELECT *
-                    FROM players
-                    WHERE telegram_id = $1
-                    `,
-                    [telegramId]
-                );
-
-            if (
-                result.rows.length === 0
-            ) {
-
-                return res
-                    .status(404)
-                    .json({
-                        success: false,
-                        error:
-                            "Player not found"
-                    });
-            }
-
-            const player =
-                result.rows[0];
-
-            player.title =
-                getTitle(
-                    player.level
-                );
-
-            res.json({
-                success: true,
-                player
-            });
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-                success: false,
-                error:
-                    "Database error"
-            });
-        }
-    }
-);
-
-/* =========================================================
-   GAME CONSTANTS
-========================================================= */
-
-const SUITS = [
-    "♠",
-    "♥",
-    "♦",
-    "♣"
-];
+const SUITS = ["♠", "♥", "♦", "♣"];
 
 const RANKS = [
-    {
-        name: "6",
-        value: 6
-    },
-    {
-        name: "7",
-        value: 7
-    },
-    {
-        name: "8",
-        value: 8
-    },
-    {
-        name: "9",
-        value: 9
-    },
-    {
-        name: "10",
-        value: 10
-    },
-    {
-        name: "В",
-        value: 11
-    },
-    {
-        name: "Д",
-        value: 12
-    },
-    {
-        name: "К",
-        value: 13
-    },
-    {
-        name: "Т",
-        value: 14
-    }
+    { name: "6", value: 6 },
+    { name: "7", value: 7 },
+    { name: "8", value: 8 },
+    { name: "9", value: 9 },
+    { name: "10", value: 10 },
+    { name: "В", value: 11 },
+    { name: "Д", value: 12 },
+    { name: "К", value: 13 },
+    { name: "Т", value: 14 }
 ];
 
 /* =========================================================
-   DECK
+   GLOBAL STATE
+========================================================= */
+
+const rooms = new Map();
+const waitingPlayers = [];
+
+let nextRoomId = 1;
+
+/* =========================================================
+   HELPERS
 ========================================================= */
 
 function createDeck() {
-
     const deck = [];
-
     let id = 0;
 
     for (const suit of SUITS) {
-
         for (const rank of RANKS) {
-
             deck.push({
                 id: `card_${id++}`,
                 suit,
@@ -558,143 +77,35 @@ function createDeck() {
 }
 
 function shuffle(array) {
+    const result = [...array];
 
-    for (
-        let i = array.length - 1;
-        i > 0;
-        i--
-    ) {
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
 
-        const j =
-            Math.floor(
-                Math.random() * (i + 1)
-            );
-
-        [
-            array[i],
-            array[j]
-        ] = [
-            array[j],
-            array[i]
-        ];
+        [result[i], result[j]] =
+            [result[j], result[i]];
     }
 
-    return array;
+    return result;
 }
 
-/* =========================================================
-   MULTIPLAYER GAMES
-========================================================= */
-
-/*
-    Пока игры храним в памяти сервера.
-
-    Позже перенесём состояние активных
-    матчей в Redis/PostgreSQL.
-
-    Для первого MVP этого достаточно.
-*/
-
-const games = new Map();
-
-/*
-    Игроки, которые ждут соперника.
-*/
-
-let matchmakingQueue = [];
-
-/*
-    socket.id -> gameId
-*/
-
-const playerGames = new Map();
-
-/* =========================================================
-   GAME ID
-========================================================= */
-
-function createGameId() {
-
-    return crypto
-        .randomBytes(8)
-        .toString("hex");
+function isTrump(card, game) {
+    return card && card.suit === game.trumpSuit;
 }
 
-/* =========================================================
-   GAME PLAYER
-========================================================= */
-
-function createGamePlayer(
-    socket,
-    player
-) {
-
-    return {
-        socketId: socket.id,
-
-        telegramId:
-            String(
-                player.telegram_id
-            ),
-
-        username:
-            player.username,
-
-        firstName:
-            player.first_name,
-
-        hand: []
-    };
-}
-
-/* =========================================================
-   CARD RULES
-========================================================= */
-
-function isTrump(
-    card,
-    trumpSuit
-) {
-
-    return (
-        card &&
-        card.suit === trumpSuit
-    );
-}
-
-function canBeat(
-    attack,
-    defense,
-    trumpSuit
-) {
-
+function canBeat(attack, defense, game) {
     if (!attack || !defense) {
         return false;
     }
 
-    if (
-        isTrump(
-            defense,
-            trumpSuit
-        ) &&
-        !isTrump(
-            attack,
-            trumpSuit
-        )
-    ) {
+    const attackTrump = isTrump(attack, game);
+    const defenseTrump = isTrump(defense, game);
+
+    if (!attackTrump && defenseTrump) {
         return true;
     }
 
-    if (
-        !isTrump(
-            defense,
-            trumpSuit
-        ) &&
-        isTrump(
-            attack,
-            trumpSuit
-        )
-    ) {
+    if (attackTrump && !defenseTrump) {
         return false;
     }
 
@@ -704,589 +115,82 @@ function canBeat(
     );
 }
 
-/* =========================================================
-   PUBLIC GAME STATE
-========================================================= */
-
-function getPublicGameState(
-    game,
-    telegramId
-) {
-
-    const me =
-        game.players.find(
-            p =>
-                p.telegramId ===
-                String(telegramId)
-        );
-
-    const opponent =
-        game.players.find(
-            p =>
-                p.telegramId !==
-                String(telegramId)
-        );
-
-    return {
-
-        gameId: game.id,
-
-        status: game.status,
-
-        phase: game.phase,
-
-        trumpSuit:
-            game.trumpSuit,
-
-        deckCount:
-            game.deck.length,
-
-        myHand:
-            me
-                ? me.hand
-                : [],
-
-        opponent: opponent
-            ? {
-                telegramId:
-                    opponent.telegramId,
-
-                username:
-                    opponent.username,
-
-                firstName:
-                    opponent.firstName,
-
-                cardCount:
-                    opponent.hand.length
-            }
-            : null,
-
-        table:
-            game.table,
-
-        attacker:
-            game.attacker,
-
-        defender:
-            game.defender
-    };
-}
-
-/* =========================================================
-   SEND GAME STATE
-========================================================= */
-
-function sendGameState(
-    game
-) {
-
-    for (
-        const player of game.players
-    ) {
-
-        const socket =
-            io.sockets.sockets.get(
-                player.socketId
-            );
-
-        if (!socket) {
-            continue;
-        }
-
-        socket.emit(
-            "game_state",
-            getPublicGameState(
-                game,
-                player.telegramId
-            )
-        );
-    }
-}
-
-/* =========================================================
-   DEAL
-========================================================= */
-
-function dealInitialCards(
-    game
-) {
-
-    for (let i = 0; i < 6; i++) {
-
-        for (
-            const player of game.players
-        ) {
-
-            if (
-                game.deck.length === 0
-            ) {
-                return;
-            }
-
-            player.hand.push(
-                game.deck.shift()
-            );
-        }
-    }
-}
-
-/* =========================================================
-   FIRST ATTACKER
-========================================================= */
-
-function determineFirstAttacker(
-    game
-) {
-
-    const first =
-        game.players[0];
-
-    const second =
-        game.players[1];
-
-    const firstTrumps =
-        first.hand
-            .filter(
-                card =>
-                    isTrump(
-                        card,
-                        game.trumpSuit
-                    )
-            )
-            .sort(
-                (a, b) =>
-                    a.value - b.value
-            );
-
-    const secondTrumps =
-        second.hand
-            .filter(
-                card =>
-                    isTrump(
-                        card,
-                        game.trumpSuit
-                    )
-            )
-            .sort(
-                (a, b) =>
-                    a.value - b.value
-            );
-
-    let attacker;
-
-    if (
-        firstTrumps.length &&
-        secondTrumps.length
-    ) {
-
-        attacker =
-            firstTrumps[0].value <=
-            secondTrumps[0].value
-                ? first
-                : second;
-
-    } else if (
-        firstTrumps.length
-    ) {
-
-        attacker = first;
-
-    } else if (
-        secondTrumps.length
-    ) {
-
-        attacker = second;
-
-    } else {
-
-        const firstMin =
-            Math.min(
-                ...first.hand.map(
-                    c => c.value
-                )
-            );
-
-        const secondMin =
-            Math.min(
-                ...second.hand.map(
-                    c => c.value
-                )
-            );
-
-        attacker =
-            firstMin <= secondMin
-                ? first
-                : second;
-    }
-
-    return attacker.telegramId;
-}
-
-/* =========================================================
-   START GAME
-========================================================= */
-
-function startGame(
-    player1,
-    player2
-) {
-
-    const deck =
-        createDeck();
-
-    const trump =
-        deck[deck.length - 1];
-
-    const game = {
-
-        id:
-            createGameId(),
-
-        status:
-            "playing",
-
-        phase:
-            "attack",
-
-        deck,
-
-        trumpSuit:
-            trump.suit,
-
-        players: [
-            player1,
-            player2
-        ],
-
-        attacker:
-            null,
-
-        defender:
-            null,
-
-        table: []
-    };
-
-    dealInitialCards(game);
-
-    game.attacker =
-        determineFirstAttacker(
-            game
-        );
-
-    game.defender =
-        game.players.find(
-            p =>
-                p.telegramId !==
-                game.attacker
-        ).telegramId;
-
-    games.set(
-        game.id,
-        game
+function removeCard(hand, cardId) {
+    const index = hand.findIndex(
+        card => card.id === cardId
     );
-
-    playerGames.set(
-        player1.socketId,
-        game.id
-    );
-
-    playerGames.set(
-        player2.socketId,
-        game.id
-    );
-
-    return game;
-}
-
-/* =========================================================
-   FIND PLAYER
-========================================================= */
-
-function findPlayerBySocket(
-    game,
-    socketId
-) {
-
-    return game.players.find(
-        p =>
-            p.socketId ===
-            socketId
-    );
-}
-
-/* =========================================================
-   FIND GAME
-========================================================= */
-
-function getGameBySocket(
-    socketId
-) {
-
-    const gameId =
-        playerGames.get(
-            socketId
-        );
-
-    if (!gameId) {
-        return null;
-    }
-
-    return games.get(
-        gameId
-    ) || null;
-}
-
-/* =========================================================
-   MATCHMAKING
-========================================================= */
-
-async function joinMatchmaking(
-    socket
-) {
-
-    if (
-        playerGames.has(
-            socket.id
-        )
-    ) {
-
-        socket.emit(
-            "matchmaking_error",
-            {
-                error:
-                    "You are already in a game"
-            }
-        );
-
-        return;
-    }
-
-    const existing =
-        matchmakingQueue.find(
-            item =>
-                item.socketId ===
-                socket.id
-        );
-
-    if (existing) {
-
-        socket.emit(
-            "matchmaking_status",
-            {
-                status: "waiting"
-            }
-        );
-
-        return;
-    }
-
-    const player =
-        socket.player;
-
-    /*
-        Удаляем мёртвые сокеты
-        из очереди.
-    */
-
-    matchmakingQueue =
-        matchmakingQueue.filter(
-            item =>
-                io.sockets.sockets.has(
-                    item.socketId
-                )
-        );
-
-    /*
-        Ищем другого игрока.
-    */
-
-    const opponentIndex =
-        matchmakingQueue.findIndex(
-            item =>
-                item.telegramId !==
-                String(
-                    player.telegram_id
-                )
-        );
-
-    if (
-        opponentIndex === -1
-    ) {
-
-        matchmakingQueue.push({
-
-            socketId:
-                socket.id,
-
-            telegramId:
-                String(
-                    player.telegram_id
-                ),
-
-            player
-        });
-
-        socket.emit(
-            "matchmaking_status",
-            {
-                status: "waiting"
-            }
-        );
-
-        return;
-    }
-
-    const opponent =
-        matchmakingQueue.splice(
-            opponentIndex,
-            1
-        )[0];
-
-    const opponentSocket =
-        io.sockets.sockets.get(
-            opponent.socketId
-        );
-
-    if (!opponentSocket) {
-
-        return joinMatchmaking(
-            socket
-        );
-    }
-
-    const player1 =
-        createGamePlayer(
-            opponentSocket,
-            opponent.player
-        );
-
-    const player2 =
-        createGamePlayer(
-            socket,
-            player
-        );
-
-    const game =
-        startGame(
-            player1,
-            player2
-        );
-
-    opponentSocket.emit(
-        "match_found",
-        {
-            gameId:
-                game.id
-        }
-    );
-
-    socket.emit(
-        "match_found",
-        {
-            gameId:
-                game.id
-        }
-    );
-
-    sendGameState(
-        game
-    );
-}
-
-/* =========================================================
-   REMOVE CARD
-========================================================= */
-
-function removeCardFromHand(
-    player,
-    cardId
-) {
-
-    const index =
-        player.hand.findIndex(
-            card =>
-                card.id ===
-                cardId
-        );
 
     if (index === -1) {
         return null;
     }
 
-    return player.hand.splice(
-        index,
-        1
-    )[0];
+    return hand.splice(index, 1)[0];
 }
 
-/* =========================================================
-   TABLE RANKS
-========================================================= */
+function getPlayer(game, socketId) {
+    if (game.players.player.socketId === socketId) {
+        return game.players.player;
+    }
+
+    if (
+        game.players.defender &&
+        game.players.defender.socketId === socketId
+    ) {
+        return game.players.defender;
+    }
+
+    return null;
+}
+
+function getOpponent(game, socketId) {
+    if (game.players.player.socketId === socketId) {
+        return game.players.defender;
+    }
+
+    return game.players.player;
+}
+
+function getAttacker(game) {
+    return game.players[game.attacker];
+}
+
+function getDefender(game) {
+    return game.players[game.defender];
+}
 
 function getTableRanks(game) {
-
     const ranks = [];
 
-    for (
-        const pair of game.table
-    ) {
-
-        ranks.push(
-            pair.attack.rank
-        );
+    for (const pair of game.table) {
+        ranks.push(pair.attack.rank);
 
         if (pair.defense) {
-
-            ranks.push(
-                pair.defense.rank
-            );
+            ranks.push(pair.defense.rank);
         }
     }
 
     return ranks;
 }
 
-/* =========================================================
-   CAN ATTACK
-========================================================= */
+function canAddCard(game, card) {
+    if (!card) {
+        return false;
+    }
 
-function canAddCard(
-    game,
-    card
-) {
+    if (game.table.length >= game.attackLimit) {
+        return false;
+    }
 
-    if (
-        game.table.length === 0
-    ) {
+    if (game.table.length === 0) {
         return true;
     }
 
-    return getTableRanks(game)
-        .includes(
-            card.rank
-        );
+    return getTableRanks(game).includes(card.rank);
 }
 
-/* =========================================================
-   FIRST UNBEATEN
-========================================================= */
-
-function getFirstUnbeaten(
-    game
-) {
-
-    for (
-        let i = 0;
-        i < game.table.length;
-        i++
-    ) {
-
-        if (
-            !game.table[i].defense
-        ) {
-
+function getFirstUnbeaten(game) {
+    for (let i = 0; i < game.table.length; i++) {
+        if (!game.table[i].defense) {
             return i;
         }
     }
@@ -1294,12 +198,7 @@ function getFirstUnbeaten(
     return -1;
 }
 
-/* =========================================================
-   ALL BEATEN
-========================================================= */
-
 function allBeaten(game) {
-
     return (
         game.table.length > 0 &&
         getFirstUnbeaten(game) === -1
@@ -1307,354 +206,321 @@ function allBeaten(game) {
 }
 
 /* =========================================================
-   PLAY CARD
+   FIRST ATTACKER
 ========================================================= */
 
-function handlePlayCard(
-    socket,
-    cardId
-) {
-
-    const game =
-        getGameBySocket(
-            socket.id
-        );
-
-    if (!game) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "Game not found"
-            }
-        );
-
-        return;
-    }
-
+function determineFirstAttacker(game) {
     const player =
-        findPlayerBySocket(
-            game,
-            socket.id
-        );
-
-    if (!player) {
-        return;
-    }
-
-    /*
-        Только атакующий
-        может атаковать.
-    */
-
-    if (
-        player.telegramId !==
-        game.attacker
-    ) {
-
-        /*
-            Если игрок защищается,
-            это должен быть отбой.
-        */
-
-        if (
-            player.telegramId ===
-            game.defender
-        ) {
-
-            return handleDefense(
-                socket,
-                cardId
-            );
-        }
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "Not your turn"
-            }
-        );
-
-        return;
-    }
-
-    const card =
-        player.hand.find(
-            c =>
-                c.id === cardId
-        );
-
-    if (!card) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "Card not found"
-            }
-        );
-
-        return;
-    }
-
-    if (
-        !canAddCard(
-            game,
-            card
-        )
-    ) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "This card cannot be played"
-            }
-        );
-
-        return;
-    }
-
-    /*
-        Нельзя атаковать
-        больше карт, чем
-        у защищающегося.
-    */
+        game.players.player;
 
     const defender =
-        game.players.find(
-            p =>
-                p.telegramId ===
-                game.defender
-        );
+        game.players.defender;
+
+    const playerTrumps =
+        player.hand
+            .filter(card => isTrump(card, game))
+            .sort((a, b) => a.value - b.value);
+
+    const defenderTrumps =
+        defender.hand
+            .filter(card => isTrump(card, game))
+            .sort((a, b) => a.value - b.value);
 
     if (
-        game.table.length >=
-        defender.hand.length
+        playerTrumps.length &&
+        defenderTrumps.length
     ) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "Attack limit reached"
-            }
-        );
-
-        return;
+        return (
+            playerTrumps[0].value <=
+            defenderTrumps[0].value
+        )
+            ? "player"
+            : "defender";
     }
 
-    removeCardFromHand(
-        player,
-        cardId
-    );
+    if (playerTrumps.length) {
+        return "player";
+    }
 
-    game.table.push({
-        attack: card,
-        defense: null
-    });
+    if (defenderTrumps.length) {
+        return "defender";
+    }
 
-    game.phase =
-        "defense";
+    const playerMin =
+        Math.min(
+            ...player.hand.map(c => c.value)
+        );
 
-    sendGameState(
-        game
+    const defenderMin =
+        Math.min(
+            ...defender.hand.map(c => c.value)
+        );
+
+    return playerMin <= defenderMin
+        ? "player"
+        : "defender";
+}
+
+/* =========================================================
+   GAME CREATION
+========================================================= */
+
+function createGame(socket1, socket2) {
+    const roomId =
+        `room_${nextRoomId++}`;
+
+    const deck = createDeck();
+
+    const game = {
+        roomId,
+
+        deck,
+
+        trumpSuit:
+            deck[deck.length - 1].suit,
+
+        table: [],
+
+        attacker: null,
+        defender: null,
+
+        attackLimit: 6,
+
+        status: "playing",
+
+        players: {
+            player: {
+                socketId: socket1.id,
+                name: socket1.playerName || "Игрок 1",
+                hand: []
+            },
+
+            defender: {
+                socketId: socket2.id,
+                name: socket2.playerName || "Игрок 2",
+                hand: []
+            }
+        }
+    };
+
+    rooms.set(roomId, game);
+
+    socket1.join(roomId);
+    socket2.join(roomId);
+
+    dealInitial(game);
+
+    game.attacker =
+        determineFirstAttacker(game);
+
+    game.defender =
+        game.attacker === "player"
+            ? "defender"
+            : "player";
+
+    game.attackLimit =
+        game.players[game.defender].hand.length;
+
+    return game;
+}
+
+/* =========================================================
+   DEAL
+========================================================= */
+
+function dealInitial(game) {
+    for (let i = 0; i < 6; i++) {
+        for (const role of ["player", "defender"]) {
+            if (game.deck.length <= 1) {
+                return;
+            }
+
+            game.players[role].hand.push(
+                game.deck.shift()
+            );
+        }
+    }
+}
+
+/* =========================================================
+   REFILL
+========================================================= */
+
+function refillHands(game) {
+    const attacker =
+        getAttacker(game);
+
+    const defender =
+        getDefender(game);
+
+    while (
+        attacker.hand.length < 6 &&
+        game.deck.length > 0
+    ) {
+        attacker.hand.push(
+            game.deck.shift()
+        );
+    }
+
+    while (
+        defender.hand.length < 6 &&
+        game.deck.length > 0
+    ) {
+        defender.hand.push(
+            game.deck.shift()
+        );
+    }
+}
+
+/* =========================================================
+   PUBLIC GAME STATE
+========================================================= */
+
+function publicState(game, socketId) {
+    const me =
+        getPlayer(game, socketId);
+
+    const opponent =
+        getOpponent(game, socketId);
+
+    if (!me || !opponent) {
+        return null;
+    }
+
+    const myRole =
+        game.players.player.socketId === socketId
+            ? "player"
+            : "defender";
+
+    return {
+        roomId: game.roomId,
+
+        status: game.status,
+
+        role: myRole,
+
+        turn:
+            game.attacker === myRole
+                ? "attack"
+                : "defense",
+
+        attacker: game.attacker,
+        defender: game.defender,
+
+        trumpSuit: game.trumpSuit,
+
+        deckCount:
+            game.deck.length,
+
+        attackLimit:
+            game.attackLimit,
+
+        table:
+            game.table.map(pair => ({
+                attack: pair.attack,
+                defense: pair.defense
+            })),
+
+        hand: me.hand,
+
+        opponent: {
+            name: opponent.name,
+            count: opponent.hand.length
+        },
+
+        playerName: me.name,
+
+        winner:
+            game.winner || null
+    };
+}
+
+function sendState(game) {
+    for (const role of ["player", "defender"]) {
+        const player =
+            game.players[role];
+
+        io.to(player.socketId).emit(
+            "game_state",
+            publicState(
+                game,
+                player.socketId
+            )
+        );
+    }
+}
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function sendError(socket, message) {
+    socket.emit(
+        "game_error",
+        {
+            message
+        }
     );
 }
 
 /* =========================================================
-   DEFENSE
+   GAME OVER
 ========================================================= */
 
-function handleDefense(
-    socket,
-    cardId
-) {
-
-    const game =
-        getGameBySocket(
-            socket.id
-        );
-
-    if (!game) {
-        return;
+function checkGameOver(game) {
+    if (game.deck.length > 0) {
+        return false;
     }
 
     const player =
-        findPlayerBySocket(
-            game,
-            socket.id
-        );
+        game.players.player;
 
-    if (!player) {
-        return;
-    }
+    const defender =
+        game.players.defender;
 
     if (
-        player.telegramId !==
-        game.defender
+        player.hand.length === 0 &&
+        defender.hand.length === 0
     ) {
+        game.status = "finished";
+        game.winner = "draw";
 
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "You are not defending"
-            }
-        );
-
-        return;
+        return true;
     }
 
-    const index =
-        getFirstUnbeaten(
-            game
-        );
+    if (player.hand.length === 0) {
+        game.status = "finished";
+        game.winner = player.socketId;
 
-    if (index === -1) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "Nothing to beat"
-            }
-        );
-
-        return;
+        return true;
     }
 
-    const card =
-        player.hand.find(
-            c =>
-                c.id === cardId
-        );
+    if (defender.hand.length === 0) {
+        game.status = "finished";
+        game.winner = defender.socketId;
 
-    if (!card) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "Card not found"
-            }
-        );
-
-        return;
+        return true;
     }
 
-    const attack =
-        game.table[index].attack;
-
-    if (
-        !canBeat(
-            attack,
-            card,
-            game.trumpSuit
-        )
-    ) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "This card cannot beat"
-            }
-        );
-
-        return;
-    }
-
-    removeCardFromHand(
-        player,
-        cardId
-    );
-
-    game.table[index].defense =
-        card;
-
-    if (
-        allBeaten(game)
-    ) {
-
-        game.phase =
-            "attack_finished";
-
-    } else {
-
-        game.phase =
-            "defense";
-    }
-
-    sendGameState(
-        game
-    );
+    return false;
 }
 
 /* =========================================================
    FINISH ROUND
 ========================================================= */
 
-function finishRound(
-    socket
-) {
-
-    const game =
-        getGameBySocket(
-            socket.id
-        );
-
-    if (!game) {
-        return;
-    }
-
-    const player =
-        findPlayerBySocket(
-            game,
-            socket.id
-        );
-
-    if (!player) {
-        return;
-    }
-
-    /*
-        Только атакующий может
-        завершить успешную атаку.
-    */
-
-    if (
-        player.telegramId !==
-        game.attacker
-    ) {
-
-        return;
-    }
-
-    if (
-        !allBeaten(game)
-    ) {
-
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "Not all cards are beaten"
-            }
-        );
-
-        return;
+function finishSuccessfulRound(game) {
+    if (!allBeaten(game)) {
+        return false;
     }
 
     game.table = [];
 
     refillHands(game);
 
-    /*
-        Меняем атакующего.
-    */
+    if (checkGameOver(game)) {
+        return true;
+    }
 
     const oldAttacker =
         game.attacker;
@@ -1665,626 +531,586 @@ function finishRound(
     game.defender =
         oldAttacker;
 
-    game.phase =
-        "attack";
+    game.attackLimit =
+        game.players[
+            game.defender
+        ].hand.length;
 
-    checkGameEnd(game);
+    sendState(game);
 
-    sendGameState(
-        game
-    );
+    return true;
 }
 
 /* =========================================================
-   TAKE CARDS
+   PLAYER ATTACK
 ========================================================= */
 
-function takeCards(
-    socket
-) {
+function handleAttack(socket, cardId) {
+    const roomId =
+        socket.roomId;
 
     const game =
-        getGameBySocket(
-            socket.id
-        );
+        rooms.get(roomId);
 
     if (!game) {
         return;
     }
 
     const player =
-        findPlayerBySocket(
-            game,
-            socket.id
-        );
+        getPlayer(game, socket.id);
 
     if (!player) {
         return;
     }
 
-    if (
-        player.telegramId !==
-        game.defender
-    ) {
+    const role =
+        game.players.player.socketId === socket.id
+            ? "player"
+            : "defender";
 
-        socket.emit(
-            "game_error",
-            {
-                error:
-                    "You are not defending"
-            }
+    if (game.status !== "playing") {
+        return;
+    }
+
+    if (game.attacker !== role) {
+        sendError(
+            socket,
+            "Сейчас не твой ход."
         );
 
         return;
     }
 
-    for (
-        const pair of game.table
-    ) {
-
-        player.hand.push(
-            pair.attack
+    const card =
+        player.hand.find(
+            c => c.id === cardId
         );
 
-        if (
-            pair.defense
-        ) {
+    if (!card) {
+        sendError(
+            socket,
+            "Карта не найдена."
+        );
 
-            player.hand.push(
-                pair.defense
-            );
+        return;
+    }
+
+    if (!canAddCard(game, card)) {
+        sendError(
+            socket,
+            "Эту карту нельзя подкинуть."
+        );
+
+        return;
+    }
+
+    removeCard(
+        player.hand,
+        cardId
+    );
+
+    game.table.push({
+        attack: card,
+        defense: null
+    });
+
+    game.attackLimit =
+        Math.min(
+            6,
+            game.players[
+                game.defender
+            ].hand.length
+        );
+
+    sendState(game);
+}
+
+/* =========================================================
+   PLAYER DEFENSE
+========================================================= */
+
+function handleDefense(socket, cardId) {
+    const roomId =
+        socket.roomId;
+
+    const game =
+        rooms.get(roomId);
+
+    if (!game) {
+        return;
+    }
+
+    const defender =
+        getPlayer(game, socket.id);
+
+    if (!defender) {
+        return;
+    }
+
+    const role =
+        game.players.player.socketId === socket.id
+            ? "player"
+            : "defender";
+
+    if (game.defender !== role) {
+        sendError(
+            socket,
+            "Ты не защищающийся."
+        );
+
+        return;
+    }
+
+    const index =
+        getFirstUnbeaten(game);
+
+    if (index === -1) {
+        return;
+    }
+
+    const card =
+        defender.hand.find(
+            c => c.id === cardId
+        );
+
+    if (!card) {
+        sendError(
+            socket,
+            "Карта не найдена."
+        );
+
+        return;
+    }
+
+    const attack =
+        game.table[index].attack;
+
+    if (!canBeat(attack, card, game)) {
+        sendError(
+            socket,
+            "Этой картой нельзя побить."
+        );
+
+        return;
+    }
+
+    removeCard(
+        defender.hand,
+        cardId
+    );
+
+    game.table[index].defense =
+        card;
+
+    sendState(game);
+}
+
+/* =========================================================
+   TAKE
+========================================================= */
+
+function handleTake(socket) {
+    const game =
+        rooms.get(socket.roomId);
+
+    if (!game) {
+        return;
+    }
+
+    const role =
+        game.players.player.socketId === socket.id
+            ? "player"
+            : "defender";
+
+    if (game.defender !== role) {
+        sendError(
+            socket,
+            "Сейчас нельзя брать карты."
+        );
+
+        return;
+    }
+
+    if (allBeaten(game)) {
+        sendError(
+            socket,
+            "Все карты уже отбиты."
+        );
+
+        return;
+    }
+
+    const defender =
+        game.players[role];
+
+    for (const pair of game.table) {
+        defender.hand.push(pair.attack);
+
+        if (pair.defense) {
+            defender.hand.push(pair.defense);
         }
     }
 
     game.table = [];
 
-    /*
-        Защищающийся забирает карты.
-
-        Атакующий сохраняет право
-        атаки.
-    */
-
     refillHands(game);
 
-    game.phase =
-        "attack";
-
-    checkGameEnd(game);
-
-    sendGameState(
-        game
-    );
-}
-
-/* =========================================================
-   REFILL
-========================================================= */
-
-function refillHands(game) {
-
-    const attacker =
-        game.players.find(
-            p =>
-                p.telegramId ===
-                game.attacker
-        );
-
-    const defender =
-        game.players.find(
-            p =>
-                p.telegramId ===
-                game.defender
-        );
-
-    /*
-        Сначала атакующий.
-    */
-
-    while (
-        attacker.hand.length < 6 &&
-        game.deck.length > 0
-    ) {
-
-        attacker.hand.push(
-            game.deck.shift()
-        );
-    }
-
-    /*
-        Затем защищающийся.
-    */
-
-    while (
-        defender.hand.length < 6 &&
-        game.deck.length > 0
-    ) {
-
-        defender.hand.push(
-            game.deck.shift()
-        );
-    }
-}
-
-/* =========================================================
-   GAME END
-========================================================= */
-
-async function checkGameEnd(
-    game
-) {
-
-    if (
-        game.deck.length > 0
-    ) {
-        return false;
-    }
-
-    const p1 =
-        game.players[0];
-
-    const p2 =
-        game.players[1];
-
-    if (
-        p1.hand.length === 0 &&
-        p2.hand.length === 0
-    ) {
-
-        await finishGame(
-            game,
-            null
-        );
-
-        return true;
-    }
-
-    if (
-        p1.hand.length === 0
-    ) {
-
-        await finishGame(
-            game,
-            p1.telegramId
-        );
-
-        return true;
-    }
-
-    if (
-        p2.hand.length === 0
-    ) {
-
-        await finishGame(
-            game,
-            p2.telegramId
-        );
-
-        return true;
-    }
-
-    return false;
-}
-
-/* =========================================================
-   FINISH GAME
-========================================================= */
-
-async function finishGame(
-    game,
-    winnerTelegramId
-) {
-
-    if (
-        game.status ===
-        "finished"
-    ) {
+    if (checkGameOver(game)) {
+        sendState(game);
         return;
     }
 
-    game.status =
-        "finished";
+    /*
+        Защищающийся забирает карты.
+        Атакующий сохраняет право атаки.
+    */
 
-    for (
-        const player of game.players
-    ) {
-
-        const won =
-            winnerTelegramId !== null &&
-            player.telegramId ===
-            String(
-                winnerTelegramId
-            );
-
-        await pool.query(
-            `
-            UPDATE players
-
-            SET games = games + 1,
-
-                wins =
-                    wins +
-                    $1,
-
-                losses =
-                    losses +
-                    $2,
-
-                xp =
-                    xp +
-                    $3
-
-            WHERE telegram_id = $4
-            `,
-            [
-                won ? 1 : 0,
-                (
-                    winnerTelegramId !== null &&
-                    !won
-                ) ? 1 : 0,
-                won ? 100 : 25,
-                player.telegramId
-            ]
+    game.attackLimit =
+        Math.min(
+            6,
+            game.players[
+                game.defender
+            ].hand.length
         );
-    }
 
-    sendGameState(
-        game
-    );
-
-    for (
-        const player of game.players
-    ) {
-
-        const socket =
-            io.sockets.sockets.get(
-                player.socketId
-            );
-
-        if (!socket) {
-            continue;
-        }
-
-        let result =
-            "draw";
-
-        if (
-            winnerTelegramId
-        ) {
-
-            result =
-                String(
-                    winnerTelegramId
-                ) ===
-                player.telegramId
-                    ? "win"
-                    : "loss";
-        }
-
-        socket.emit(
-            "game_finished",
-            {
-                result
-            }
-        );
-    }
+    sendState(game);
 }
 
 /* =========================================================
-   SOCKET AUTH
+   BITO
 ========================================================= */
 
-io.use(
-    async (socket, next) => {
+function handleBeatOff(socket) {
+    const game =
+        rooms.get(socket.roomId);
 
-        try {
+    if (!game) {
+        return;
+    }
 
-            const initData =
-                socket.handshake.auth
-                    ?.initData;
+    const role =
+        game.players.player.socketId === socket.id
+            ? "player"
+            : "defender";
 
-            const telegramUser =
-                validateTelegramInitData(
-                    initData
-                );
+    if (game.attacker !== role) {
+        sendError(
+            socket,
+            "Только атакующий может завершить атаку."
+        );
 
-            if (!telegramUser) {
+        return;
+    }
 
-                return next(
-                    new Error(
-                        "Invalid Telegram authentication"
-                    )
-                );
-            }
+    if (!allBeaten(game)) {
+        sendError(
+            socket,
+            "Не все карты отбиты."
+        );
 
-            const player =
-                await getOrCreatePlayer(
-                    telegramUser
-                );
+        return;
+    }
 
-            socket.telegramUser =
-                telegramUser;
+    finishSuccessfulRound(game);
+}
 
-            socket.player =
-                player;
+/* =========================================================
+   CONNECTION
+========================================================= */
 
-            next();
+io.on("connection", socket => {
+    console.log(
+        "Connected:",
+        socket.id
+    );
 
-        } catch (error) {
+    socket.emit(
+        "connected",
+        {
+            socketId: socket.id
+        }
+    );
 
-            console.error(
-                "Socket auth error:",
-                error
-            );
+    /* =====================================================
+       SET PLAYER
+    ===================================================== */
 
-            next(
-                new Error(
-                    "Authentication failed"
-                )
+    socket.on(
+        "set_player",
+        data => {
+
+            socket.playerName =
+                String(
+                    data?.name ||
+                    "Игрок"
+                ).slice(0, 30);
+
+            socket.emit(
+                "player_ready",
+                {
+                    name: socket.playerName
+                }
             );
         }
-    }
-);
+    );
 
-/* =========================================================
-   SOCKET CONNECTION
-========================================================= */
+    /* =====================================================
+       FIND GAME
+    ===================================================== */
 
-io.on(
-    "connection",
-    socket => {
+    socket.on(
+        "find_game",
+        () => {
 
-        console.log(
-            "Player connected:",
-            socket.player.telegram_id
-        );
+            if (socket.roomId) {
+                return;
+            }
 
-        socket.emit(
-            "connected",
-            {
-                success: true,
+            /*
+                Удаляем отключившиеся сокеты
+                из очереди.
+            */
 
-                player: {
-                    telegram_id:
-                        socket.player.telegram_id,
-
-                    username:
-                        socket.player.username,
-
-                    first_name:
-                        socket.player.first_name,
-
-                    balance:
-                        socket.player.balance,
-
-                    level:
-                        socket.player.level,
-
-                    title:
-                        getTitle(
-                            socket.player.level
-                        )
+            for (
+                let i = waitingPlayers.length - 1;
+                i >= 0;
+                i--
+            ) {
+                if (
+                    !waitingPlayers[i].connected
+                ) {
+                    waitingPlayers.splice(i, 1);
                 }
             }
-        );
 
-        /*
-            ПОИСК СОПЕРНИКА
-        */
+            /*
+                Если никого нет —
+                становимся первым игроком.
+            */
 
-        socket.on(
-            "find_game",
-            async () => {
+            if (waitingPlayers.length === 0) {
 
-                try {
-
-                    await joinMatchmaking(
-                        socket
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "Matchmaking error:",
-                        error
-                    );
-
-                    socket.emit(
-                        "matchmaking_error",
-                        {
-                            error:
-                                "Matchmaking error"
-                        }
-                    );
-                }
-            }
-        );
-
-        /*
-            ОТМЕНА ПОИСКА
-        */
-
-        socket.on(
-            "cancel_matchmaking",
-            () => {
-
-                matchmakingQueue =
-                    matchmakingQueue.filter(
-                        item =>
-                            item.socketId !==
-                            socket.id
-                    );
+                waitingPlayers.push(socket);
 
                 socket.emit(
-                    "matchmaking_status",
+                    "waiting",
                     {
-                        status:
-                            "cancelled"
+                        message:
+                            "Ищем соперника..."
                     }
                 );
-            }
-        );
-
-        /*
-            ПОЛОЖИТЬ КАРТУ
-        */
-
-        socket.on(
-            "play_card",
-            cardId => {
-
-                try {
-
-                    handlePlayCard(
-                        socket,
-                        cardId
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "PLAY CARD ERROR:",
-                        error
-                    );
-
-                    socket.emit(
-                        "game_error",
-                        {
-                            error:
-                                "Server error"
-                        }
-                    );
-                }
-            }
-        );
-
-        /*
-            БИТО
-        */
-
-        socket.on(
-            "beat",
-            () => {
-
-                try {
-
-                    finishRound(
-                        socket
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "BEAT ERROR:",
-                        error
-                    );
-                }
-            }
-        );
-
-        /*
-            ВЗЯТЬ
-        */
-
-        socket.on(
-            "take",
-            () => {
-
-                try {
-
-                    takeCards(
-                        socket
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "TAKE ERROR:",
-                        error
-                    );
-                }
-            }
-        );
-
-        /*
-            ОТКЛЮЧЕНИЕ
-        */
-
-        socket.on(
-            "disconnect",
-            () => {
 
                 console.log(
-                    "Player disconnected:",
-                    socket.player.telegram_id
-                );
-
-                matchmakingQueue =
-                    matchmakingQueue.filter(
-                        item =>
-                            item.socketId !==
-                            socket.id
-                    );
-
-                const game =
-                    getGameBySocket(
-                        socket.id
-                    );
-
-                if (!game) {
-                    return;
-                }
-
-                /*
-                    Если игрок вышел,
-                    второй пока получает
-                    победу по disconnect.
-                */
-
-                const opponent =
-                    game.players.find(
-                        p =>
-                            p.socketId !==
-                            socket.id
-                    );
-
-                if (
-                    opponent
-                ) {
-
-                    finishGame(
-                        game,
-                        opponent.telegramId
-                    );
-                }
-
-                playerGames.delete(
+                    "Waiting:",
                     socket.id
                 );
+
+                return;
             }
-        );
-    }
-);
 
-/* =========================================================
-   SERVER
-========================================================= */
+            /*
+                Берём первого ожидающего.
+            */
 
-async function startServer() {
+            const opponent =
+                waitingPlayers.shift();
 
-    await initDatabase();
+            if (
+                !opponent ||
+                !opponent.connected
+            ) {
+                waitingPlayers.push(socket);
 
-    server.listen(
-        PORT,
-        "0.0.0.0",
+                socket.emit(
+                    "waiting",
+                    {
+                        message:
+                            "Ищем соперника..."
+                    }
+                );
+
+                return;
+            }
+
+            const game =
+                createGame(
+                    opponent,
+                    socket
+                );
+
+            opponent.roomId =
+                game.roomId;
+
+            socket.roomId =
+                game.roomId;
+
+            opponent.emit(
+                "game_found"
+            );
+
+            socket.emit(
+                "game_found"
+            );
+
+            sendState(game);
+
+            console.log(
+                "Game started:",
+                game.roomId
+            );
+        }
+    );
+
+    /* =====================================================
+       PLAY CARD
+    ===================================================== */
+
+    socket.on(
+        "play_card",
+        data => {
+
+            const game =
+                rooms.get(
+                    socket.roomId
+                );
+
+            if (!game) {
+                return;
+            }
+
+            const role =
+                game.players.player.socketId === socket.id
+                    ? "player"
+                    : "defender";
+
+            if (
+                game.attacker === role
+            ) {
+                handleAttack(
+                    socket,
+                    data?.cardId
+                );
+            } else if (
+                game.defender === role
+            ) {
+                handleDefense(
+                    socket,
+                    data?.cardId
+                );
+            }
+        }
+    );
+
+    /* =====================================================
+       TAKE
+    ===================================================== */
+
+    socket.on(
+        "take_cards",
+        () => {
+            handleTake(socket);
+        }
+    );
+
+    /* =====================================================
+       BITO
+    ===================================================== */
+
+    socket.on(
+        "beat_off",
+        () => {
+            handleBeatOff(socket);
+        }
+    );
+
+    /* =====================================================
+       DISCONNECT
+    ===================================================== */
+
+    socket.on(
+        "disconnect",
         () => {
 
             console.log(
-                `Heavy Lux Card multiplayer backend running on port ${PORT}`
+                "Disconnected:",
+                socket.id
             );
 
+            /*
+                Удаляем из очереди.
+            */
+
+            const waitingIndex =
+                waitingPlayers.indexOf(socket);
+
+            if (waitingIndex !== -1) {
+                waitingPlayers.splice(
+                    waitingIndex,
+                    1
+                );
+            }
+
+            /*
+                Если игрок был в игре —
+                уведомляем соперника.
+            */
+
+            if (!socket.roomId) {
+                return;
+            }
+
+            const game =
+                rooms.get(
+                    socket.roomId
+                );
+
+            if (!game) {
+                return;
+            }
+
+            game.status =
+                "opponent_left";
+
+            const opponent =
+                getOpponent(
+                    game,
+                    socket.id
+                );
+
+            if (opponent) {
+                io.to(
+                    opponent.socketId
+                ).emit(
+                    "opponent_left"
+                );
+            }
+
+            rooms.delete(
+                socket.roomId
+            );
         }
     );
+});
+
+/* =========================================================
+   STATS
+========================================================= */
+
+function getOnlinePlayers() {
+    return io.sockets.sockets.size;
 }
 
-startServer();
+/* =========================================================
+   START
+========================================================= */
+
+server.listen(
+    PORT,
+    () => {
+
+        console.log(
+            `Heavy Lux Card server started on port ${PORT}`
+        );
+
+    }
+);
