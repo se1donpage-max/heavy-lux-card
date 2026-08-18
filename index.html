@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -11,16 +10,14 @@
 
     <meta
         name="theme-color"
-        content="#0b0b0f"
+        content="#090909"
     >
 
     <title>Heavy Lux Card</title>
 
-    <!-- Telegram Mini App -->
-    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <!-- Socket.IO -->
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
     <style>
 
@@ -40,25 +37,24 @@
             background:
                 radial-gradient(
                     circle at top,
-                    #242433 0%,
-                    #101016 45%,
-                    #08080b 100%
+                    #222 0%,
+                    #0d0d0d 45%,
+                    #050505 100%
                 );
 
-            color: #ffffff;
+            color: #fff;
 
             font-family:
                 -apple-system,
                 BlinkMacSystemFont,
-                "SF Pro Display",
                 "Segoe UI",
-                Arial,
                 sans-serif;
+
+            overscroll-behavior: none;
         }
 
         body {
             min-height: 100vh;
-            overflow-x: hidden;
         }
 
         button {
@@ -68,106 +64,899 @@
         .app {
             width: 100%;
             max-width: 600px;
+            min-height: 100vh;
 
             margin: 0 auto;
 
-            min-height: 100vh;
+            padding:
+                16px
+                16px
+                100px;
+        }
+
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            margin-bottom: 18px;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title {
+            font-size: 22px;
+            font-weight: 800;
+
+            letter-spacing: -0.5px;
+        }
+
+        .brand-subtitle {
+            margin-top: 2px;
+
+            font-size: 12px;
+
+            color: #888;
+        }
+
+        .balance {
+            padding:
+                8px
+                12px;
+
+            border-radius: 12px;
+
+            background:
+                rgba(255,255,255,0.07);
+
+            border:
+                1px solid
+                rgba(255,255,255,0.08);
+
+            font-size: 14px;
+            font-weight: 700;
+
+            white-space: nowrap;
+        }
+
+        .balance span {
+            color: #f5c451;
+        }
+
+
+        /* =====================================================
+           PLAYER
+        ===================================================== */
+
+        .player-card {
+            display: flex;
+            align-items: center;
+
+            gap: 12px;
+
+            padding: 14px;
+
+            margin-bottom: 18px;
+
+            border-radius: 18px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,.08),
+                    rgba(255,255,255,.03)
+                );
+
+            border:
+                1px solid
+                rgba(255,255,255,.08);
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #f4c65b,
+                    #9a6d15
+                );
+
+            color: #111;
+
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .player-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .player-name {
+            font-size: 16px;
+            font-weight: 800;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-title {
+            margin-top: 3px;
+
+            font-size: 12px;
+
+            color: #aaa;
+        }
+
+        .level {
+            text-align: right;
+        }
+
+        .level-number {
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .level-label {
+            margin-top: 2px;
+
+            font-size: 11px;
+
+            color: #888;
+        }
+
+
+        /* =====================================================
+           NAVIGATION
+        ===================================================== */
+
+        .tabs {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 8px;
+
+            margin-bottom: 18px;
+        }
+
+        .tab {
+            border: 0;
+
+            padding: 11px 6px;
+
+            border-radius: 13px;
+
+            background:
+                rgba(255,255,255,.05);
+
+            color: #888;
+
+            font-size: 12px;
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background:
+                rgba(245,196,81,.15);
+
+            color: #f5c451;
+
+            border:
+                1px solid
+                rgba(245,196,81,.25);
+        }
+
+
+        /* =====================================================
+           SECTIONS
+        ===================================================== */
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-title {
+            margin:
+                0
+                0
+                5px;
+
+            font-size: 22px;
+            font-weight: 850;
+        }
+
+        .section-description {
+            margin:
+                0
+                0
+                16px;
+
+            color: #888;
+
+            font-size: 13px;
+
+            line-height: 1.45;
+        }
+
+
+        /* =====================================================
+           GARAGE
+        ===================================================== */
+
+        .garage-empty {
+            padding: 40px 20px;
+
+            text-align: center;
+
+            border-radius: 20px;
+
+            background:
+                rgba(255,255,255,.04);
+
+            border:
+                1px solid
+                rgba(255,255,255,.07);
+        }
+
+        .garage-empty-icon {
+            font-size: 44px;
+
+            margin-bottom: 10px;
+        }
+
+        .garage-empty-title {
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .garage-empty-text {
+            margin-top: 6px;
+
+            color: #777;
+
+            font-size: 13px;
+        }
+
+
+        /* =====================================================
+           CAR CARD
+        ===================================================== */
+
+        .car-card {
+            overflow: hidden;
+
+            margin-bottom: 14px;
+
+            border-radius: 20px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #191919,
+                    #0d0d0d
+                );
+
+            border:
+                1px solid
+                rgba(255,255,255,.08);
+
+            box-shadow:
+                0 12px 30px
+                rgba(0,0,0,.25);
+        }
+
+        .car-image {
+            height: 180px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background:
+                radial-gradient(
+                    circle,
+                    #292929 0%,
+                    #111 65%,
+                    #080808 100%
+                );
+
+            overflow: hidden;
+        }
+
+        .car-image img {
+            width: 100%;
+            height: 100%;
+
+            object-fit: cover;
+        }
+
+        .car-placeholder {
+            font-size: 70px;
+
+            opacity: .8;
+        }
+
+        .car-body {
+            padding: 16px;
+        }
+
+        .car-top {
+            display: flex;
+            justify-content: space-between;
+
+            gap: 10px;
+        }
+
+        .car-name {
+            font-size: 19px;
+            font-weight: 850;
+        }
+
+        .car-price {
+            color: #f5c451;
+
+            font-size: 13px;
+            font-weight: 700;
+
+            white-space: nowrap;
+        }
+
+        .car-description {
+            margin-top: 5px;
+
+            color: #777;
+
+            font-size: 12px;
+        }
+
+
+        /* =====================================================
+           STATUS
+        ===================================================== */
+
+        .car-status {
+            display: flex;
+            align-items: center;
+
+            gap: 8px;
+
+            margin-top: 14px;
+
+            padding: 10px 12px;
+
+            border-radius: 12px;
+
+            background:
+                rgba(255,255,255,.04);
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+
+            border-radius: 50%;
+
+            flex-shrink: 0;
+        }
+
+        .status-green {
+            background: #36d978;
+
+            box-shadow:
+                0 0 8px
+                rgba(54,217,120,.6);
+        }
+
+        .status-red {
+            background: #ff4e4e;
+
+            box-shadow:
+                0 0 8px
+                rgba(255,78,78,.5);
+        }
+
+
+        /* =====================================================
+           PLATE
+        ===================================================== */
+
+        .plate {
+            display: inline-flex;
+            align-items: center;
+
+            margin-top: 12px;
+
+            padding: 7px 12px;
+
+            background: #eee;
+
+            color: #111;
+
+            border-radius: 5px;
+
+            border:
+                2px solid
+                #aaa;
+
+            font-size: 17px;
+            font-weight: 900;
+
+            letter-spacing: 1px;
+        }
+
+        .plate-region {
+            margin-left: 5px;
+
+            padding-left: 5px;
+
+            border-left:
+                1px solid
+                #777;
+
+            font-size: 12px;
+        }
+
+
+        /* =====================================================
+           BUTTONS
+        ===================================================== */
+
+        .button {
+            width: 100%;
+
+            margin-top: 12px;
+
+            padding: 13px 15px;
+
+            border: 0;
+
+            border-radius: 13px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #f5c451,
+                    #b7831c
+                );
+
+            color: #111;
+
+            font-size: 14px;
+            font-weight: 850;
+
+            cursor: pointer;
+        }
+
+        .button:active {
+            transform: scale(.98);
+        }
+
+        .button.secondary {
+            background:
+                rgba(255,255,255,.07);
+
+            color: #fff;
+
+            border:
+                1px solid
+                rgba(255,255,255,.08);
+        }
+
+        .button.danger {
+            background:
+                rgba(255,70,70,.12);
+
+            color: #ff6b6b;
+
+            border:
+                1px solid
+                rgba(255,70,70,.15);
+        }
+
+        .button:disabled {
+            opacity: .5;
+
+            cursor: not-allowed;
+        }
+
+
+        /* =====================================================
+           CATALOG
+        ===================================================== */
+
+        .catalog-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 12px;
+        }
+
+        .catalog-card {
+            overflow: hidden;
+
+            border-radius: 17px;
+
+            background:
+                rgba(255,255,255,.04);
+
+            border:
+                1px solid
+                rgba(255,255,255,.07);
+        }
+
+        .catalog-image {
+            height: 110px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background:
+                radial-gradient(
+                    circle,
+                    #292929,
+                    #111
+                );
+        }
+
+        .catalog-image img {
+            width: 100%;
+            height: 100%;
+
+            object-fit: cover;
+        }
+
+        .catalog-placeholder {
+            font-size: 45px;
+        }
+
+        .catalog-body {
+            padding: 12px;
+        }
+
+        .catalog-name {
+            min-height: 36px;
+
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .catalog-price {
+            margin-top: 6px;
+
+            color: #f5c451;
+
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .catalog-card .button {
+            font-size: 12px;
+
+            padding: 10px 8px;
+        }
+
+
+        /* =====================================================
+           MREO
+        ===================================================== */
+
+        .mreo-card {
+            padding: 18px;
+
+            border-radius: 20px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #181818,
+                    #0c0c0c
+                );
+
+            border:
+                1px solid
+                rgba(255,255,255,.08);
+        }
+
+        .mreo-header {
+            display: flex;
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 18px;
+        }
+
+        .mreo-icon {
+            width: 46px;
+            height: 46px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 14px;
+
+            background:
+                rgba(245,196,81,.12);
+
+            font-size: 24px;
+        }
+
+        .mreo-title {
+            font-size: 17px;
+            font-weight: 850;
+        }
+
+        .mreo-subtitle {
+            margin-top: 3px;
+
+            color: #777;
+
+            font-size: 12px;
+        }
+
+        .mreo-info {
+            display: flex;
+            flex-direction: column;
+
+            gap: 10px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+
+            gap: 15px;
 
             padding:
-                calc(env(safe-area-inset-top) + 12px)
-                14px
-                calc(env(safe-area-inset-bottom) + 20px);
+                10px
+                0;
+
+            border-bottom:
+                1px solid
+                rgba(255,255,255,.06);
+
+            font-size: 13px;
         }
+
+        .info-row:last-child {
+            border-bottom: 0;
+        }
+
+        .info-label {
+            color: #777;
+        }
+
+        .info-value {
+            text-align: right;
+
+            font-weight: 700;
+        }
+
+        .registration-price {
+            color: #f5c451;
+        }
+
+
+        /* =====================================================
+           NUMBER INFO
+        ===================================================== */
+
+        .number-info {
+            margin-top: 14px;
+
+            padding: 14px;
+
+            border-radius: 14px;
+
+            background:
+                rgba(245,196,81,.07);
+
+            border:
+                1px solid
+                rgba(245,196,81,.13);
+        }
+
+        .number-info-title {
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .number-info-text {
+            margin-top: 5px;
+
+            color: #888;
+
+            font-size: 12px;
+
+            line-height: 1.4;
+        }
+
+
+        /* =====================================================
+           PROFILE
+        ===================================================== */
+
+        .profile-card {
+            padding: 18px;
+
+            border-radius: 20px;
+
+            background:
+                rgba(255,255,255,.04);
+
+            border:
+                1px solid
+                rgba(255,255,255,.07);
+        }
+
+        .stats-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 10px;
+
+            margin-top: 15px;
+        }
+
+        .stat {
+            padding: 14px;
+
+            border-radius: 14px;
+
+            background:
+                rgba(255,255,255,.04);
+        }
+
+        .stat-value {
+            font-size: 19px;
+            font-weight: 850;
+        }
+
+        .stat-label {
+            margin-top: 3px;
+
+            color: #777;
+
+            font-size: 11px;
+        }
+
+
+        /* =====================================================
+           TOAST
+        ===================================================== */
+
+        .toast-container {
+            position: fixed;
+
+            left: 16px;
+            right: 16px;
+
+            bottom: 85px;
+
+            z-index: 9999;
+
+            display: flex;
+            flex-direction: column;
+
+            gap: 8px;
+
+            pointer-events: none;
+        }
+
+        .toast {
+            padding: 13px 15px;
+
+            border-radius: 14px;
+
+            background:
+                rgba(25,25,25,.96);
+
+            border:
+                1px solid
+                rgba(255,255,255,.1);
+
+            box-shadow:
+                0 10px 30px
+                rgba(0,0,0,.4);
+
+            font-size: 13px;
+
+            animation:
+                toastIn .2s ease;
+        }
+
+        .toast.success {
+            border-color:
+                rgba(54,217,120,.3);
+        }
+
+        .toast.error {
+            border-color:
+                rgba(255,70,70,.3);
+        }
+
+        @keyframes toastIn {
+
+            from {
+                opacity: 0;
+                transform:
+                    translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform:
+                    translateY(0);
+            }
+
+        }
+
 
         /* =====================================================
            LOADING
         ===================================================== */
 
-        #loadingScreen {
+        .loading {
+            padding: 40px 10px;
 
-            position: fixed;
+            text-align: center;
 
-            inset: 0;
+            color: #777;
 
-            z-index: 9999;
-
-            display: flex;
-
-            flex-direction: column;
-
-            align-items: center;
-
-            justify-content: center;
-
-            background:
-                radial-gradient(
-                    circle at center,
-                    #24243a 0%,
-                    #0b0b0f 65%
-                );
+            font-size: 13px;
         }
 
-        .loading-logo {
+        .spinner {
+            width: 28px;
+            height: 28px;
 
-            width: 90px;
-            height: 90px;
-
-            border-radius: 26px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            font-size: 42px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #ffd76a,
-                    #b7791f
-                );
-
-            box-shadow:
-                0 15px 50px
-                rgba(255, 190, 70, .25);
-        }
-
-        .loading-title {
-
-            margin-top: 20px;
-
-            font-size: 23px;
-
-            font-weight: 800;
-
-            letter-spacing: .5px;
-        }
-
-        .loading-text {
-
-            margin-top: 8px;
-
-            color: #8e8e9c;
-
-            font-size: 14px;
-        }
-
-        .loader {
-
-            width: 32px;
-            height: 32px;
-
-            margin-top: 24px;
-
-            border-radius: 50%;
+            margin:
+                0
+                auto
+                12px;
 
             border:
                 3px solid
-                rgba(255,255,255,.15);
+                rgba(255,255,255,.08);
 
             border-top-color:
-                #ffd76a;
+                #f5c451;
+
+            border-radius: 50%;
 
             animation:
                 spin .8s linear infinite;
@@ -176,1105 +965,88 @@
         @keyframes spin {
 
             to {
-                transform: rotate(360deg);
+                transform:
+                    rotate(360deg);
             }
 
         }
 
-        /* =====================================================
-           HEADER
-        ===================================================== */
-
-        .header {
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: space-between;
-
-            gap: 10px;
-
-            margin-bottom: 14px;
-        }
-
-        .brand {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 10px;
-        }
-
-        .brand-icon {
-
-            width: 42px;
-            height: 42px;
-
-            flex-shrink: 0;
-
-            border-radius: 13px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #ffe58a,
-                    #b87520
-                );
-
-            color: #17120a;
-
-            font-size: 22px;
-
-            box-shadow:
-                0 8px 25px
-                rgba(255, 192, 72, .18);
-        }
-
-        .brand-name {
-
-            font-size: 18px;
-
-            font-weight: 800;
-        }
-
-        .brand-subtitle {
-
-            margin-top: 2px;
-
-            font-size: 11px;
-
-            color: #7e7e8b;
-        }
-
-        .connection {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 6px;
-
-            padding:
-                7px
-                9px;
-
-            border-radius: 20px;
-
-            background:
-                rgba(255,255,255,.05);
-
-            color: #9999a6;
-
-            font-size: 11px;
-        }
-
-        .connection-dot {
-
-            width: 7px;
-            height: 7px;
-
-            border-radius: 50%;
-
-            background: #777;
-
-        }
-
-        .connection.online .connection-dot {
-
-            background: #4ade80;
-
-            box-shadow:
-                0 0 10px
-                rgba(74,222,128,.8);
-
-        }
 
         /* =====================================================
-           PROFILE
+           BOTTOM NAV
         ===================================================== */
 
-        .profile-card {
+        .bottom-nav {
+            position: fixed;
 
-            padding: 16px;
+            left: 50%;
 
-            border:
-                1px solid
-                rgba(255,255,255,.07);
+            bottom: 12px;
 
-            border-radius: 22px;
+            transform:
+                translateX(-50%);
 
-            background:
-                linear-gradient(
-                    145deg,
-                    rgba(255,255,255,.07),
-                    rgba(255,255,255,.025)
-                );
+            width:
+                calc(100% - 24px);
 
-            box-shadow:
-                0 15px 40px
-                rgba(0,0,0,.18);
-
-            backdrop-filter: blur(15px);
-
-            margin-bottom: 12px;
-        }
-
-        .profile-top {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 12px;
-        }
-
-        .avatar {
-
-            width: 54px;
-            height: 54px;
-
-            border-radius: 17px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #36364b,
-                    #1c1c29
-                );
-
-            border:
-                1px solid
-                rgba(255,255,255,.08);
-
-            font-size: 22px;
-
-            font-weight: 800;
-        }
-
-        .player-name {
-
-            font-size: 17px;
-
-            font-weight: 750;
-
-            white-space: nowrap;
-
-            overflow: hidden;
-
-            text-overflow: ellipsis;
-        }
-
-        .player-title {
-
-            margin-top: 4px;
-
-            color: #b9b9c5;
-
-            font-size: 12px;
-        }
-
-        .level {
-
-            margin-left: auto;
-
-            min-width: 48px;
-
-            text-align: center;
-
-            padding: 8px 9px;
-
-            border-radius: 13px;
-
-            background:
-                rgba(255,215,106,.10);
-
-            border:
-                1px solid
-                rgba(255,215,106,.18);
-
-            color: #ffd76a;
-
-            font-size: 12px;
-
-            font-weight: 800;
-        }
-
-        .balance {
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: space-between;
-
-            margin-top: 16px;
-
-            padding-top: 14px;
-
-            border-top:
-                1px solid
-                rgba(255,255,255,.06);
-        }
-
-        .balance-label {
-
-            color: #858591;
-
-            font-size: 12px;
-        }
-
-        .balance-value {
-
-            color: #ffd76a;
-
-            font-size: 22px;
-
-            font-weight: 850;
-
-            letter-spacing: .2px;
-        }
-
-        .coin {
-
-            display: inline-flex;
-
-            align-items: center;
-            justify-content: center;
-
-            width: 22px;
-            height: 22px;
-
-            margin-left: 5px;
-
-            border-radius: 50%;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #ffe48a,
-                    #c48627
-                );
-
-            color: #33240b;
-
-            font-size: 12px;
-
-            font-weight: 900;
-
-            vertical-align: 2px;
-        }
-
-        /* =====================================================
-           XP
-        ===================================================== */
-
-        .xp-box {
-
-            margin-top: 12px;
-        }
-
-        .xp-header {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            color: #777784;
-
-            font-size: 11px;
-
-            margin-bottom: 6px;
-        }
-
-        .xp-bar {
-
-            width: 100%;
-
-            height: 6px;
-
-            overflow: hidden;
-
-            border-radius: 10px;
-
-            background:
-                rgba(255,255,255,.06);
-        }
-
-        .xp-fill {
-
-            width: 0%;
-
-            height: 100%;
-
-            border-radius: inherit;
-
-            background:
-                linear-gradient(
-                    90deg,
-                    #ffd76a,
-                    #fff0a8
-                );
-
-            transition:
-                width .4s ease;
-        }
-
-        /* =====================================================
-           NAV
-        ===================================================== */
-
-        .navigation {
+            max-width: 576px;
 
             display: grid;
 
             grid-template-columns:
                 repeat(3, 1fr);
 
-            gap: 8px;
+            gap: 6px;
 
-            margin-bottom: 12px;
-        }
+            padding: 7px;
 
-        .nav-button {
-
-            border: none;
-
-            border-radius: 15px;
-
-            padding: 12px 8px;
-
-            color: #9999a6;
+            border-radius: 18px;
 
             background:
-                rgba(255,255,255,.045);
+                rgba(20,20,20,.94);
 
-            font-size: 12px;
+            border:
+                1px solid
+                rgba(255,255,255,.1);
 
+            backdrop-filter:
+                blur(15px);
+
+            z-index: 100;
+        }
+
+        .bottom-button {
+            border: 0;
+
+            background: transparent;
+
+            color: #777;
+
+            padding: 9px 5px;
+
+            border-radius: 12px;
+
+            font-size: 11px;
             font-weight: 700;
 
             cursor: pointer;
         }
 
-        .nav-button.active {
-
-            color: #17120a;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #ffe58a,
-                    #d19a35
-                );
-        }
-
-        /* =====================================================
-           SCREENS
-        ===================================================== */
-
-        .screen {
-
-            display: none;
-        }
-
-        .screen.active {
-
+        .bottom-button-icon {
             display: block;
-        }
-
-        .section-title {
-
-            margin: 5px 3px 10px;
-
-            font-size: 17px;
-
-            font-weight: 800;
-        }
-
-        .section-description {
-
-            margin:
-                -5px
-                3px
-                12px;
-
-            color: #777784;
-
-            font-size: 12px;
-
-            line-height: 1.45;
-        }
-
-        /* =====================================================
-           HOME
-        ===================================================== */
-
-        .hero {
-
-            position: relative;
-
-            overflow: hidden;
-
-            padding: 22px;
-
-            min-height: 185px;
-
-            border-radius: 24px;
-
-            background:
-                radial-gradient(
-                    circle at 85% 15%,
-                    rgba(255,215,106,.18),
-                    transparent 30%
-                ),
-                linear-gradient(
-                    135deg,
-                    #272739,
-                    #111118
-                );
-
-            border:
-                1px solid
-                rgba(255,255,255,.07);
-
-            box-shadow:
-                0 20px 50px
-                rgba(0,0,0,.25);
-        }
-
-        .hero::after {
-
-            content: "♠";
-
-            position: absolute;
-
-            right: -10px;
-            bottom: -40px;
-
-            font-size: 170px;
-
-            color:
-                rgba(255,255,255,.025);
-
-            transform: rotate(-12deg);
-        }
-
-        .hero-small {
-
-            color: #92929e;
-
-            font-size: 12px;
-        }
-
-        .hero-title {
-
-            max-width: 270px;
-
-            margin-top: 8px;
-
-            font-size: 28px;
-
-            line-height: 1.05;
-
-            font-weight: 900;
-        }
-
-        .hero-title span {
-
-            color: #ffd76a;
-        }
-
-        .hero-text {
-
-            max-width: 270px;
-
-            margin-top: 10px;
-
-            color: #8b8b99;
-
-            font-size: 12px;
-
-            line-height: 1.5;
-        }
-
-        .primary-button {
-
-            position: relative;
-
-            z-index: 2;
-
-            margin-top: 18px;
-
-            border: none;
-
-            padding: 13px 18px;
-
-            border-radius: 14px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #ffe58a,
-                    #c68a29
-                );
-
-            color: #191309;
-
-            font-size: 13px;
-
-            font-weight: 850;
-
-            cursor: pointer;
-
-            box-shadow:
-                0 10px 25px
-                rgba(209,154,53,.18);
-        }
-
-        .primary-button:active {
-
-            transform: scale(.97);
-        }
-
-        .stats-grid {
-
-            display: grid;
-
-            grid-template-columns:
-                repeat(3, 1fr);
-
-            gap: 8px;
-
-            margin-top: 10px;
-        }
-
-        .stat {
-
-            padding: 14px 10px;
-
-            border-radius: 17px;
-
-            background:
-                rgba(255,255,255,.045);
-
-            border:
-                1px solid
-                rgba(255,255,255,.05);
-
-            text-align: center;
-        }
-
-        .stat-value {
 
             font-size: 19px;
 
-            font-weight: 850;
+            margin-bottom: 2px;
         }
 
-        .stat-label {
-
-            margin-top: 4px;
-
-            color: #777784;
-
-            font-size: 10px;
-        }
-
-        /* =====================================================
-           GAME
-        ===================================================== */
-
-        .game-status {
-
-            padding: 14px;
-
-            border-radius: 18px;
-
+        .bottom-button.active {
             background:
-                rgba(255,255,255,.045);
+                rgba(245,196,81,.1);
 
-            border:
-                1px solid
-                rgba(255,255,255,.06);
-
-            margin-bottom: 10px;
+            color: #f5c451;
         }
 
-        .game-status-title {
-
-            font-size: 14px;
-
-            font-weight: 800;
-        }
-
-        .game-status-text {
-
-            margin-top: 4px;
-
-            color: #858591;
-
-            font-size: 11px;
-        }
-
-        .table {
-
-            position: relative;
-
-            min-height: 330px;
-
-            overflow: hidden;
-
-            border-radius: 28px;
-
-            background:
-                radial-gradient(
-                    ellipse at center,
-                    #155936 0%,
-                    #0d3d25 45%,
-                    #092619 100%
-                );
-
-            border:
-                8px solid
-                #202027;
-
-            box-shadow:
-                inset 0 0 50px
-                rgba(0,0,0,.35),
-                0 20px 50px
-                rgba(0,0,0,.3);
-        }
-
-        .trump {
-
-            position: absolute;
-
-            top: 12px;
-            right: 12px;
-
-            padding: 6px 9px;
-
-            border-radius: 10px;
-
-            background:
-                rgba(0,0,0,.3);
-
-            font-size: 12px;
-        }
-
-        .deck-count {
-
-            position: absolute;
-
-            top: 12px;
-            left: 12px;
-
-            padding: 6px 9px;
-
-            border-radius: 10px;
-
-            background:
-                rgba(0,0,0,.3);
-
-            color: #bcbcc6;
-
-            font-size: 11px;
-        }
-
-        .cards-table {
-
-            display: flex;
-
-            flex-wrap: wrap;
-
-            justify-content: center;
-
-            align-items: center;
-
-            gap: 8px;
-
-            padding: 55px 20px 20px;
-
-            min-height: 300px;
-        }
-
-        .empty-table {
-
-            color:
-                rgba(255,255,255,.25);
-
-            font-size: 12px;
-        }
-
-        .card {
-
-            position: relative;
-
-            width: 64px;
-            height: 92px;
-
-            flex-shrink: 0;
-
-            border-radius: 9px;
-
-            background:
-                linear-gradient(
-                    145deg,
-                    #fff,
-                    #dedee2
-                );
-
-            color: #17171d;
-
-            box-shadow:
-                0 8px 15px
-                rgba(0,0,0,.3);
-
-            cursor: pointer;
-
-            user-select: none;
-
-            transition:
-                transform .15s ease,
-                box-shadow .15s ease;
-        }
-
-        .card.red {
-
-            color: #c83232;
-        }
-
-        .card.black {
-
-            color: #18181c;
-        }
-
-        .card:hover {
-
-            transform:
-                translateY(-5px);
-        }
-
-        .card-rank {
-
-            position: absolute;
-
-            top: 5px;
-            left: 7px;
-
-            font-size: 17px;
-
-            font-weight: 900;
-        }
-
-        .card-suit {
-
-            position: absolute;
-
-            top: 24px;
-            left: 8px;
-
-            font-size: 18px;
-        }
-
-        .card-center {
-
-            position: absolute;
-
-            inset: 0;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            font-size: 30px;
-        }
-
-        .card.defense-card {
-
-            transform:
-                translateX(8px)
-                rotate(3deg);
-        }
-
-        .hand-title {
-
-            margin: 12px 2px 8px;
-
-            color: #858591;
-
-            font-size: 11px;
-        }
-
-        .hand {
-
-            display: flex;
-
-            gap: 7px;
-
-            overflow-x: auto;
-
-            padding:
-                4px
-                3px
-                12px;
-
-            scrollbar-width: none;
-        }
-
-        .hand::-webkit-scrollbar {
-
-            display: none;
-        }
-
-        .hand .card {
-
-            width: 55px;
-            height: 80px;
-
-            flex: 0 0 55px;
-        }
-
-        .hand .card-rank {
-
-            font-size: 15px;
-        }
-
-        .hand .card-suit {
-
-            top: 22px;
-
-            font-size: 16px;
-        }
-
-        .hand .card-center {
-
-            font-size: 26px;
-        }
-
-        .game-actions {
-
-            display: grid;
-
-            grid-template-columns:
-                1fr 1fr;
-
-            gap: 8px;
-
-            margin-top: 3px;
-        }
-
-        .game-button {
-
-            min-height: 45px;
-
-            border: none;
-
-            border-radius: 14px;
-
-            background:
-                rgba(255,255,255,.06);
-
-            color: #dedee4;
-
-            font-weight: 750;
-
-            cursor: pointer;
-        }
-
-        .game-button.gold {
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #ffe58a,
-                    #c98d2b
-                );
-
-            color: #1b150b;
-        }
-
-        .game-button:disabled {
-
-            opacity: .35;
-
-            cursor: default;
-        }
-
-        /* =====================================================
-           PROFILE SCREEN
-        ===================================================== */
-
-        .profile-large {
-
-            padding: 20px;
-
-            border-radius: 22px;
-
-            background:
-                rgba(255,255,255,.045);
-
-            border:
-                1px solid
-                rgba(255,255,255,.06);
-
-            text-align: center;
-        }
-
-        .avatar-large {
-
-            width: 78px;
-            height: 78px;
-
-            margin: 0 auto 12px;
-
-            border-radius: 24px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #3a3a50,
-                    #1c1c28
-                );
-
-            font-size: 30px;
-
-            font-weight: 900;
-        }
-
-        .profile-name-large {
-
-            font-size: 20px;
-
-            font-weight: 850;
-        }
-
-        .profile-title-large {
-
-            margin-top: 5px;
-
-            color: #ffd76a;
-
-            font-size: 12px;
-        }
-
-        .profile-stats {
-
-            display: grid;
-
-            grid-template-columns:
-                repeat(2, 1fr);
-
-            gap: 8px;
-
-            margin-top: 15px;
-        }
-
-        /* =====================================================
-           NOTIFICATION
-        ===================================================== */
-
-        #notification {
-
-            position: fixed;
-
-            left: 14px;
-            right: 14px;
-
-            bottom:
-                calc(
-                    env(safe-area-inset-bottom) +
-                    16px
-                );
-
-            z-index: 99999;
-
-            padding: 13px 15px;
-
-            border-radius: 15px;
-
-            background:
-                rgba(25,25,32,.96);
-
-            border:
-                1px solid
-                rgba(255,255,255,.08);
-
-            box-shadow:
-                0 15px 40px
-                rgba(0,0,0,.35);
-
-            color: #fff;
-
-            font-size: 12px;
-
-            transform:
-                translateY(150px);
-
-            opacity: 0;
-
-            pointer-events: none;
-
-            transition:
-                .25s ease;
-        }
-
-        #notification.show {
-
-            transform:
-                translateY(0);
-
-            opacity: 1;
-        }
-
-        /* =====================================================
-           ERROR
-        ===================================================== */
-
-        .error-box {
-
-            display: none;
-
-            padding: 16px;
-
-            border-radius: 18px;
-
-            background:
-                rgba(180,50,50,.12);
-
-            border:
-                1px solid
-                rgba(255,80,80,.18);
-
-            color: #ffaaaa;
-
-            font-size: 12px;
-
-            line-height: 1.5;
-        }
-
-        .error-box.show {
-
-            display: block;
-        }
 
         /* =====================================================
            DESKTOP
@@ -1283,69 +1055,35 @@
         @media (min-width: 700px) {
 
             .app {
-
-                padding-left: 20px;
-                padding-right: 20px;
-
+                padding-top: 25px;
             }
 
-            .card {
-
-                width: 72px;
-                height: 104px;
-
+            .catalog-grid {
+                grid-template-columns:
+                    repeat(3, 1fr);
             }
 
-            .hand .card {
+            .garage-grid {
+                display: grid;
 
-                width: 62px;
-                height: 90px;
+                grid-template-columns:
+                    repeat(2, 1fr);
 
-                flex-basis: 62px;
+                gap: 14px;
+            }
 
+            .garage-grid .car-card {
+                margin-bottom: 0;
             }
 
         }
 
     </style>
-
 </head>
 
 <body>
 
-<!-- =========================================================
-     LOADING
-========================================================= -->
-
-<div id="loadingScreen">
-
-    <div class="loading-logo">
-        ♠
-    </div>
-
-    <div class="loading-title">
-        Heavy Lux Card
-    </div>
-
-    <div class="loading-text">
-        Подключение к игре...
-    </div>
-
-    <div class="loader"></div>
-
-</div>
-
-
-<!-- =========================================================
-     APP
-========================================================= -->
-
-<div
-    id="app"
-    class="app"
-    style="display:none;"
->
-
+<div class="app">
 
     <!-- =====================================================
          HEADER
@@ -1355,134 +1093,128 @@
 
         <div class="brand">
 
-            <div class="brand-icon">
-                ♠
+            <div class="brand-title">
+                Heavy Lux
             </div>
 
-            <div>
-
-                <div class="brand-name">
-                    Heavy Lux Card
-                </div>
-
-                <div class="brand-subtitle">
-                    CLASSIC DURAK
-                </div>
-
+            <div class="brand-subtitle">
+                Card
             </div>
 
         </div>
 
-
-        <div
-            id="connection"
-            class="connection"
-        >
-
-            <span
-                class="connection-dot"
-            ></span>
-
-            <span id="connectionText">
-                Подключение
-            </span>
-
+        <div class="balance">
+            💰 <span id="balance">0</span> HC
         </div>
 
     </header>
 
 
     <!-- =====================================================
-         PROFILE CARD
+         PLAYER
     ====================================================== -->
 
-    <section class="profile-card">
+    <div class="player-card">
 
-        <div class="profile-top">
+        <div
+            class="avatar"
+            id="avatar"
+        >
+            H
+        </div>
+
+        <div class="player-info">
 
             <div
-                id="avatar"
-                class="avatar"
+                class="player-name"
+                id="playerName"
             >
-                ?
+                Загрузка...
             </div>
 
             <div
-                style="
-                    min-width:0;
-                    flex:1;
-                "
+                class="player-title"
+                id="playerTitle"
             >
-
-                <div
-                    id="playerName"
-                    class="player-name"
-                >
-                    Игрок
-                </div>
-
-                <div
-                    id="playerTitle"
-                    class="player-title"
-                >
-                    Новичок
-                </div>
-
+                Новичок
             </div>
 
+        </div>
+
+        <div class="level">
+
             <div
+                class="level-number"
                 id="playerLevel"
-                class="level"
             >
                 LVL 1
             </div>
 
-        </div>
-
-
-        <div class="balance">
-
-            <div>
-
-                <div class="balance-label">
-                    Баланс
-                </div>
-
-                <div
-                    id="balanceValue"
-                    class="balance-value"
-                >
-                    5 000
-                    <span class="coin">
-                        HC
-                    </span>
-                </div>
-
+            <div class="level-label">
+                уровень
             </div>
 
         </div>
 
+    </div>
 
-        <div class="xp-box">
 
-            <div class="xp-header">
+    <!-- =====================================================
+         TABS
+    ====================================================== -->
 
-                <span>
-                    Опыт
-                </span>
+    <div class="tabs">
 
-                <span id="xpText">
-                    0 / 100 XP
-                </span>
+        <button
+            class="tab active"
+            data-section="garage"
+        >
+            🚙 Гараж
+        </button>
 
-            </div>
+        <button
+            class="tab"
+            data-section="shop"
+        >
+            🛒 Автосалон
+        </button>
 
-            <div class="xp-bar">
+        <button
+            class="tab"
+            data-section="profile"
+        >
+            👤 Профиль
+        </button>
 
-                <div
-                    id="xpFill"
-                    class="xp-fill"
-                ></div>
+    </div>
+
+
+    <!-- =====================================================
+         GARAGE
+    ====================================================== -->
+
+    <section
+        id="garage"
+        class="section active"
+    >
+
+        <h1 class="section-title">
+            Мой гараж
+        </h1>
+
+        <p class="section-description">
+            Здесь находятся все принадлежащие тебе автомобили.
+        </p>
+
+        <div
+            id="garageContent"
+        >
+
+            <div class="loading">
+
+                <div class="spinner"></div>
+
+                Загружаем гараж...
 
             </div>
 
@@ -1492,281 +1224,77 @@
 
 
     <!-- =====================================================
-         NAVIGATION
+         SHOP
     ====================================================== -->
 
-    <nav class="navigation">
-
-        <button
-            class="nav-button active"
-            data-screen="home"
-        >
-            🏠 Главная
-        </button>
-
-        <button
-            class="nav-button"
-            data-screen="game"
-        >
-            🃏 Игра
-        </button>
-
-        <button
-            class="nav-button"
-            data-screen="profile"
-        >
-            👤 Профиль
-        </button>
-
-    </nav>
-
-
-    <!-- =====================================================
-         ERROR
-    ====================================================== -->
-
-    <div
-        id="errorBox"
-        class="error-box"
-    ></div>
-
-
-    <!-- =====================================================
-         HOME
-    ====================================================== -->
-
-    <main
-        id="screen-home"
-        class="screen active"
+    <section
+        id="shop"
+        class="section"
     >
 
-        <section class="hero">
+        <h1 class="section-title">
+            Автосалон
+        </h1>
 
-            <div class="hero-small">
-                ДОБРО ПОЖАЛОВАТЬ
-            </div>
-
-            <div class="hero-title">
-                Сыграй в
-                <span>Дурака</span>
-            </div>
-
-            <div class="hero-text">
-                Классические правила,
-                36 карт, козырь и
-                полноценная пошаговая игра.
-            </div>
-
-            <button
-                id="startGameButton"
-                class="primary-button"
-            >
-                🃏 Начать игру
-            </button>
-
-        </section>
-
-
-        <div class="section-title">
-            Твоя статистика
-        </div>
-
-        <div class="stats-grid">
-
-            <div class="stat">
-
-                <div
-                    id="winsValue"
-                    class="stat-value"
-                >
-                    0
-                </div>
-
-                <div class="stat-label">
-                    Победы
-                </div>
-
-            </div>
-
-            <div class="stat">
-
-                <div
-                    id="lossesValue"
-                    class="stat-value"
-                >
-                    0
-                </div>
-
-                <div class="stat-label">
-                    Поражения
-                </div>
-
-            </div>
-
-            <div class="stat">
-
-                <div
-                    id="gamesValue"
-                    class="stat-value"
-                >
-                    0
-                </div>
-
-                <div class="stat-label">
-                    Игр
-                </div>
-
-            </div>
-
-        </div>
-
-    </main>
-
-
-    <!-- =====================================================
-         GAME
-    ====================================================== -->
-
-    <main
-        id="screen-game"
-        class="screen"
-    >
-
-        <div class="section-title">
-            Классический Дурак
-        </div>
+        <p class="section-description">
+            Приобретай автомобили и отправляй их в МРЭО для регистрации.
+        </p>
 
         <div
-            id="gameStatus"
-            class="game-status"
+            id="catalogContent"
+            class="catalog-grid"
         >
 
-            <div
-                id="gameStatusTitle"
-                class="game-status-title"
-            >
-                Игра не начата
-            </div>
-
-            <div
-                id="gameStatusText"
-                class="game-status-text"
-            >
-                Нажми «Начать игру»
+            <div class="loading">
+                Загрузка автомобилей...
             </div>
 
         </div>
 
-
-        <div class="table">
-
-            <div
-                id="trump"
-                class="trump"
-            >
-                ♠ Козырь
-            </div>
-
-            <div
-                id="deckCount"
-                class="deck-count"
-            >
-                Колода: 24
-            </div>
-
-            <div
-                id="cardsTable"
-                class="cards-table"
-            >
-
-                <div class="empty-table">
-                    Стол пуст
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="hand-title">
-            Твои карты
-        </div>
-
-        <div
-            id="playerHand"
-            class="hand"
-        ></div>
-
-
-        <div class="game-actions">
-
-            <button
-                id="takeButton"
-                class="game-button"
-                disabled
-            >
-                Взять
-            </button>
-
-            <button
-                id="finishButton"
-                class="game-button gold"
-                disabled
-            >
-                Закончить ход
-            </button>
-
-        </div>
-
-    </main>
+    </section>
 
 
     <!-- =====================================================
          PROFILE
     ====================================================== -->
 
-    <main
-        id="screen-profile"
-        class="screen"
+    <section
+        id="profile"
+        class="section"
     >
 
-        <div class="section-title">
+        <h1 class="section-title">
             Профиль
-        </div>
+        </h1>
 
-        <section class="profile-large">
+        <p class="section-description">
+            Твоя статистика Heavy Lux Card.
+        </p>
 
-            <div
-                id="largeAvatar"
-                class="avatar-large"
-            >
-                ?
+        <div class="profile-card">
+
+            <div class="player-name">
+                <span id="profileName">
+                    Игрок
+                </span>
             </div>
 
             <div
-                id="largePlayerName"
-                class="profile-name-large"
-            >
-                Игрок
-            </div>
-
-            <div
-                id="largePlayerTitle"
-                class="profile-title-large"
+                class="player-title"
+                id="profileTitle"
             >
                 Новичок
             </div>
 
-
-            <div class="profile-stats">
+            <div class="stats-grid">
 
                 <div class="stat">
 
                     <div
-                        id="profileBalance"
                         class="stat-value"
+                        id="profileBalance"
                     >
-                        5 000
+                        0
                     </div>
 
                     <div class="stat-label">
@@ -1775,76 +1303,119 @@
 
                 </div>
 
-
                 <div class="stat">
 
                     <div
-                        id="profileLevel"
                         class="stat-value"
+                        id="profileLevel"
                     >
                         1
                     </div>
 
                     <div class="stat-label">
-                        Уровень
+                        уровень
                     </div>
 
                 </div>
 
-
                 <div class="stat">
 
                     <div
+                        class="stat-value"
                         id="profileWins"
-                        class="stat-value"
                     >
                         0
                     </div>
 
                     <div class="stat-label">
-                        Побед
+                        побед
                     </div>
 
                 </div>
 
-
                 <div class="stat">
 
                     <div
-                        id="profileLosses"
                         class="stat-value"
+                        id="profileCars"
                     >
                         0
                     </div>
 
                     <div class="stat-label">
-                        Поражений
+                        автомобилей
                     </div>
 
                 </div>
 
             </div>
 
-        </section>
+        </div>
 
-    </main>
+    </section>
 
 </div>
 
 
 <!-- =========================================================
-     NOTIFICATION
-========================================================= -->
+     BOTTOM NAV
+========================================================== -->
+
+<nav class="bottom-nav">
+
+    <button
+        class="bottom-button active"
+        data-section="garage"
+    >
+
+        <span class="bottom-button-icon">
+            🚙
+        </span>
+
+        Гараж
+
+    </button>
+
+    <button
+        class="bottom-button"
+        data-section="shop"
+    >
+
+        <span class="bottom-button-icon">
+            🛒
+        </span>
+
+        Автосалон
+
+    </button>
+
+    <button
+        class="bottom-button"
+        data-section="profile"
+    >
+
+        <span class="bottom-button-icon">
+            👤
+        </span>
+
+        Профиль
+
+    </button>
+
+</nav>
+
+
+<!-- =========================================================
+     TOAST
+========================================================== -->
 
 <div
-    id="notification"
+    id="toastContainer"
+    class="toast-container"
 ></div>
 
 
 <script>
-
-"use strict";
-
 
 /* =========================================================
    TELEGRAM
@@ -1856,14 +1427,37 @@ const tg =
         ? window.Telegram.WebApp
         : null;
 
-
 if (tg) {
 
     tg.ready();
 
     tg.expand();
 
+    try {
+        tg.setHeaderColor("#090909");
+        tg.setBackgroundColor("#090909");
+    } catch (error) {
+        console.log(error);
+    }
+
 }
+
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+/*
+ * Если index.html и server.js
+ * находятся на одном Render/Web Service,
+ * оставляем пустую строку.
+ *
+ * Тогда запросы идут на:
+ *
+ * /api/...
+ */
+
+const API_URL = "";
 
 
 /* =========================================================
@@ -1872,121 +1466,248 @@ if (tg) {
 
 let player = null;
 
-let gameState = null;
+let garage = [];
 
-let socket = null;
-
-let notificationTimer = null;
-
-
-/* =========================================================
-   ELEMENTS
-========================================================= */
-
-const loadingScreen =
-    document.getElementById(
-        "loadingScreen"
-    );
-
-const app =
-    document.getElementById(
-        "app"
-    );
-
-const errorBox =
-    document.getElementById(
-        "errorBox"
-    );
-
-const connection =
-    document.getElementById(
-        "connection"
-    );
-
-const connectionText =
-    document.getElementById(
-        "connectionText"
-    );
+let catalog = [];
 
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-function formatNumber(number) {
+function formatMoney(
+    number
+) {
 
-    return Number(number || 0)
-        .toLocaleString("ru-RU");
+    return Number(
+        number || 0
+    ).toLocaleString(
+        "ru-RU"
+    );
 
 }
 
 
-function showNotification(message) {
+function escapeHtml(
+    text
+) {
 
-    const element =
+    if (
+        text === null ||
+        text === undefined
+    ) {
+
+        return "";
+
+    }
+
+    return String(text)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+function showToast(
+    message,
+    type = "success"
+) {
+
+    const container =
         document.getElementById(
-            "notification"
+            "toastContainer"
         );
 
-    element.textContent =
-        message;
-
-    element.classList.add(
-        "show"
-    );
-
-    clearTimeout(
-        notificationTimer
-    );
-
-    notificationTimer =
-        setTimeout(
-            () => {
-
-                element.classList.remove(
-                    "show"
-                );
-
-            },
-            2500
+    const toast =
+        document.createElement(
+            "div"
         );
 
-}
+    toast.className =
+        `toast ${type}`;
 
-
-function showError(message) {
-
-    errorBox.textContent =
+    toast.textContent =
         message;
 
-    errorBox.classList.add(
-        "show"
+    container.appendChild(
+        toast
     );
 
-}
+    setTimeout(
+        () => {
 
+            toast.remove();
 
-function hideError() {
-
-    errorBox.classList.remove(
-        "show"
+        },
+        3000
     );
 
 }
 
 
 /* =========================================================
-   PROFILE UI
+   API REQUEST
+========================================================= */
+
+async function api(
+    url,
+    options = {}
+) {
+
+    const response =
+        await fetch(
+            API_URL + url,
+            {
+                ...options,
+
+                headers: {
+                    "Content-Type":
+                        "application/json",
+
+                    ...(options.headers || {})
+                }
+            }
+        );
+
+    let data = null;
+
+    try {
+
+        data =
+            await response.json();
+
+    } catch {
+
+        data = {};
+
+    }
+
+    if (
+        !response.ok
+    ) {
+
+        throw new Error(
+            data.error ||
+            "Ошибка сервера"
+        );
+
+    }
+
+    return data;
+
+}
+
+
+/* =========================================================
+   TELEGRAM AUTH
+========================================================= */
+
+async function authenticate() {
+
+    /*
+     * Telegram WebApp
+     */
+
+    if (
+        !tg ||
+        !tg.initData
+    ) {
+
+        /*
+         * Для локального теста
+         * Telegram авторизация может
+         * отсутствовать.
+         */
+
+        document.getElementById(
+            "playerName"
+        ).textContent =
+            "Тестовый игрок";
+
+        return false;
+
+    }
+
+    try {
+
+        const data =
+            await api(
+                "/api/auth",
+                {
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+                            initData:
+                                tg.initData
+                        })
+                }
+            );
+
+        if (
+            !data.success
+        ) {
+
+            throw new Error(
+                "Авторизация не выполнена"
+            );
+
+        }
+
+        player =
+            data.player;
+
+        updatePlayerUI();
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "AUTH ERROR:",
+            error
+        );
+
+        showToast(
+            error.message ||
+            "Ошибка авторизации",
+            "error"
+        );
+
+        return false;
+
+    }
+
+}
+
+
+/* =========================================================
+   UPDATE PLAYER UI
 ========================================================= */
 
 function updatePlayerUI() {
 
     if (!player) {
-
         return;
-
     }
-
 
     const fullName =
         [
@@ -1994,29 +1715,29 @@ function updatePlayerUI() {
             player.last_name
         ]
             .filter(Boolean)
-            .join(" ")
-        ||
+            .join(" ");
+
+    const username =
+        player.username
+            ? `@${player.username}`
+            : "";
+
+    const displayName =
+        fullName ||
+        username ||
         "Игрок";
-
-
-    const shortName =
-        player.first_name
-        ||
-        "И";
-
-
-    document.getElementById(
-        "avatar"
-    ).textContent =
-        shortName
-            .charAt(0)
-            .toUpperCase();
 
 
     document.getElementById(
         "playerName"
     ).textContent =
-        fullName;
+        displayName;
+
+
+    document.getElementById(
+        "profileName"
+    ).textContent =
+        displayName;
 
 
     document.getElementById(
@@ -2027,99 +1748,30 @@ function updatePlayerUI() {
 
 
     document.getElementById(
-        "playerLevel"
-    ).textContent =
-        "LVL " +
-        (player.level || 1);
-
-
-    document.getElementById(
-        "balanceValue"
-    ).innerHTML =
-        formatNumber(
-            player.balance
-        ) +
-        ' <span class="coin">HC</span>';
-
-
-    const level =
-        Number(
-            player.level || 1
-        );
-
-    const xp =
-        Number(
-            player.xp || 0
-        );
-
-    const required =
-        level * 100;
-
-
-    document.getElementById(
-        "xpText"
-    ).textContent =
-        `${formatNumber(xp)} / ${formatNumber(required)} XP`;
-
-
-    document.getElementById(
-        "xpFill"
-    ).style.width =
-        Math.min(
-            100,
-            (xp / required) * 100
-        ) + "%";
-
-
-    document.getElementById(
-        "winsValue"
-    ).textContent =
-        formatNumber(
-            player.wins
-        );
-
-
-    document.getElementById(
-        "lossesValue"
-    ).textContent =
-        formatNumber(
-            player.losses
-        );
-
-
-    document.getElementById(
-        "gamesValue"
-    ).textContent =
-        formatNumber(
-            player.games
-        );
-
-
-    document.getElementById(
-        "largeAvatar"
-    ).textContent =
-        shortName
-            .charAt(0)
-            .toUpperCase();
-
-
-    document.getElementById(
-        "largePlayerName"
-    ).textContent =
-        fullName;
-
-
-    document.getElementById(
-        "largePlayerTitle"
+        "profileTitle"
     ).textContent =
         player.title ||
         "Новичок";
 
 
     document.getElementById(
+        "playerLevel"
+    ).textContent =
+        `LVL ${player.level || 1}`;
+
+
+    document.getElementById(
+        "balance"
+    ).textContent =
+        formatMoney(
+            player.balance
+        );
+
+
+    document.getElementById(
         "profileBalance"
     ).textContent =
-        formatNumber(
+        formatMoney(
             player.balance
         );
 
@@ -2137,138 +1789,635 @@ function updatePlayerUI() {
 
 
     document.getElementById(
-        "profileLosses"
+        "profileCars"
     ).textContent =
-        player.losses || 0;
+        Array.isArray(
+            player.cars
+        )
+            ? player.cars.length
+            : garage.length;
+
+
+    const avatar =
+        document.getElementById(
+            "avatar"
+        );
+
+    avatar.textContent =
+        (
+            player.first_name ||
+            "H"
+        )
+            .charAt(0)
+            .toUpperCase();
 
 }
 
 
 /* =========================================================
-   AUTH
+   LOAD GARAGE
 ========================================================= */
 
-async function authenticate() {
+async function loadGarage() {
 
-    hideError();
+    if (!player) {
 
+        renderGarage();
 
-    if (!tg) {
+        return;
 
-        /*
-         * Если открыть обычным браузером,
-         * Telegram initData отсутствует.
-         */
+    }
 
-        showError(
-            "Приложение необходимо открыть внутри Telegram Mini App."
+    try {
+
+        const data =
+            await api(
+                `/api/garage/${encodeURIComponent(
+                    player.telegram_id
+                )}`
+            );
+
+        garage =
+            data.cars || [];
+
+        renderGarage();
+
+        updatePlayerUI();
+
+    } catch (error) {
+
+        console.error(
+            "GARAGE ERROR:",
+            error
         );
 
-        loadingScreen.style.display =
-            "none";
+        document.getElementById(
+            "garageContent"
+        ).innerHTML = `
 
-        app.style.display =
-            "block";
+            <div class="garage-empty">
 
-        return false;
+                <div class="garage-empty-icon">
+                    ⚠️
+                </div>
+
+                <div class="garage-empty-title">
+                    Не удалось загрузить гараж
+                </div>
+
+                <div class="garage-empty-text">
+                    ${escapeHtml(
+                        error.message
+                    )}
+                </div>
+
+                <button
+                    class="button secondary"
+                    onclick="loadGarage()"
+                >
+                    Повторить
+                </button>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER GARAGE
+========================================================= */
+
+function renderGarage() {
+
+    const container =
+        document.getElementById(
+            "garageContent"
+        );
+
+
+    if (
+        !garage.length
+    ) {
+
+        container.innerHTML = `
+
+            <div class="garage-empty">
+
+                <div class="garage-empty-icon">
+                    🚘
+                </div>
+
+                <div class="garage-empty-title">
+                    Гараж пуст
+                </div>
+
+                <div class="garage-empty-text">
+                    Купи свой первый автомобиль
+                    в автосалоне.
+                </div>
+
+                <button
+                    class="button"
+                    onclick="switchSection('shop')"
+                >
+                    🛒 Открыть автосалон
+                </button>
+
+            </div>
+
+        `;
+
+        return;
 
     }
 
 
-    const initData =
-        tg.initData;
+    container.innerHTML = `
+
+        <div class="garage-grid">
+
+            ${garage
+                .map(
+                    car =>
+                        renderCarCard(
+                            car
+                        )
+                )
+                .join("")}
+
+        </div>
+
+    `;
+
+}
 
 
-    if (!initData) {
+/* =========================================================
+   RENDER CAR CARD
+========================================================= */
 
-        showError(
-            "Telegram не передал данные авторизации. Открой игру через Telegram."
+function renderCarCard(
+    car
+) {
+
+    const registered =
+        Boolean(
+            car.registered
         );
 
-        loadingScreen.style.display =
-            "none";
 
-        app.style.display =
-            "block";
+    let imageHTML = "";
 
-        return false;
+    if (
+        car.image
+    ) {
+
+        imageHTML = `
+
+            <img
+                src="${escapeHtml(
+                    car.image
+                )}"
+                alt="${escapeHtml(
+                    car.name
+                )}"
+                onerror="
+                    this.style.display='none';
+                    this.nextElementSibling.style.display='flex';
+                "
+            >
+
+            <div
+                class="car-placeholder"
+                style="display:none;"
+            >
+                🚙
+            </div>
+
+        `;
+
+    } else {
+
+        imageHTML = `
+
+            <div class="car-placeholder">
+                🚙
+            </div>
+
+        `;
+
+    }
+
+
+    const statusHTML =
+        registered
+
+            ? `
+
+                <div class="car-status">
+
+                    <div class="status-dot status-green"></div>
+
+                    <span>
+                        Т/О зарегистрировано
+                    </span>
+
+                </div>
+
+                <div class="plate">
+
+                    ${escapeHtml(
+                        getPlateMain(
+                            car.plate
+                        )
+                    )}
+
+                    <span class="plate-region">
+                        ${escapeHtml(
+                            getPlateRegion(
+                                car.plate
+                            )
+                        )}
+                    </span>
+
+                </div>
+
+                <div class="number-info">
+
+                    <div class="number-info-title">
+                        🏛️ МРЭО Heavy Lux
+                    </div>
+
+                    <div class="number-info-text">
+                        Государственный номер закреплён
+                        за этим автомобилем.
+                    </div>
+
+                </div>
+
+            `
+
+            : `
+
+                <div class="car-status">
+
+                    <div class="status-dot status-red"></div>
+
+                    <span>
+                        Т/О не зарегистрировано
+                    </span>
+
+                </div>
+
+                <button
+                    class="button"
+                    onclick="openMreo('${escapeHtml(
+                        car.id
+                    )}')"
+                >
+                    🏛️ Зарегистрировать в МРЭО
+                    — ${formatMoney(
+                        car.registration_price ||
+                        25000
+                    )} HC
+                </button>
+
+            `;
+
+
+    return `
+
+        <div class="car-card">
+
+            <div class="car-image">
+
+                ${imageHTML}
+
+            </div>
+
+            <div class="car-body">
+
+                <div class="car-top">
+
+                    <div class="car-name">
+                        ${escapeHtml(
+                            car.name
+                        )}
+                    </div>
+
+                    <div class="car-price">
+                        ${formatMoney(
+                            car.purchase_price
+                        )} HC
+                    </div>
+
+                </div>
+
+                <div class="car-description">
+                    ${escapeHtml(
+                        car.description ||
+                        "Автомобиль Heavy Lux"
+                    )}
+                </div>
+
+                ${statusHTML}
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   PLATE FORMAT
+========================================================= */
+
+function getPlateMain(
+    plate
+) {
+
+    if (
+        !plate
+    ) {
+
+        return "";
+
+    }
+
+    /*
+     * А482КМ77
+     *
+     * Первые 6 символов:
+     * А482КМ
+     */
+
+    return plate.substring(
+        0,
+        6
+    );
+
+}
+
+
+function getPlateRegion(
+    plate
+) {
+
+    if (
+        !plate
+    ) {
+
+        return "";
+
+    }
+
+    return plate.substring(
+        6
+    );
+
+}
+
+
+/* =========================================================
+   MREO
+========================================================= */
+
+function openMreo(
+    carId
+) {
+
+    const car =
+        garage.find(
+            item =>
+                item.id ===
+                carId
+        );
+
+    if (!car) {
+
+        showToast(
+            "Автомобиль не найден",
+            "error"
+        );
+
+        return;
+
+    }
+
+    if (
+        car.registered
+    ) {
+
+        showToast(
+            "Этот автомобиль уже зарегистрирован",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const price =
+        Number(
+            car.registration_price ||
+            25000
+        );
+
+
+    const confirmed =
+        confirm(
+            `🏛️ МРЭО Heavy Lux\n\n` +
+
+            `🚙 ${car.name}\n\n` +
+
+            `Статус Т/О: 🔴 Не зарегистрировано\n\n` +
+
+            `💰 Регистрация: ${formatMoney(
+                price
+            )} HC\n\n` +
+
+            `После регистрации система автоматически ` +
+            `выдаст свободный государственный номер.\n\n` +
+
+            `Продолжить?`
+        );
+
+
+    if (
+        !confirmed
+    ) {
+
+        return;
+
+    }
+
+
+    registerCar(
+        carId
+    );
+
+}
+
+
+/* =========================================================
+   REGISTER CAR
+========================================================= */
+
+async function registerCar(
+    carId
+) {
+
+    if (!player) {
+
+        showToast(
+            "Игрок не авторизован",
+            "error"
+        );
+
+        return;
 
     }
 
 
     try {
 
-        const response =
-            await fetch(
-                "/api/auth",
+        const data =
+            await api(
+                "/api/mreo/register",
                 {
 
                     method: "POST",
 
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
                     body:
                         JSON.stringify({
-                            initData
+
+                            telegramId:
+                                player.telegram_id,
+
+                            carId:
+                                carId
+
                         })
 
                 }
             );
 
 
-        const data =
-            await response.json();
-
-
-        if (!response.ok ||
+        if (
             !data.success
         ) {
 
             throw new Error(
                 data.error ||
-                "Ошибка авторизации"
+                "Регистрация не выполнена"
             );
 
         }
 
 
-        player =
-            data.player;
+        /*
+         * Обновляем игрока
+         */
+
+        if (
+            data.player
+        ) {
+
+            player =
+                data.player;
+
+        }
+
+
+        /*
+         * Обновляем гараж
+         */
+
+        await loadGarage();
 
 
         updatePlayerUI();
 
 
-        return true;
+        /*
+         * Показываем номер
+         */
 
+        const car =
+            data.car ||
+            garage.find(
+                item =>
+                    item.id ===
+                    carId
+            );
+
+
+        if (
+            car &&
+            car.plate
+        ) {
+
+            showToast(
+                `✅ Т/О зарегистрировано. Номер ${car.plate}`,
+                "success"
+            );
+
+        } else {
+
+            showToast(
+                "✅ Т/О успешно зарегистрировано",
+                "success"
+            );
+
+        }
+
+
+        /*
+         * Небольшая вибрация Telegram
+         */
+
+        if (
+            tg &&
+            tg.HapticFeedback
+        ) {
+
+            tg.HapticFeedback.notificationOccurred(
+                "success"
+            );
+
+        }
 
     } catch (error) {
 
         console.error(
-            "AUTH ERROR:",
+            "MREO ERROR:",
             error
         );
 
-
-        showError(
+        showToast(
             error.message ||
-            "Не удалось авторизоваться"
+            "Ошибка регистрации",
+            "error"
         );
 
+        if (
+            tg &&
+            tg.HapticFeedback
+        ) {
 
-        loadingScreen.style.display =
-            "none";
+            tg.HapticFeedback.notificationOccurred(
+                "error"
+            );
 
-        app.style.display =
-            "block";
-
-
-        return false;
+        }
 
     }
 
@@ -2276,20 +2425,505 @@ async function authenticate() {
 
 
 /* =========================================================
-   SOCKET
+   LOAD CATALOG
 ========================================================= */
 
-function connectSocket() {
+async function loadCatalog() {
+
+    try {
+
+        const data =
+            await api(
+                "/api/cars"
+            );
+
+        catalog =
+            data.cars || [];
+
+        renderCatalog();
+
+    } catch (error) {
+
+        console.error(
+            "CATALOG ERROR:",
+            error
+        );
+
+        document.getElementById(
+            "catalogContent"
+        ).innerHTML = `
+
+            <div
+                class="garage-empty"
+                style="grid-column:1/-1;"
+            >
+
+                <div class="garage-empty-icon">
+                    ⚠️
+                </div>
+
+                <div class="garage-empty-title">
+                    Не удалось загрузить автосалон
+                </div>
+
+                <button
+                    class="button secondary"
+                    onclick="loadCatalog()"
+                >
+                    Повторить
+                </button>
+
+            </div>
+
+        `;
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER CATALOG
+========================================================= */
+
+function renderCatalog() {
+
+    const container =
+        document.getElementById(
+            "catalogContent"
+        );
+
+
+    if (
+        !catalog.length
+    ) {
+
+        container.innerHTML = `
+
+            <div
+                class="garage-empty"
+                style="grid-column:1/-1;"
+            >
+
+                <div class="garage-empty-icon">
+                    🚗
+                </div>
+
+                <div class="garage-empty-title">
+                    Автомобилей пока нет
+                </div>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        catalog
+            .map(
+                car =>
+                    renderCatalogCar(
+                        car
+                    )
+            )
+            .join("");
+
+}
+
+
+/* =========================================================
+   CATALOG CARD
+========================================================= */
+
+function renderCatalogCar(
+    car
+) {
+
+    let imageHTML = "";
+
+    if (
+        car.image
+    ) {
+
+        imageHTML = `
+
+            <img
+                src="${escapeHtml(
+                    car.image
+                )}"
+                alt="${escapeHtml(
+                    car.name
+                )}"
+                onerror="
+                    this.style.display='none';
+                    this.nextElementSibling.style.display='flex';
+                "
+            >
+
+            <div
+                class="catalog-placeholder"
+                style="display:none;"
+            >
+                🚙
+            </div>
+
+        `;
+
+    } else {
+
+        imageHTML = `
+
+            <div class="catalog-placeholder">
+                🚙
+            </div>
+
+        `;
+
+    }
+
+
+    return `
+
+        <div class="catalog-card">
+
+            <div class="catalog-image">
+
+                ${imageHTML}
+
+            </div>
+
+            <div class="catalog-body">
+
+                <div class="catalog-name">
+                    ${escapeHtml(
+                        car.name
+                    )}
+                </div>
+
+                <div class="catalog-price">
+                    ${formatMoney(
+                        car.price
+                    )} HC
+                </div>
+
+                <button
+                    class="button"
+                    onclick="buyCar('${escapeHtml(
+                        car.id
+                    )}')"
+                >
+                    Купить
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   BUY CAR
+========================================================= */
+
+async function buyCar(
+    carId
+) {
+
+    if (!player) {
+
+        showToast(
+            "Игрок не авторизован",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const car =
+        catalog.find(
+            item =>
+                item.id ===
+                carId
+        );
+
+
+    if (!car) {
+
+        showToast(
+            "Автомобиль не найден",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const confirmed =
+        confirm(
+            `🚙 ${car.name}\n\n` +
+
+            `Стоимость: ${formatMoney(
+                car.price
+            )} HC\n\n` +
+
+            `После покупки автомобиль ` +
+            `появится в гараже.\n\n` +
+
+            `Продолжить?`
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const data =
+            await api(
+                "/api/cars/buy",
+                {
+
+                    method: "POST",
+
+                    body:
+                        JSON.stringify({
+
+                            telegramId:
+                                player.telegram_id,
+
+                            carId:
+                                carId
+
+                        })
+
+                }
+            );
+
+
+        if (
+            !data.success
+        ) {
+
+            throw new Error(
+                data.error ||
+                "Покупка не выполнена"
+            );
+
+        }
+
+
+        if (
+            data.player
+        ) {
+
+            player =
+                data.player;
+
+        }
+
+
+        await loadGarage();
+
+        updatePlayerUI();
+
+
+        showToast(
+            `🚙 ${car.name} куплен`,
+            "success"
+        );
+
+
+        if (
+            tg &&
+            tg.HapticFeedback
+        ) {
+
+            tg.HapticFeedback.notificationOccurred(
+                "success"
+            );
+
+        }
+
+
+        switchSection(
+            "garage"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "BUY CAR ERROR:",
+            error
+        );
+
+        showToast(
+            error.message ||
+            "Ошибка покупки автомобиля",
+            "error"
+        );
+
+        if (
+            tg &&
+            tg.HapticFeedback
+        ) {
+
+            tg.HapticFeedback.notificationOccurred(
+                "error"
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function switchSection(
+    section
+) {
+
+    document
+        .querySelectorAll(
+            ".section"
+        )
+        .forEach(
+            element => {
+
+                element.classList.toggle(
+                    "active",
+                    element.id ===
+                    section
+                );
+
+            }
+        );
+
+
+    document
+        .querySelectorAll(
+            ".tab"
+        )
+        .forEach(
+            button => {
+
+                button.classList.toggle(
+                    "active",
+                    button.dataset.section ===
+                    section
+                );
+
+            }
+        );
+
+
+    document
+        .querySelectorAll(
+            ".bottom-button"
+        )
+        .forEach(
+            button => {
+
+                button.classList.toggle(
+                    "active",
+                    button.dataset.section ===
+                    section
+                );
+
+            }
+        );
+
+
+    if (
+        section ===
+        "garage"
+    ) {
+
+        loadGarage();
+
+    }
+
+    if (
+        section ===
+        "shop"
+    ) {
+
+        if (
+            !catalog.length
+        ) {
+
+            loadCatalog();
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   NAV EVENTS
+========================================================= */
+
+document
+    .querySelectorAll(
+        "[data-section]"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    switchSection(
+                        button.dataset.section
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+/* =========================================================
+   SOCKET.IO
+========================================================= */
+
+/*
+ * Оставляем Socket.IO для карточной игры.
+ *
+ * Машины работают через REST API.
+ */
+
+let socket = null;
+
+try {
 
     socket =
         io(
-            window.location.origin,
+            API_URL || undefined,
             {
-                transports:
-                    [
-                        "websocket",
-                        "polling"
-                    ]
+                transports: [
+                    "websocket",
+                    "polling"
+                ]
             }
         );
 
@@ -2298,80 +2932,10 @@ function connectSocket() {
         "connect",
         () => {
 
-            connection.classList.add(
-                "online"
+            console.log(
+                "Socket connected:",
+                socket.id
             );
-
-            connectionText.textContent =
-                "Онлайн";
-
-
-            if (tg && tg.initData) {
-
-                socket.emit(
-                    "authenticate",
-                    {
-                        initData:
-                            tg.initData
-                    }
-                );
-
-            }
-
-        }
-    );
-
-
-    socket.on(
-        "disconnect",
-        () => {
-
-            connection.classList.remove(
-                "online"
-            );
-
-            connectionText.textContent =
-                "Отключено";
-
-        }
-    );
-
-
-    socket.on(
-        "connect_error",
-        error => {
-
-            console.error(
-                "SOCKET ERROR:",
-                error
-            );
-
-            connection.classList.remove(
-                "online"
-            );
-
-            connectionText.textContent =
-                "Ошибка";
-
-        }
-    );
-
-
-    socket.on(
-        "authenticated",
-        data => {
-
-            if (
-                data &&
-                data.player
-            ) {
-
-                player =
-                    data.player;
-
-                updatePlayerUI();
-
-            }
 
         }
     );
@@ -2381,12 +2945,17 @@ function connectSocket() {
         "server_error",
         data => {
 
-            showNotification(
+            if (
                 data &&
                 data.message
-                    ? data.message
-                    : "Ошибка сервера"
-            );
+            ) {
+
+                showToast(
+                    data.message,
+                    "error"
+                );
+
+            }
 
         }
     );
@@ -2396,846 +2965,72 @@ function connectSocket() {
         "action_error",
         data => {
 
-            showNotification(
+            if (
                 data &&
                 data.message
-                    ? data.message
-                    : "Недопустимое действие"
-            );
-
-        }
-    );
-
-
-    socket.on(
-        "game_state",
-        state => {
-
-            gameState =
-                state;
-
-            renderGame();
-
-        }
-    );
-
-
-    socket.on(
-        "game_finished",
-        data => {
-
-            if (
-                data &&
-                data.player
             ) {
 
-                player =
-                    data.player;
-
-                updatePlayerUI();
-
-            }
-
-
-            if (data) {
-
-                showNotification(
-                    data.message ||
-                    "Игра завершена"
+                showToast(
+                    data.message,
+                    "error"
                 );
-
-            }
-
-
-            renderGame();
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function openScreen(name) {
-
-    document
-        .querySelectorAll(
-            ".screen"
-        )
-        .forEach(
-            screen => {
-
-                screen.classList.remove(
-                    "active"
-                );
-
-            }
-        );
-
-
-    const target =
-        document.getElementById(
-            "screen-" + name
-        );
-
-
-    if (target) {
-
-        target.classList.add(
-            "active"
-        );
-
-    }
-
-
-    document
-        .querySelectorAll(
-            ".nav-button"
-        )
-        .forEach(
-            button => {
-
-                button.classList.toggle(
-                    "active",
-                    button.dataset.screen ===
-                    name
-                );
-
-            }
-        );
-
-
-    if (
-        tg &&
-        typeof tg.HapticFeedback !==
-        "undefined"
-    ) {
-
-        try {
-
-            tg.HapticFeedback
-                .selectionChanged();
-
-        } catch {}
-
-    }
-
-}
-
-
-document
-    .querySelectorAll(
-        ".nav-button"
-    )
-    .forEach(
-        button => {
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    openScreen(
-                        button.dataset.screen
-                    );
-
-                }
-            );
-
-        }
-    );
-
-
-/* =========================================================
-   START GAME
-========================================================= */
-
-function startGame() {
-
-    hideError();
-
-
-    if (!socket) {
-
-        showNotification(
-            "Соединение с сервером ещё не установлено"
-        );
-
-        return;
-
-    }
-
-
-    if (!socket.connected) {
-
-        showNotification(
-            "Нет соединения с сервером"
-        );
-
-        return;
-
-    }
-
-
-    socket.emit(
-        "start_game"
-    );
-
-
-    openScreen(
-        "game"
-    );
-
-
-    showNotification(
-        "Игра запускается..."
-    );
-
-}
-
-
-document
-    .getElementById(
-        "startGameButton"
-    )
-    .addEventListener(
-        "click",
-        startGame
-    );
-
-
-/* =========================================================
-   CARD RENDER
-========================================================= */
-
-function cardColor(suit) {
-
-    if (
-        suit === "♥" ||
-        suit === "♦"
-    ) {
-
-        return "red";
-
-    }
-
-    return "black";
-
-}
-
-
-function createCardElement(
-    card,
-    clickable = false
-) {
-
-    const element =
-        document.createElement(
-            "div"
-        );
-
-
-    element.className =
-        "card " +
-        cardColor(
-            card.suit
-        );
-
-
-    element.dataset.cardId =
-        card.id;
-
-
-    element.innerHTML = `
-
-        <div class="card-rank">
-            ${escapeHtml(card.rank)}
-        </div>
-
-        <div class="card-suit">
-            ${escapeHtml(card.suit)}
-        </div>
-
-        <div class="card-center">
-            ${escapeHtml(card.suit)}
-        </div>
-
-    `;
-
-
-    if (clickable) {
-
-        element.addEventListener(
-            "click",
-            () => {
-
-                playCard(
-                    card.id
-                );
-
-            }
-        );
-
-    }
-
-
-    return element;
-
-}
-
-
-/* =========================================================
-   ESCAPE
-========================================================= */
-
-function escapeHtml(value) {
-
-    return String(value)
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
-
-}
-
-
-/* =========================================================
-   GAME RENDER
-========================================================= */
-
-function renderGame() {
-
-    if (!gameState) {
-
-        return;
-
-    }
-
-
-    const trump =
-        document.getElementById(
-            "trump"
-        );
-
-
-    trump.textContent =
-        "Козырь: " +
-        gameState.trumpSuit;
-
-
-    document.getElementById(
-        "deckCount"
-    ).textContent =
-        "Колода: " +
-        gameState.deckCount;
-
-
-    renderTable();
-
-    renderHand();
-
-    updateGameStatus();
-
-    updateGameButtons();
-
-}
-
-
-/* =========================================================
-   TABLE
-========================================================= */
-
-function renderTable() {
-
-    const table =
-        document.getElementById(
-            "cardsTable"
-        );
-
-
-    table.innerHTML = "";
-
-
-    if (
-        !gameState.table ||
-        gameState.table.length === 0
-    ) {
-
-        const empty =
-            document.createElement(
-                "div"
-            );
-
-        empty.className =
-            "empty-table";
-
-        empty.textContent =
-            "Стол пуст";
-
-        table.appendChild(
-            empty
-        );
-
-        return;
-
-    }
-
-
-    gameState.table.forEach(
-        pair => {
-
-            const wrapper =
-                document.createElement(
-                    "div"
-                );
-
-
-            wrapper.style.display =
-                "flex";
-
-            wrapper.style.position =
-                "relative";
-
-            wrapper.style.width =
-                "72px";
-
-            wrapper.style.height =
-                "105px";
-
-
-            const attack =
-                createCardElement(
-                    pair.attack,
-                    false
-                );
-
-
-            wrapper.appendChild(
-                attack
-            );
-
-
-            if (pair.defense) {
-
-                const defense =
-                    createCardElement(
-                        pair.defense,
-                        false
-                    );
-
-
-                defense.classList.add(
-                    "defense-card"
-                );
-
-
-                defense.style.position =
-                    "absolute";
-
-                defense.style.left =
-                    "8px";
-
-                defense.style.top =
-                    "8px";
-
-
-                wrapper.appendChild(
-                    defense
-                );
-
-            }
-
-
-            table.appendChild(
-                wrapper
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   HAND
-========================================================= */
-
-function renderHand() {
-
-    const hand =
-        document.getElementById(
-            "playerHand"
-        );
-
-
-    hand.innerHTML = "";
-
-
-    if (
-        !gameState.playerHand ||
-        gameState.playerHand.length === 0
-    ) {
-
-        const empty =
-            document.createElement(
-                "div"
-            );
-
-        empty.style.color =
-            "#777784";
-
-        empty.style.fontSize =
-            "12px";
-
-        empty.textContent =
-            "Карт нет";
-
-        hand.appendChild(
-            empty
-        );
-
-        return;
-
-    }
-
-
-    const canPlay =
-        gameState.phase ===
-            "player_attack" ||
-        gameState.phase ===
-            "player_defense";
-
-
-    gameState.playerHand.forEach(
-        card => {
-
-            const element =
-                createCardElement(
-                    card,
-                    canPlay
-                );
-
-
-            hand.appendChild(
-                element
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   GAME STATUS
-========================================================= */
-
-function updateGameStatus() {
-
-    const title =
-        document.getElementById(
-            "gameStatusTitle"
-        );
-
-    const text =
-        document.getElementById(
-            "gameStatusText"
-        );
-
-
-    if (!gameState) {
-
-        title.textContent =
-            "Игра не начата";
-
-        text.textContent =
-            "Нажми «Начать игру»";
-
-        return;
-
-    }
-
-
-    switch (
-        gameState.phase
-    ) {
-
-        case "dealing":
-
-            title.textContent =
-                "Раздача";
-
-            text.textContent =
-                "Подготовка карт";
-
-            break;
-
-
-        case "player_attack":
-
-            title.textContent =
-                "Твой ход";
-
-            text.textContent =
-                gameState.table.length
-                    ? "Можно подкидывать карты"
-                    : "Выбери карту для атаки";
-
-            break;
-
-
-        case "cpu_defense":
-
-            title.textContent =
-                "Компьютер отбивается";
-
-            text.textContent =
-                "Подожди немного...";
-
-            break;
-
-
-        case "player_defense":
-
-            title.textContent =
-                "Твоя защита";
-
-            text.textContent =
-                "Побей карту или возьми карты";
-
-            break;
-
-
-        case "cpu_attack":
-
-            title.textContent =
-                "Атака компьютера";
-
-            text.textContent =
-                "Компьютер делает ход";
-
-            break;
-
-
-        default:
-
-            title.textContent =
-                "Игра";
-
-            text.textContent =
-                "Ожидание...";
-
-    }
-
-}
-
-
-/* =========================================================
-   BUTTONS
-========================================================= */
-
-function updateGameButtons() {
-
-    const take =
-        document.getElementById(
-            "takeButton"
-        );
-
-    const finish =
-        document.getElementById(
-            "finishButton"
-        );
-
-
-    take.disabled =
-        !gameState ||
-        gameState.phase !==
-        "player_defense";
-
-
-    finish.disabled =
-        !gameState ||
-        gameState.phase !==
-        "player_attack" ||
-        !gameState.table ||
-        gameState.table.length === 0;
-
-}
-
-
-/* =========================================================
-   PLAY CARD
-========================================================= */
-
-function playCard(cardId) {
-
-    if (!socket) {
-
-        return;
-
-    }
-
-
-    if (!gameState) {
-
-        return;
-
-    }
-
-
-    if (
-        gameState.phase !==
-            "player_attack" &&
-        gameState.phase !==
-            "player_defense"
-    ) {
-
-        return;
-
-    }
-
-
-    socket.emit(
-        "play_card",
-        {
-            cardId
-        }
-    );
-
-
-    if (
-        tg &&
-        tg.HapticFeedback
-    ) {
-
-        try {
-
-            tg.HapticFeedback
-                .impactOccurred(
-                    "light"
-                );
-
-        } catch {}
-
-    }
-
-}
-
-
-/* =========================================================
-   TAKE
-========================================================= */
-
-document
-    .getElementById(
-        "takeButton"
-    )
-    .addEventListener(
-        "click",
-        () => {
-
-            if (!socket) {
-
-                return;
-
-            }
-
-
-            socket.emit(
-                "take_cards"
-            );
-
-
-            if (
-                tg &&
-                tg.HapticFeedback
-            ) {
-
-                try {
-
-                    tg.HapticFeedback
-                        .impactOccurred(
-                            "medium"
-                        );
-
-                } catch {}
 
             }
 
         }
     );
 
+} catch (error) {
 
-/* =========================================================
-   FINISH ROUND
-========================================================= */
-
-document
-    .getElementById(
-        "finishButton"
-    )
-    .addEventListener(
-        "click",
-        () => {
-
-            if (!socket) {
-
-                return;
-
-            }
-
-
-            socket.emit(
-                "finish_round"
-            );
-
-        }
+    console.warn(
+        "Socket.IO unavailable",
+        error
     );
 
+}
+
 
 /* =========================================================
-   INIT
+   INITIALIZATION
 ========================================================= */
 
 async function init() {
 
-    const authenticated =
+    try {
+
+        /*
+         * Сначала авторизация.
+         */
+
         await authenticate();
 
 
-    loadingScreen.style.display =
-        "none";
+        /*
+         * Потом гараж.
+         */
 
-    app.style.display =
-        "block";
+        await loadGarage();
 
 
-    if (!authenticated) {
+        /*
+         * И каталог.
+         */
 
-        return;
+        await loadCatalog();
+
+    } catch (error) {
+
+        console.error(
+            "INIT ERROR:",
+            error
+        );
+
+        showToast(
+            "Ошибка запуска приложения",
+            "error"
+        );
 
     }
-
-
-    connectSocket();
 
 }
 
