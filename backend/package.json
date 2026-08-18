@@ -2,10 +2,10 @@
   "name": "heavy-lux-card",
   "version": "1.0.0",
   "private": true,
-  "description": "Heavy Lux Card Telegram WebApp backend",
-  "main": "backend/server.js",
+  "description": "Heavy Lux Card backend",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
