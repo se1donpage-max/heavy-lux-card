@@ -11,7 +11,6 @@ const { Server } = require("socket.io");
 ========================================================= */
 
 const app = express();
-
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -31,15 +30,9 @@ const MAX_HAND = 6;
 
 const MAX_CHAT_MESSAGES = 100;
 
-/*
- * Стоимость регистрации автомобиля в МРЭО
- */
-const REGISTRATION_PRICE = 25000;
+const MREO_REGISTRATION_PRICE = 25000;
 
-const DATA_FILE = path.join(
-    __dirname,
-    "players.json"
-);
+const DATA_FILE = path.join(__dirname, "players.json");
 
 
 /* =========================================================
@@ -87,10 +80,6 @@ function loadPlayers() {
 
 }
 
-
-/*
- * Сохраняем базу.
- */
 function savePlayers() {
 
     try {
@@ -115,7 +104,6 @@ function savePlayers() {
     }
 
 }
-
 
 loadPlayers();
 
@@ -146,9 +134,7 @@ function validateTelegramInitData(initData) {
     }
 
     const params =
-        new URLSearchParams(
-            initData
-        );
+        new URLSearchParams(initData);
 
     const hash =
         params.get("hash");
@@ -173,7 +159,6 @@ function validateTelegramInitData(initData) {
             )
             .join("\n");
 
-
     const secretKey =
         crypto
             .createHmac(
@@ -182,7 +167,6 @@ function validateTelegramInitData(initData) {
             )
             .update(BOT_TOKEN)
             .digest();
-
 
     const calculatedHash =
         crypto
@@ -193,7 +177,6 @@ function validateTelegramInitData(initData) {
             .update(dataCheckString)
             .digest("hex");
 
-
     if (
         calculatedHash.length !==
         hash.length
@@ -202,7 +185,6 @@ function validateTelegramInitData(initData) {
         return null;
 
     }
-
 
     if (
         !crypto.timingSafeEqual(
@@ -215,26 +197,19 @@ function validateTelegramInitData(initData) {
 
     }
 
-
     const authDate =
         Number(
-            params.get(
-                "auth_date"
-            ) || 0
+            params.get("auth_date") || 0
         );
-
 
     if (
         !authDate ||
-        Date.now() / 1000 -
-        authDate >
-        86400
+        Date.now() / 1000 - authDate > 86400
     ) {
 
         return null;
 
     }
-
 
     let user = null;
 
@@ -242,9 +217,7 @@ function validateTelegramInitData(initData) {
 
         user =
             JSON.parse(
-                params.get(
-                    "user"
-                ) || "{}"
+                params.get("user") || "{}"
             );
 
     } catch {
@@ -253,16 +226,11 @@ function validateTelegramInitData(initData) {
 
     }
 
-
-    if (
-        !user ||
-        !user.id
-    ) {
+    if (!user || !user.id) {
 
         return null;
 
     }
-
 
     return user;
 
@@ -278,13 +246,11 @@ function createPlayer(user) {
     const id =
         String(user.id);
 
-
     if (!players[id]) {
 
         players[id] = {
 
-            telegram_id:
-                id,
+            telegram_id: id,
 
             first_name:
                 user.first_name ||
@@ -301,29 +267,20 @@ function createPlayer(user) {
             balance:
                 START_MONEY,
 
-            level:
-                1,
+            level: 1,
 
-            xp:
-                0,
+            xp: 0,
 
             title:
                 "Новичок",
 
-            wins:
-                0,
+            wins: 0,
 
-            losses:
-                0,
+            losses: 0,
 
-            games:
-                0,
+            games: 0,
 
-            /*
-             * АВТОМОБИЛИ ИГРОКА
-             */
-            cars:
-                [],
+            cars: [],
 
             created_at:
                 Date.now(),
@@ -337,60 +294,41 @@ function createPlayer(user) {
 
     } else {
 
-        /*
-         * Миграция старых игроков.
-         *
-         * Если игрок был создан
-         * до появления машин,
-         * добавляем ему cars.
-         */
+        const player =
+            players[id];
 
-        if (
-            !Array.isArray(
-                players[id].cars
-            )
-        ) {
+        player.first_name =
+            user.first_name ||
+            player.first_name ||
+            "Игрок";
 
-            players[id].cars = [];
+        player.last_name =
+            user.last_name ||
+            player.last_name ||
+            "";
+
+        player.username =
+            user.username ||
+            player.username ||
+            "";
+
+        if (!Array.isArray(player.cars)) {
+
+            player.cars = [];
 
         }
 
-
-        players[id].first_name =
-            user.first_name ||
-            players[id].first_name ||
-            "Игрок";
-
-
-        players[id].last_name =
-            user.last_name ||
-            players[id].last_name ||
-            "";
-
-
-        players[id].username =
-            user.username ||
-            players[id].username ||
-            "";
-
-
-        players[id].updated_at =
+        player.updated_at =
             Date.now();
-
 
         savePlayers();
 
     }
 
-
     return players[id];
 
 }
 
-
-/* =========================================================
-   PUBLIC PLAYER
-========================================================= */
 
 function publicPlayer(player) {
 
@@ -399,7 +337,6 @@ function publicPlayer(player) {
         return null;
 
     }
-
 
     return {
 
@@ -450,67 +387,28 @@ function publicPlayer(player) {
 
 function getTitle(level) {
 
-    if (
-        level >= 100
-    ) {
+    if (level >= 100) return "Легенда";
 
-        return "Легенда";
+    if (level >= 80) return "Император";
 
-    }
+    if (level >= 60) return "Магнат";
 
-    if (
-        level >= 80
-    ) {
+    if (level >= 40) return "Мастер";
 
-        return "Император";
-
-    }
-
-    if (
-        level >= 60
-    ) {
-
-        return "Магнат";
-
-    }
-
-    if (
-        level >= 40
-    ) {
-
-        return "Мастер";
-
-    }
-
-    if (
-        level >= 20
-    ) {
-
-        return "Ветеран";
-
-    }
+    if (level >= 20) return "Ветеран";
 
     return "Новичок";
 
 }
 
 
-/* =========================================================
-   XP
-========================================================= */
-
-function addXP(
-    player,
-    amount
-) {
+function addXP(player, amount) {
 
     player.xp += amount;
 
-
     while (
         player.level < 100 &&
-        player.xp >=
-        player.level * 100
+        player.xp >= player.level * 100
     ) {
 
         player.xp -=
@@ -520,16 +418,11 @@ function addXP(
 
     }
 
-
     player.title =
-        getTitle(
-            player.level
-        );
-
+        getTitle(player.level);
 
     player.updated_at =
         Date.now();
-
 
     savePlayers();
 
@@ -537,112 +430,431 @@ function addXP(
 
 
 /* =========================================================
-   CAR CATALOG
+   AUTOMOBILE DATABASE
 ========================================================= */
 
-const CAR_CATALOG = [
+const CARS = [
 
     {
-        id:
-            "mercedes_g63",
-
-        brand:
-            "Mercedes-Benz",
-
-        model:
-            "Mercedes-AMG G 63",
-
-        price:
-            1500000
+        id: "mercedes_g63",
+        brand: "Mercedes-AMG",
+        model: "G 63",
+        name: "Mercedes-AMG G 63",
+        price: 2500000,
+        emoji: "🚙",
+        category: "SUV"
     },
 
-
     {
-        id:
-            "bmw_m5",
-
-        brand:
-            "BMW",
-
-        model:
-            "BMW M5 Competition",
-
-        price:
-            1200000
+        id: "bmw_m5",
+        brand: "BMW",
+        model: "M5",
+        name: "BMW M5",
+        price: 1800000,
+        emoji: "🚘",
+        category: "Sport"
     },
 
-
     {
-        id:
-            "porsche_911",
-
-        brand:
-            "Porsche",
-
-        model:
-            "Porsche 911",
-
-        price:
-            1800000
+        id: "bmw_x7",
+        brand: "BMW",
+        model: "X7",
+        name: "BMW X7",
+        price: 2200000,
+        emoji: "🚙",
+        category: "SUV"
     },
 
-
     {
-        id:
-            "audi_rs6",
-
-        brand:
-            "Audi",
-
-        model:
-            "Audi RS6 Avant",
-
-        price:
-            1300000
+        id: "mercedes_s63",
+        brand: "Mercedes-Benz",
+        model: "S 63",
+        name: "Mercedes-Benz S 63 AMG",
+        price: 3200000,
+        emoji: "🚘",
+        category: "Luxury"
     },
 
-
     {
-        id:
-            "lamborghini_urus",
-
-        brand:
-            "Lamborghini",
-
-        model:
-            "Lamborghini Urus",
-
-        price:
-            3000000
+        id: "porsche_911",
+        brand: "Porsche",
+        model: "911",
+        name: "Porsche 911",
+        price: 3500000,
+        emoji: "🏎️",
+        category: "Sport"
     },
 
+    {
+        id: "range_rover",
+        brand: "Range Rover",
+        model: "Autobiography",
+        name: "Range Rover Autobiography",
+        price: 2800000,
+        emoji: "🚙",
+        category: "Luxury"
+    },
 
     {
-        id:
-            "rolls_royce_cullinan",
+        id: "audi_rs7",
+        brand: "Audi",
+        model: "RS7",
+        name: "Audi RS7",
+        price: 2700000,
+        emoji: "🏎️",
+        category: "Sport"
+    },
 
-        brand:
-            "Rolls-Royce",
+    {
+        id: "lamborghini_urus",
+        brand: "Lamborghini",
+        model: "Urus",
+        name: "Lamborghini Urus",
+        price: 5500000,
+        emoji: "🏎️",
+        category: "Supercar"
+    },
 
-        model:
-            "Rolls-Royce Cullinan",
+    {
+        id: "bentley_continental",
+        brand: "Bentley",
+        model: "Continental GT",
+        name: "Bentley Continental GT",
+        price: 6000000,
+        emoji: "🚘",
+        category: "Luxury"
+    },
 
-        price:
-            5000000
+    {
+        id: "rolls_royce_cullinan",
+        brand: "Rolls-Royce",
+        model: "Cullinan",
+        name: "Rolls-Royce Cullinan",
+        price: 12000000,
+        emoji: "🚙",
+        category: "Luxury"
     }
 
 ];
 
 
 /* =========================================================
-   CAR HELPERS
+   PLATE DATABASE
 ========================================================= */
 
-function findCatalogCar(
-    carId
-) {
+const LETTERS = [
+    "А",
+    "В",
+    "Е",
+    "К",
+    "М",
+    "Н",
+    "О",
+    "Р",
+    "С",
+    "Т",
+    "У",
+    "Х"
+];
 
-    return CAR_CATALOG.find(
+const REGIONS = [
+    "77",
+    "97",
+    "99",
+    "177",
+    "197",
+    "199",
+    "777",
+    "799"
+];
+
+
+/* =========================================================
+   BEAUTIFUL PLATES
+========================================================= */
+
+const BEAUTIFUL_PLATES = [
+
+    {
+        id: "a001aa77",
+        number: "А001АА77",
+        price: 150000,
+        rarity: "Редкий"
+    },
+
+    {
+        id: "a777aa77",
+        number: "А777АА77",
+        price: 350000,
+        rarity: "Очень редкий"
+    },
+
+    {
+        id: "x777xx77",
+        number: "Х777ХХ77",
+        price: 500000,
+        rarity: "VIP"
+    },
+
+    {
+        id: "m777mm77",
+        number: "М777ММ77",
+        price: 500000,
+        rarity: "VIP"
+    },
+
+    {
+        id: "c777cc77",
+        number: "С777СС77",
+        price: 500000,
+        rarity: "VIP"
+    },
+
+    {
+        id: "a999aa77",
+        number: "А999АА77",
+        price: 450000,
+        rarity: "VIP"
+    },
+
+    {
+        id: "a555aa77",
+        number: "А555АА77",
+        price: 300000,
+        rarity: "Очень редкий"
+    },
+
+    {
+        id: "a111aa77",
+        number: "А111АА77",
+        price: 250000,
+        rarity: "Редкий"
+    },
+
+    {
+        id: "a007aa77",
+        number: "А007АА77",
+        price: 200000,
+        rarity: "Редкий"
+    },
+
+    {
+        id: "a100aa77",
+        number: "А100АА77",
+        price: 180000,
+        rarity: "Редкий"
+    },
+
+    {
+        id: "o777oo77",
+        number: "О777ОО77",
+        price: 550000,
+        rarity: "VIP"
+    },
+
+    {
+        id: "e777ee77",
+        number: "Е777ЕЕ77",
+        price: 500000,
+        rarity: "VIP"
+    }
+
+];
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function getPlayerById(id) {
+
+    if (!id) {
+
+        return null;
+
+    }
+
+    return players[String(id)] || null;
+
+}
+
+
+function requirePlayer(req, res) {
+
+    const telegramId =
+        String(
+            req.headers["x-telegram-id"] ||
+            req.body?.telegramId ||
+            req.query?.telegramId ||
+            ""
+        );
+
+    if (!telegramId) {
+
+        res.status(401).json({
+
+            success: false,
+
+            error:
+                "Telegram ID required"
+
+        });
+
+        return null;
+
+    }
+
+    const player =
+        getPlayerById(
+            telegramId
+        );
+
+    if (!player) {
+
+        res.status(401).json({
+
+            success: false,
+
+            error:
+                "Player not found"
+
+        });
+
+        return null;
+
+    }
+
+    return player;
+
+}
+
+
+function generatePlate() {
+
+    let plate;
+
+    let attempts = 0;
+
+    do {
+
+        const first =
+            LETTERS[
+                Math.floor(
+                    Math.random() *
+                    LETTERS.length
+                )
+            ];
+
+        const digits =
+            String(
+                Math.floor(
+                    Math.random() *
+                    1000
+                )
+            ).padStart(
+                3,
+                "0"
+            );
+
+        const second =
+            LETTERS[
+                Math.floor(
+                    Math.random() *
+                    LETTERS.length
+                )
+            ];
+
+        const third =
+            LETTERS[
+                Math.floor(
+                    Math.random() *
+                    LETTERS.length
+                )
+            ];
+
+        const region =
+            REGIONS[
+                Math.floor(
+                    Math.random() *
+                    REGIONS.length
+                )
+            ];
+
+        plate =
+            `${first}${digits}${second}${third}${region}`;
+
+        attempts++;
+
+    } while (
+        isPlateUsed(plate) &&
+        attempts < 10000
+    );
+
+    if (isPlateUsed(plate)) {
+
+        throw new Error(
+            "No free plate available"
+        );
+
+    }
+
+    return plate;
+
+}
+
+
+function isPlateUsed(number) {
+
+    const normalized =
+        String(number)
+            .replace(/\s/g, "")
+            .toUpperCase();
+
+    for (
+        const player of Object.values(players)
+    ) {
+
+        if (
+            !Array.isArray(player.cars)
+        ) {
+
+            continue;
+
+        }
+
+        for (
+            const car of player.cars
+        ) {
+
+            if (
+                car.plate === normalized
+            ) {
+
+                return true;
+
+            }
+
+            if (
+                car.beautifulPlate ===
+                normalized
+            ) {
+
+                return true;
+
+            }
+
+        }
+
+    }
+
+    return false;
+
+}
+
+
+function getCarFromCatalog(carId) {
+
+    return CARS.find(
         car =>
             car.id === carId
     );
@@ -657,9 +869,7 @@ function findPlayerCar(
 
     if (
         !player ||
-        !Array.isArray(
-            player.cars
-        )
+        !Array.isArray(player.cars)
     ) {
 
         return null;
@@ -675,568 +885,7 @@ function findPlayerCar(
 
 
 /* =========================================================
-   RUSSIAN LICENSE PLATES
-========================================================= */
-
-/*
- * Российские буквы,
- * которые используются
- * на государственных номерах.
- */
-
-const PLATE_LETTERS = [
-    "А",
-    "В",
-    "Е",
-    "К",
-    "М",
-    "Н",
-    "О",
-    "Р",
-    "С",
-    "Т",
-    "У",
-    "Х"
-];
-
-
-/*
- * Основные регионы.
- *
- * Позже можно расширить
- * полноценной системой регионов.
- */
-
-const PLATE_REGIONS = [
-
-    "77",
-    "78",
-    "50",
-    "90",
-    "97",
-    "99",
-    "177",
-    "197",
-    "199",
-    "777",
-    "799"
-
-];
-
-
-/* =========================================================
-   GENERATE LICENSE PLATE
-========================================================= */
-
-function generateLicensePlate() {
-
-    /*
-     * Максимальное количество попыток.
-     */
-    const maxAttempts = 100000;
-
-
-    for (
-        let attempt = 0;
-        attempt < maxAttempts;
-        attempt++
-    ) {
-
-        const letter1 =
-            PLATE_LETTERS[
-                Math.floor(
-                    Math.random() *
-                    PLATE_LETTERS.length
-                )
-            ];
-
-
-        const digits =
-            String(
-                Math.floor(
-                    Math.random() *
-                    1000
-                )
-            ).padStart(
-                3,
-                "0"
-            );
-
-
-        const letter2 =
-            PLATE_LETTERS[
-                Math.floor(
-                    Math.random() *
-                    PLATE_LETTERS.length
-                )
-            ];
-
-
-        const letter3 =
-            PLATE_LETTERS[
-                Math.floor(
-                    Math.random() *
-                    PLATE_LETTERS.length
-                )
-            ];
-
-
-        const region =
-            PLATE_REGIONS[
-                Math.floor(
-                    Math.random() *
-                    PLATE_REGIONS.length
-                )
-            ];
-
-
-        const number =
-            `${letter1}${digits}${letter2}${letter3}${region}`;
-
-
-        if (
-            !isLicensePlateUsed(
-                number
-            )
-        ) {
-
-            return number;
-
-        }
-
-    }
-
-
-    throw new Error(
-        "Не удалось подобрать свободный государственный номер"
-    );
-
-}
-
-
-/* =========================================================
-   CHECK LICENSE PLATE
-========================================================= */
-
-function isLicensePlateUsed(
-    number
-) {
-
-    for (
-        const playerId in players
-    ) {
-
-        const player =
-            players[playerId];
-
-
-        if (
-            !Array.isArray(
-                player.cars
-            )
-        ) {
-
-            continue;
-
-        }
-
-
-        for (
-            const car of player.cars
-        ) {
-
-            if (
-                car.registration &&
-                car.registration.number ===
-                number
-            ) {
-
-                return true;
-
-            }
-
-        }
-
-    }
-
-
-    return false;
-
-}
-
-
-/* =========================================================
-   REGISTER CAR
-========================================================= */
-
-function registerCar(
-    player,
-    carId
-) {
-
-    const car =
-        findPlayerCar(
-            player,
-            carId
-        );
-
-
-    if (!car) {
-
-        return {
-
-            success:
-                false,
-
-            error:
-                "Автомобиль не найден"
-
-        };
-
-    }
-
-
-    if (
-        car.registration &&
-        car.registration.registered
-    ) {
-
-        return {
-
-            success:
-                false,
-
-            error:
-                "Этот автомобиль уже зарегистрирован"
-
-        };
-
-    }
-
-
-    if (
-        player.balance <
-        REGISTRATION_PRICE
-    ) {
-
-        return {
-
-            success:
-                false,
-
-            error:
-                `Недостаточно средств. Регистрация стоит ${REGISTRATION_PRICE.toLocaleString("ru-RU")} HC`
-
-        };
-
-    }
-
-
-    let number;
-
-
-    try {
-
-        number =
-            generateLicensePlate();
-
-    } catch (error) {
-
-        console.error(
-            "LICENSE PLATE ERROR:",
-            error
-        );
-
-        return {
-
-            success:
-                false,
-
-            error:
-                "Не удалось выдать государственный номер"
-
-        };
-
-    }
-
-
-    player.balance -=
-        REGISTRATION_PRICE;
-
-
-    car.registration = {
-
-        registered:
-            true,
-
-        registered_at:
-            Date.now(),
-
-        number:
-            number,
-
-        registration_price:
-            REGISTRATION_PRICE
-
-    };
-
-
-    player.updated_at =
-        Date.now();
-
-
-    savePlayers();
-
-
-    return {
-
-        success:
-            true,
-
-        car,
-
-        player:
-            publicPlayer(
-                player
-            )
-
-    };
-
-}
-
-
-/* =========================================================
-   BUY CAR
-========================================================= */
-
-function buyCar(
-    player,
-    catalogId
-) {
-
-    const catalogCar =
-        findCatalogCar(
-            catalogId
-        );
-
-
-    if (!catalogCar) {
-
-        return {
-
-            success:
-                false,
-
-            error:
-                "Автомобиль не найден в каталоге"
-
-        };
-
-    }
-
-
-    if (
-        player.balance <
-        catalogCar.price
-    ) {
-
-        return {
-
-            success:
-                false,
-
-            error:
-                `Недостаточно средств. Цена автомобиля ${catalogCar.price.toLocaleString("ru-RU")} HC`
-
-        };
-
-    }
-
-
-    const playerCarId =
-        crypto.randomUUID();
-
-
-    const playerCar = {
-
-        id:
-            playerCarId,
-
-        catalog_id:
-            catalogCar.id,
-
-        brand:
-            catalogCar.brand,
-
-        model:
-            catalogCar.model,
-
-        price:
-            catalogCar.price,
-
-        purchased_at:
-            Date.now(),
-
-        registration: {
-
-            registered:
-                false,
-
-            registered_at:
-                null,
-
-            number:
-                null,
-
-            registration_price:
-                REGISTRATION_PRICE
-
-        },
-
-        custom_plate: {
-
-            active:
-                false,
-
-            number:
-                null,
-
-            purchased_at:
-                null
-
-        }
-
-    };
-
-
-    player.balance -=
-        catalogCar.price;
-
-
-    player.cars.push(
-        playerCar
-    );
-
-
-    player.updated_at =
-        Date.now();
-
-
-    savePlayers();
-
-
-    return {
-
-        success:
-            true,
-
-        car:
-            playerCar,
-
-        player:
-            publicPlayer(
-                player
-            )
-
-    };
-
-}
-
-
-/* =========================================================
-   SELL CAR
-========================================================= */
-
-function sellCar(
-    player,
-    carId
-) {
-
-    const index =
-        player.cars.findIndex(
-            car =>
-                car.id ===
-                carId
-        );
-
-
-    if (
-        index === -1
-    ) {
-
-        return {
-
-            success:
-                false,
-
-            error:
-                "Автомобиль не найден"
-
-        };
-
-    }
-
-
-    const car =
-        player.cars[index];
-
-
-    /*
-     * Пока продаём автомобиль
-     * за 70% от первоначальной цены.
-     */
-
-    const sellPrice =
-        Math.floor(
-            car.price * 0.7
-        );
-
-
-    /*
-     * Государственный номер
-     * освобождается после продажи.
-     */
-
-    player.cars.splice(
-        index,
-        1
-    );
-
-
-    player.balance +=
-        sellPrice;
-
-
-    player.updated_at =
-        Date.now();
-
-
-    savePlayers();
-
-
-    return {
-
-        success:
-            true,
-
-        sold_car:
-            car,
-
-        sell_price:
-            sellPrice,
-
-        player:
-            publicPlayer(
-                player
-            )
-
-    };
-
-}
-
-
-/* =========================================================
-   API
+   BASE API
 ========================================================= */
 
 app.get(
@@ -1245,14 +894,16 @@ app.get(
 
         res.json({
 
-            success:
-                true,
+            success: true,
 
             game:
                 "Heavy Lux Card",
 
             status:
-                "online"
+                "online",
+
+            version:
+                "2.0.0"
 
         });
 
@@ -1266,16 +917,19 @@ app.get(
 
         res.json({
 
-            success:
-                true,
+            success: true,
 
             status:
                 "online",
 
             players:
-                Object.keys(
-                    players
-                ).length
+                Object.keys(players).length,
+
+            cars:
+                CARS.length,
+
+            beautifulPlates:
+                BEAUTIFUL_PLATES.length
 
         });
 
@@ -1297,21 +951,16 @@ app.post(
                 initData
             } = req.body || {};
 
-
             const user =
                 validateTelegramInitData(
                     initData
                 );
 
-
             if (!user) {
 
-                return res.status(
-                    401
-                ).json({
+                return res.status(401).json({
 
-                    success:
-                        false,
+                    success: false,
 
                     error:
                         "Telegram authorization failed"
@@ -1320,22 +969,15 @@ app.post(
 
             }
 
-
             const player =
-                createPlayer(
-                    user
-                );
-
+                createPlayer(user);
 
             return res.json({
 
-                success:
-                    true,
+                success: true,
 
                 player:
-                    publicPlayer(
-                        player
-                    )
+                    publicPlayer(player)
 
             });
 
@@ -1346,13 +988,9 @@ app.post(
                 error
             );
 
+            return res.status(500).json({
 
-            return res.status(
-                500
-            ).json({
-
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Internal server error"
@@ -1366,12 +1004,43 @@ app.post(
 
 
 /* =========================================================
-   CAR API
+   PLAYER API
+========================================================= */
+
+app.get(
+    "/api/player",
+    (req, res) => {
+
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) return;
+
+        res.json({
+
+            success: true,
+
+            player:
+                publicPlayer(player)
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   CAR DEALERSHIP
 ========================================================= */
 
 /*
- * Получить каталог автомобилей.
- */
+    GET /api/cars
+
+    Возвращает весь автосалон.
+*/
 
 app.get(
     "/api/cars",
@@ -1379,11 +1048,9 @@ app.get(
 
         res.json({
 
-            success:
-                true,
+            success: true,
 
-            cars:
-                CAR_CATALOG
+            cars: CARS
 
         });
 
@@ -1392,8 +1059,30 @@ app.get(
 
 
 /*
- * Покупка автомобиля.
- */
+    GET /api/dealership
+
+    Алиас для автосалона.
+*/
+
+app.get(
+    "/api/dealership",
+    (req, res) => {
+
+        res.json({
+
+            success: true,
+
+            cars: CARS
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   BUY CAR
+========================================================= */
 
 app.post(
     "/api/cars/buy",
@@ -1401,61 +1090,131 @@ app.post(
 
         try {
 
-            const {
-                initData,
-                carId
-            } =
-                req.body || {};
-
-
-            const user =
-                validateTelegramInitData(
-                    initData
+            const player =
+                requirePlayer(
+                    req,
+                    res
                 );
 
+            if (!player) return;
 
-            if (!user) {
+            const carId =
+                req.body?.carId;
 
-                return res.status(
-                    401
-                ).json({
+            const catalogCar =
+                getCarFromCatalog(
+                    carId
+                );
 
-                    success:
-                        false,
+            if (!catalogCar) {
+
+                return res.status(404).json({
+
+                    success: false,
 
                     error:
-                        "Telegram authorization failed"
+                        "Автомобиль не найден"
 
                 });
 
             }
 
+            if (
+                !Array.isArray(player.cars)
+            ) {
 
-            const player =
-                createPlayer(
-                    user
-                );
-
-
-            const result =
-                buyCar(
-                    player,
-                    carId
-                );
-
-
-            if (!result.success) {
-
-                return res.status(
-                    400
-                ).json(result);
+                player.cars = [];
 
             }
 
+            if (
+                player.balance <
+                catalogCar.price
+            ) {
 
-            return res.json(
-                result
-            );
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        "Недостаточно HC",
+
+                    required:
+                        catalogCar.price,
+
+                    balance:
+                        player.balance
+
+                });
+
+            }
+
+            const car = {
+
+                id:
+                    crypto.randomUUID(),
+
+                modelId:
+                    catalogCar.id,
+
+                brand:
+                    catalogCar.brand,
+
+                model:
+                    catalogCar.model,
+
+                name:
+                    catalogCar.name,
+
+                price:
+                    catalogCar.price,
+
+                emoji:
+                    catalogCar.emoji,
+
+                category:
+                    catalogCar.category,
+
+                purchasedAt:
+                    Date.now(),
+
+                registered:
+                    false,
+
+                registrationPrice:
+                    MREO_REGISTRATION_PRICE,
+
+                plate:
+                    null,
+
+                beautifulPlate:
+                    null
+
+            };
+
+            player.balance -=
+                catalogCar.price;
+
+            player.cars.push(car);
+
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+
+            res.json({
+
+                success: true,
+
+                message:
+                    "Автомобиль успешно приобретён",
+
+                car,
+
+                player:
+                    publicPlayer(player)
+
+            });
 
         } catch (error) {
 
@@ -1464,13 +1223,9 @@ app.post(
                 error
             );
 
+            res.status(500).json({
 
-            return res.status(
-                500
-            ).json({
-
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Ошибка покупки автомобиля"
@@ -1483,171 +1238,241 @@ app.post(
 );
 
 
-/*
- * Получить гараж.
- */
+/* =========================================================
+   GARAGE
+========================================================= */
 
-app.post(
-    "/api/cars/my",
+app.get(
+    "/api/garage",
     (req, res) => {
 
-        try {
-
-            const {
-                initData
-            } =
-                req.body || {};
-
-
-            const user =
-                validateTelegramInitData(
-                    initData
-                );
-
-
-            if (!user) {
-
-                return res.status(
-                    401
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Telegram authorization failed"
-
-                });
-
-            }
-
-
-            const player =
-                createPlayer(
-                    user
-                );
-
-
-            return res.json({
-
-                success:
-                    true,
-
-                cars:
-                    player.cars || [],
-
-                balance:
-                    player.balance
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "GET CARS ERROR:",
-                error
+        const player =
+            requirePlayer(
+                req,
+                res
             );
 
+        if (!player) return;
 
-            return res.status(
-                500
-            ).json({
+        res.json({
 
-                success:
-                    false,
+            success: true,
 
-                error:
-                    "Ошибка получения гаража"
+            cars:
+                player.cars || [],
 
-            });
+            player:
+                publicPlayer(player)
 
-        }
+        });
 
     }
 );
 
 
 /*
- * Регистрация автомобиля
- * в МРЭО.
- */
+    Алиас
+*/
+
+app.get(
+    "/api/my-cars",
+    (req, res) => {
+
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) return;
+
+        res.json({
+
+            success: true,
+
+            cars:
+                player.cars || []
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   MREO
+========================================================= */
+
+app.get(
+    "/api/mreo",
+    (req, res) => {
+
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) return;
+
+        const cars =
+            (player.cars || [])
+                .map(car => ({
+
+                    ...car,
+
+                    registrationAvailable:
+                        !car.registered,
+
+                    registrationPrice:
+                        MREO_REGISTRATION_PRICE
+
+                }));
+
+        res.json({
+
+            success: true,
+
+            registrationPrice:
+                MREO_REGISTRATION_PRICE,
+
+            cars
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   REGISTER CAR
+========================================================= */
 
 app.post(
-    "/api/cars/register",
+    "/api/mreo/register",
     (req, res) => {
 
         try {
 
-            const {
-                initData,
-                carId
-            } =
-                req.body || {};
-
-
-            const user =
-                validateTelegramInitData(
-                    initData
+            const player =
+                requirePlayer(
+                    req,
+                    res
                 );
 
+            if (!player) return;
 
-            if (!user) {
+            const carId =
+                req.body?.carId;
 
-                return res.status(
-                    401
-                ).json({
+            const car =
+                findPlayerCar(
+                    player,
+                    carId
+                );
 
-                    success:
-                        false,
+            if (!car) {
+
+                return res.status(404).json({
+
+                    success: false,
 
                     error:
-                        "Telegram authorization failed"
+                        "Автомобиль не найден"
 
                 });
 
             }
 
+            if (car.registered) {
 
-            const player =
-                createPlayer(
-                    user
-                );
+                return res.status(400).json({
 
+                    success: false,
 
-            const result =
-                registerCar(
-                    player,
-                    carId
-                );
+                    error:
+                        "Автомобиль уже зарегистрирован",
 
+                    car
 
-            if (!result.success) {
-
-                return res.status(
-                    400
-                ).json(result);
+                });
 
             }
 
+            if (
+                player.balance <
+                MREO_REGISTRATION_PRICE
+            ) {
 
-            return res.json(
-                result
-            );
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        `Для регистрации необходимо ${MREO_REGISTRATION_PRICE.toLocaleString("ru-RU")} HC`,
+
+                    balance:
+                        player.balance
+
+                });
+
+            }
+
+            const plate =
+                generatePlate();
+
+            player.balance -=
+                MREO_REGISTRATION_PRICE;
+
+            car.registered =
+                true;
+
+            car.registrationPrice =
+                MREO_REGISTRATION_PRICE;
+
+            car.plate =
+                plate;
+
+            car.registrationDate =
+                Date.now();
+
+            car.mreo =
+                "Heavy Lux";
+
+            car.technicalInspection =
+                true;
+
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+
+            res.json({
+
+                success: true,
+
+                message:
+                    "Т/О зарегистрировано",
+
+                car,
+
+                plate,
+
+                player:
+                    publicPlayer(player)
+
+            });
 
         } catch (error) {
 
             console.error(
-                "CAR REGISTRATION ERROR:",
+                "MREO REGISTER ERROR:",
                 error
             );
 
+            res.status(500).json({
 
-            return res.status(
-                500
-            ).json({
-
-                success:
-                    false,
+                success: false,
 
                 error:
                     "Ошибка регистрации автомобиля"
@@ -1661,88 +1486,350 @@ app.post(
 
 
 /*
- * Продажа автомобиля.
- */
+    Алиас для фронтенда.
+*/
 
 app.post(
-    "/api/cars/sell",
+    "/api/cars/register",
+    (req, res) => {
+
+        req.url =
+            "/api/mreo/register";
+
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) return;
+
+        const carId =
+            req.body?.carId;
+
+        const car =
+            findPlayerCar(
+                player,
+                carId
+            );
+
+        if (!car) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                error:
+                    "Автомобиль не найден"
+
+            });
+
+        }
+
+        if (car.registered) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error:
+                    "Автомобиль уже зарегистрирован"
+
+            });
+
+        }
+
+        if (
+            player.balance <
+            MREO_REGISTRATION_PRICE
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error:
+                    "Недостаточно HC"
+
+            });
+
+        }
+
+        const plate =
+            generatePlate();
+
+        player.balance -=
+            MREO_REGISTRATION_PRICE;
+
+        car.registered =
+            true;
+
+        car.plate =
+            plate;
+
+        car.registrationDate =
+            Date.now();
+
+        car.mreo =
+            "Heavy Lux";
+
+        car.technicalInspection =
+            true;
+
+        player.updated_at =
+            Date.now();
+
+        savePlayers();
+
+        res.json({
+
+            success: true,
+
+            message:
+                "Т/О зарегистрировано",
+
+            car,
+
+            plate,
+
+            player:
+                publicPlayer(player)
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   BEAUTIFUL PLATES API
+========================================================= */
+
+app.get(
+    "/api/plates",
+    (req, res) => {
+
+        res.json({
+
+            success: true,
+
+            plates:
+                BEAUTIFUL_PLATES
+
+        });
+
+    }
+);
+
+
+/*
+    Алиас магазина красивых номеров.
+*/
+
+app.get(
+    "/api/beautiful-plates",
+    (req, res) => {
+
+        res.json({
+
+            success: true,
+
+            plates:
+                BEAUTIFUL_PLATES
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   BUY BEAUTIFUL PLATE
+========================================================= */
+
+app.post(
+    "/api/plates/buy",
     (req, res) => {
 
         try {
 
-            const {
-                initData,
-                carId
-            } =
-                req.body || {};
-
-
-            const user =
-                validateTelegramInitData(
-                    initData
+            const player =
+                requirePlayer(
+                    req,
+                    res
                 );
 
+            if (!player) return;
 
-            if (!user) {
+            const plateId =
+                req.body?.plateId;
 
-                return res.status(
-                    401
-                ).json({
+            const plate =
+                BEAUTIFUL_PLATES.find(
+                    item =>
+                        item.id ===
+                        plateId
+                );
 
-                    success:
-                        false,
+            if (!plate) {
+
+                return res.status(404).json({
+
+                    success: false,
 
                     error:
-                        "Telegram authorization failed"
+                        "Номер не найден"
 
                 });
 
             }
 
+            if (
+                player.balance <
+                plate.price
+            ) {
 
-            const player =
-                createPlayer(
-                    user
-                );
+                return res.status(400).json({
 
+                    success: false,
 
-            const result =
-                sellCar(
-                    player,
-                    carId
-                );
+                    error:
+                        "Недостаточно HC",
 
+                    balance:
+                        player.balance
 
-            if (!result.success) {
-
-                return res.status(
-                    400
-                ).json(result);
+                });
 
             }
 
+            /*
+             * Проверяем, не купил ли
+             * этот красивый номер
+             * уже кто-то другой.
+             */
 
-            return res.json(
-                result
-            );
+            for (
+                const otherPlayer
+                of Object.values(players)
+            ) {
+
+                if (
+                    !Array.isArray(
+                        otherPlayer.cars
+                    )
+                ) {
+
+                    continue;
+
+                }
+
+                for (
+                    const car
+                    of otherPlayer.cars
+                ) {
+
+                    if (
+                        car.beautifulPlate ===
+                        plate.number
+                    ) {
+
+                        return res.status(409).json({
+
+                            success: false,
+
+                            error:
+                                "Этот красивый номер уже занят"
+
+                        });
+
+                    }
+
+                }
+
+            }
+
+            /*
+             * Красивый номер становится
+             * собственностью игрока.
+             *
+             * Он пока не обязательно
+             * устанавливается на автомобиль.
+             */
+
+            player.balance -=
+                plate.price;
+
+            if (
+                !Array.isArray(
+                    player.beautifulPlates
+                )
+            ) {
+
+                player.beautifulPlates = [];
+
+            }
+
+            player.beautifulPlates.push({
+
+                id:
+                    crypto.randomUUID(),
+
+                plateId:
+                    plate.id,
+
+                number:
+                    plate.number,
+
+                price:
+                    plate.price,
+
+                rarity:
+                    plate.rarity,
+
+                purchasedAt:
+                    Date.now(),
+
+                installedOn:
+                    null
+
+            });
+
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+
+            res.json({
+
+                success: true,
+
+                message:
+                    "Красивый номер приобретён",
+
+                plate,
+
+                player:
+                    publicPlayer(player),
+
+                beautifulPlates:
+                    player.beautifulPlates
+
+            });
 
         } catch (error) {
 
             console.error(
-                "SELL CAR ERROR:",
+                "BUY BEAUTIFUL PLATE ERROR:",
                 error
             );
 
+            res.status(500).json({
 
-            return res.status(
-                500
-            ).json({
-
-                success:
-                    false,
+                success: false,
 
                 error:
-                    "Ошибка продажи автомобиля"
+                    "Ошибка покупки номера"
 
             });
 
@@ -1753,7 +1840,348 @@ app.post(
 
 
 /* =========================================================
-   CARD DATA
+   PLAYER BEAUTIFUL PLATES
+========================================================= */
+
+app.get(
+    "/api/my-plates",
+    (req, res) => {
+
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) return;
+
+        res.json({
+
+            success: true,
+
+            plates:
+                player.beautifulPlates ||
+                []
+
+        });
+
+    }
+);
+
+
+/*
+    Алиас.
+*/
+
+app.get(
+    "/api/player/plates",
+    (req, res) => {
+
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) return;
+
+        res.json({
+
+            success: true,
+
+            plates:
+                player.beautifulPlates ||
+                []
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   INSTALL BEAUTIFUL PLATE
+========================================================= */
+
+app.post(
+    "/api/plates/install",
+    (req, res) => {
+
+        try {
+
+            const player =
+                requirePlayer(
+                    req,
+                    res
+                );
+
+            if (!player) return;
+
+            const carId =
+                req.body?.carId;
+
+            const plateId =
+                req.body?.plateId;
+
+            const car =
+                findPlayerCar(
+                    player,
+                    carId
+                );
+
+            if (!car) {
+
+                return res.status(404).json({
+
+                    success: false,
+
+                    error:
+                        "Автомобиль не найден"
+
+                });
+
+            }
+
+            if (!car.registered) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        "Сначала зарегистрируйте автомобиль в МРЭО"
+
+                });
+
+            }
+
+            if (
+                !Array.isArray(
+                    player.beautifulPlates
+                )
+            ) {
+
+                player.beautifulPlates = [];
+
+            }
+
+            const ownedPlate =
+                player.beautifulPlates.find(
+                    plate =>
+                        plate.id ===
+                        plateId
+                );
+
+            if (!ownedPlate) {
+
+                return res.status(404).json({
+
+                    success: false,
+
+                    error:
+                        "Этот номер вам не принадлежит"
+
+                });
+
+            }
+
+            /*
+             * Снимаем красивый номер
+             * с другого автомобиля,
+             * если он уже установлен.
+             */
+
+            for (
+                const otherCar
+                of player.cars
+            ) {
+
+                if (
+                    otherCar.beautifulPlate ===
+                    ownedPlate.number
+                ) {
+
+                    otherCar.beautifulPlate =
+                        null;
+
+                }
+
+            }
+
+            car.beautifulPlate =
+                ownedPlate.number;
+
+            ownedPlate.installedOn =
+                car.id;
+
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+
+            res.json({
+
+                success: true,
+
+                message:
+                    "Красивый номер установлен",
+
+                car,
+
+                plate:
+                    ownedPlate,
+
+                player:
+                    publicPlayer(player)
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "INSTALL PLATE ERROR:",
+                error
+            );
+
+            res.status(500).json({
+
+                success: false,
+
+                error:
+                    "Ошибка установки номера"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   REMOVE BEAUTIFUL PLATE
+========================================================= */
+
+app.post(
+    "/api/plates/remove",
+    (req, res) => {
+
+        try {
+
+            const player =
+                requirePlayer(
+                    req,
+                    res
+                );
+
+            if (!player) return;
+
+            const carId =
+                req.body?.carId;
+
+            const car =
+                findPlayerCar(
+                    player,
+                    carId
+                );
+
+            if (!car) {
+
+                return res.status(404).json({
+
+                    success: false,
+
+                    error:
+                        "Автомобиль не найден"
+
+                });
+
+            }
+
+            const currentPlate =
+                car.beautifulPlate;
+
+            if (!currentPlate) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        "На автомобиле нет красивого номера"
+
+                });
+
+            }
+
+            car.beautifulPlate =
+                null;
+
+            if (
+                Array.isArray(
+                    player.beautifulPlates
+                )
+            ) {
+
+                const ownedPlate =
+                    player.beautifulPlates.find(
+                        plate =>
+                            plate.number ===
+                            currentPlate
+                    );
+
+                if (ownedPlate) {
+
+                    ownedPlate.installedOn =
+                        null;
+
+                }
+
+            }
+
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+
+            res.json({
+
+                success: true,
+
+                message:
+                    "Красивый номер снят",
+
+                car,
+
+                player:
+                    publicPlayer(player)
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "REMOVE PLATE ERROR:",
+                error
+            );
+
+            res.status(500).json({
+
+                success: false,
+
+                error:
+                    "Ошибка снятия номера"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   CARD GAME
 ========================================================= */
 
 const SUITS = [
@@ -1763,79 +2191,51 @@ const SUITS = [
     "♣"
 ];
 
-
 const RANKS = [
 
     {
-        name:
-            "6",
-
-        value:
-            6
+        name: "6",
+        value: 6
     },
 
     {
-        name:
-            "7",
-
-        value:
-            7
+        name: "7",
+        value: 7
     },
 
     {
-        name:
-            "8",
-
-        value:
-            8
+        name: "8",
+        value: 8
     },
 
     {
-        name:
-            "9",
-
-        value:
-            9
+        name: "9",
+        value: 9
     },
 
     {
-        name:
-            "10",
-
-        value:
-            10
+        name: "10",
+        value: 10
     },
 
     {
-        name:
-            "В",
-
-        value:
-            11
+        name: "В",
+        value: 11
     },
 
     {
-        name:
-            "Д",
-
-        value:
-            12
+        name: "Д",
+        value: 12
     },
 
     {
-        name:
-            "К",
-
-        value:
-            13
+        name: "К",
+        value: 13
     },
 
     {
-        name:
-            "Т",
-
-        value:
-            14
+        name: "Т",
+        value: 14
     }
 
 ];
@@ -1851,14 +2251,9 @@ function createDeck() {
 
     let id = 0;
 
+    for (const suit of SUITS) {
 
-    for (
-        const suit of SUITS
-    ) {
-
-        for (
-            const rank of RANKS
-        ) {
+        for (const rank of RANKS) {
 
             result.push({
 
@@ -1879,26 +2274,16 @@ function createDeck() {
 
     }
 
-
-    return shuffle(
-        result
-    );
+    return shuffle(result);
 
 }
 
 
-/* =========================================================
-   SHUFFLE
-========================================================= */
-
 function shuffle(array) {
 
     for (
-        let i =
-            array.length - 1;
-
+        let i = array.length - 1;
         i > 0;
-
         i--
     ) {
 
@@ -1907,7 +2292,6 @@ function shuffle(array) {
                 Math.random() *
                 (i + 1)
             );
-
 
         [
             array[i],
@@ -1920,7 +2304,6 @@ function shuffle(array) {
 
     }
 
-
     return array;
 
 }
@@ -1930,31 +2313,18 @@ function shuffle(array) {
    GAME
 ========================================================= */
 
-const games =
-    new Map();
+const games = new Map();
 
 
-/* =========================================================
-   TRUMP
-========================================================= */
-
-function isTrump(
-    game,
-    card
-) {
+function isTrump(game, card) {
 
     return (
         card &&
-        card.suit ===
-        game.trumpSuit
+        card.suit === game.trumpSuit
     );
 
 }
 
-
-/* =========================================================
-   CAN BEAT
-========================================================= */
 
 function canBeat(
     game,
@@ -1971,38 +2341,23 @@ function canBeat(
 
     }
 
-
     if (
-        isTrump(
-            game,
-            defense
-        ) &&
-        !isTrump(
-            game,
-            attack
-        )
+        isTrump(game, defense) &&
+        !isTrump(game, attack)
     ) {
 
         return true;
 
     }
 
-
     if (
-        !isTrump(
-            game,
-            defense
-        ) &&
-        isTrump(
-            game,
-            attack
-        )
+        !isTrump(game, defense) &&
+        isTrump(game, attack)
     ) {
 
         return false;
 
     }
-
 
     return (
 
@@ -2017,14 +2372,9 @@ function canBeat(
 }
 
 
-/* =========================================================
-   TABLE RANKS
-========================================================= */
-
 function tableRanks(game) {
 
     const result = [];
-
 
     for (
         const pair of game.table
@@ -2034,10 +2384,7 @@ function tableRanks(game) {
             pair.attack.rank
         );
 
-
-        if (
-            pair.defense
-        ) {
+        if (pair.defense) {
 
             result.push(
                 pair.defense.rank
@@ -2047,15 +2394,10 @@ function tableRanks(game) {
 
     }
 
-
     return result;
 
 }
 
-
-/* =========================================================
-   CAN ADD CARD
-========================================================= */
 
 function canAddCard(
     game,
@@ -2068,7 +2410,6 @@ function canAddCard(
 
     }
 
-
     if (
         game.table.length >=
         game.roundLimit
@@ -2078,7 +2419,6 @@ function canAddCard(
 
     }
 
-
     if (
         game.table.length === 0
     ) {
@@ -2087,19 +2427,13 @@ function canAddCard(
 
     }
 
-
-    return tableRanks(
-        game
-    ).includes(
-        card.rank
-    );
+    return tableRanks(game)
+        .includes(
+            card.rank
+        );
 
 }
 
-
-/* =========================================================
-   FIRST UNBEATEN
-========================================================= */
 
 function firstUnbeaten(game) {
 
@@ -2119,34 +2453,20 @@ function firstUnbeaten(game) {
 
     }
 
-
     return -1;
 
 }
 
 
-/* =========================================================
-   ALL BEATEN
-========================================================= */
-
 function allBeaten(game) {
 
     return (
-
         game.table.length > 0 &&
-
-        firstUnbeaten(
-            game
-        ) === -1
-
+        firstUnbeaten(game) === -1
     );
 
 }
 
-
-/* =========================================================
-   FIND GAME
-========================================================= */
 
 function findGameByPlayer(
     telegramId
@@ -2167,7 +2487,6 @@ function findGameByPlayer(
 
     }
 
-
     return null;
 
 }
@@ -2177,9 +2496,7 @@ function findGameByPlayer(
    FIRST ATTACKER
 ========================================================= */
 
-function determineFirstAttacker(
-    game
-) {
+function determineFirstAttacker(game) {
 
     const playerTrumps =
         game.playerHand
@@ -2196,7 +2513,6 @@ function determineFirstAttacker(
                     b.value
             );
 
-
     const cpuTrumps =
         game.cpuHand
             .filter(
@@ -2212,7 +2528,6 @@ function determineFirstAttacker(
                     b.value
             );
 
-
     if (
         playerTrumps.length &&
         cpuTrumps.length
@@ -2227,7 +2542,6 @@ function determineFirstAttacker(
 
     }
 
-
     if (
         playerTrumps.length
     ) {
@@ -2235,7 +2549,6 @@ function determineFirstAttacker(
         return "player";
 
     }
-
 
     if (
         cpuTrumps.length
@@ -2245,7 +2558,6 @@ function determineFirstAttacker(
 
     }
 
-
     const playerMin =
         Math.min(
             ...game.playerHand.map(
@@ -2254,7 +2566,6 @@ function determineFirstAttacker(
             )
         );
 
-
     const cpuMin =
         Math.min(
             ...game.cpuHand.map(
@@ -2262,7 +2573,6 @@ function determineFirstAttacker(
                     card.value
             )
         );
-
 
     return (
         playerMin <=
@@ -2275,7 +2585,7 @@ function determineFirstAttacker(
 
 
 /* =========================================================
-   PUBLIC GAME STATE
+   GAME STATE
 ========================================================= */
 
 function publicGameState(game) {
@@ -2320,10 +2630,6 @@ function publicGameState(game) {
 }
 
 
-/* =========================================================
-   SEND STATE
-========================================================= */
-
 function sendState(game) {
 
     if (!game.socket) {
@@ -2332,12 +2638,9 @@ function sendState(game) {
 
     }
 
-
     game.socket.emit(
         "game_state",
-        publicGameState(
-            game
-        )
+        publicGameState(game)
     );
 
 }
@@ -2360,28 +2663,24 @@ function finishGame(
 
     }
 
-
-    game.finished =
-        true;
-
+    game.finished = true;
 
     const player =
-        players[
-            game.playerId
-        ];
+        players[game.playerId];
 
+    if (!player) {
 
-    if (
-        winner ===
-        "player"
-    ) {
+        return;
+
+    }
+
+    if (winner === "player") {
 
         player.wins++;
 
         player.games++;
 
-        player.balance +=
-            500;
+        player.balance += 500;
 
         addXP(
             player,
@@ -2389,8 +2688,7 @@ function finishGame(
         );
 
     } else if (
-        winner ===
-        "cpu"
+        winner === "cpu"
     ) {
 
         player.losses++;
@@ -2413,42 +2711,35 @@ function finishGame(
 
     }
 
-
     savePlayers();
 
+    sendState(game);
 
-    sendState(
-        game
-    );
+    if (game.socket) {
 
+        game.socket.emit(
+            "game_finished",
+            {
 
-    game.socket.emit(
-        "game_finished",
-        {
+                winner,
 
-            winner,
+                message:
+                    winner === "player"
+                        ? "Ты победил!"
+                        : winner === "cpu"
+                            ? "Компьютер победил"
+                            : "Ничья",
 
-            message:
-                winner === "player"
-                    ? "Ты победил!"
-                    : winner === "cpu"
-                        ? "Компьютер победил"
-                        : "Ничья",
+                player:
+                    publicPlayer(player)
 
-            player:
-                publicPlayer(
-                    player
-                )
+            }
+        );
 
-        }
-    );
+    }
 
 }
 
-
-/* =========================================================
-   CHECK GAME OVER
-========================================================= */
 
 function checkGameOver(game) {
 
@@ -2459,7 +2750,6 @@ function checkGameOver(game) {
         return false;
 
     }
-
 
     if (
         game.playerHand.length === 0 &&
@@ -2475,7 +2765,6 @@ function checkGameOver(game) {
 
     }
 
-
     if (
         game.playerHand.length === 0
     ) {
@@ -2488,7 +2777,6 @@ function checkGameOver(game) {
         return true;
 
     }
-
 
     if (
         game.cpuHand.length === 0
@@ -2503,21 +2791,19 @@ function checkGameOver(game) {
 
     }
 
-
     return false;
 
 }
 
 
 /* =========================================================
-   REFILL HANDS
+   REFILL
 ========================================================= */
 
 function refillHands(game) {
 
     while (
-        game.playerHand.length <
-        MAX_HAND &&
+        game.playerHand.length < MAX_HAND &&
         game.deck.length > 0
     ) {
 
@@ -2527,10 +2813,8 @@ function refillHands(game) {
 
     }
 
-
     while (
-        game.cpuHand.length <
-        MAX_HAND &&
+        game.cpuHand.length < MAX_HAND &&
         game.deck.length > 0
     ) {
 
@@ -2544,7 +2828,7 @@ function refillHands(game) {
 
 
 /* =========================================================
-   CPU DEFENSE
+   CPU
 ========================================================= */
 
 function cpuBestDefense(
@@ -2562,7 +2846,6 @@ function cpuBestDefense(
                 )
         );
 
-
     available.sort(
         (a, b) => {
 
@@ -2572,13 +2855,11 @@ function cpuBestDefense(
                     a
                 );
 
-
             const bTrump =
                 isTrump(
                     game,
                     b
                 );
-
 
             if (
                 aTrump !==
@@ -2591,7 +2872,6 @@ function cpuBestDefense(
 
             }
 
-
             return (
                 a.value -
                 b.value
@@ -2599,7 +2879,6 @@ function cpuBestDefense(
 
         }
     );
-
 
     return (
         available[0] ||
@@ -2609,15 +2888,10 @@ function cpuBestDefense(
 }
 
 
-/* =========================================================
-   CPU ATTACK CARD
-========================================================= */
-
 function cpuBestAttack(game) {
 
     const available =
         game.cpuHand.slice();
-
 
     available.sort(
         (a, b) => {
@@ -2628,13 +2902,11 @@ function cpuBestAttack(game) {
                     a
                 );
 
-
             const bTrump =
                 isTrump(
                     game,
                     b
                 );
-
 
             if (
                 aTrump !==
@@ -2647,7 +2919,6 @@ function cpuBestAttack(game) {
 
             }
 
-
             return (
                 a.value -
                 b.value
@@ -2655,7 +2926,6 @@ function cpuBestAttack(game) {
 
         }
     );
-
 
     return (
         available[0] ||
@@ -2679,7 +2949,6 @@ function cpuStartAttack(game) {
 
     }
 
-
     if (
         game.phase !==
         "cpu_attack"
@@ -2689,23 +2958,16 @@ function cpuStartAttack(game) {
 
     }
 
-
     const card =
-        cpuBestAttack(
-            game
-        );
-
+        cpuBestAttack(game);
 
     if (!card) {
 
-        checkGameOver(
-            game
-        );
+        checkGameOver(game);
 
         return;
 
     }
-
 
     const index =
         game.cpuHand.findIndex(
@@ -2714,40 +2976,29 @@ function cpuStartAttack(game) {
                 card.id
         );
 
-
-    if (
-        index === -1
-    ) {
+    if (index === -1) {
 
         return;
 
     }
-
 
     game.cpuHand.splice(
         index,
         1
     );
 
-
     game.table.push({
 
-        attack:
-            card,
+        attack: card,
 
-        defense:
-            null
+        defense: null
 
     });
-
 
     game.phase =
         "player_defense";
 
-
-    sendState(
-        game
-    );
+    sendState(game);
 
 }
 
@@ -2766,34 +3017,22 @@ function cpuDefense(game) {
 
     }
 
-
     const index =
-        firstUnbeaten(
-            game
-        );
+        firstUnbeaten(game);
 
-
-    if (
-        index === -1
-    ) {
+    if (index === -1) {
 
         game.phase =
             "player_attack";
 
-        sendState(
-            game
-        );
+        sendState(game);
 
         return;
 
     }
 
-
     const target =
-        game.table[
-            index
-        ].attack;
-
+        game.table[index].attack;
 
     const card =
         cpuBestDefense(
@@ -2801,17 +3040,13 @@ function cpuDefense(game) {
             target
         );
 
-
     if (!card) {
 
-        cpuTake(
-            game
-        );
+        cpuTake(game);
 
         return;
 
     }
-
 
     const handIndex =
         game.cpuHand.findIndex(
@@ -2820,32 +3055,21 @@ function cpuDefense(game) {
                 card.id
         );
 
-
-    if (
-        handIndex === -1
-    ) {
+    if (handIndex === -1) {
 
         return;
 
     }
-
 
     game.cpuHand.splice(
         handIndex,
         1
     );
 
-
-    game.table[
-        index
-    ].defense =
+    game.table[index].defense =
         card;
 
-
-    sendState(
-        game
-    );
-
+    sendState(game);
 
     setTimeout(
         () => {
@@ -2858,25 +3082,18 @@ function cpuDefense(game) {
 
             }
 
-
             if (
-                allBeaten(
-                    game
-                )
+                allBeaten(game)
             ) {
 
                 game.phase =
                     "player_attack";
 
-                sendState(
-                    game
-                );
+                sendState(game);
 
             } else {
 
-                cpuDefense(
-                    game
-                );
+                cpuDefense(game);
 
             }
 
@@ -2901,7 +3118,6 @@ function cpuTake(game) {
             pair.attack
         );
 
-
         if (
             pair.defense
         ) {
@@ -2914,45 +3130,31 @@ function cpuTake(game) {
 
     }
 
-
     game.table = [];
 
-
-    refillHands(
-        game
-    );
-
+    refillHands(game);
 
     if (
-        checkGameOver(
-            game
-        )
+        checkGameOver(game)
     ) {
 
         return;
 
     }
 
-
     game.attacker =
         "player";
-
 
     game.defender =
         "cpu";
 
-
     game.phase =
         "player_attack";
-
 
     game.roundLimit =
         game.cpuHand.length;
 
-
-    sendState(
-        game
-    );
+    sendState(game);
 
 }
 
@@ -2972,7 +3174,6 @@ function playerTake(game) {
 
     }
 
-
     for (
         const pair of game.table
     ) {
@@ -2980,7 +3181,6 @@ function playerTake(game) {
         game.playerHand.push(
             pair.attack
         );
-
 
         if (
             pair.defense
@@ -2994,53 +3194,36 @@ function playerTake(game) {
 
     }
 
-
     game.table = [];
 
-
-    refillHands(
-        game
-    );
-
+    refillHands(game);
 
     if (
-        checkGameOver(
-            game
-        )
+        checkGameOver(game)
     ) {
 
         return;
 
     }
 
-
     game.attacker =
         "cpu";
-
 
     game.defender =
         "player";
 
-
     game.phase =
         "cpu_attack";
-
 
     game.roundLimit =
         game.playerHand.length;
 
-
-    sendState(
-        game
-    );
-
+    sendState(game);
 
     setTimeout(
         () => {
 
-            cpuStartAttack(
-                game
-            );
+            cpuStartAttack(game);
 
         },
         500
@@ -3053,39 +3236,27 @@ function playerTake(game) {
    SUCCESSFUL ROUND
 ========================================================= */
 
-function finishSuccessfulRound(
-    game
-) {
+function finishSuccessfulRound(game) {
 
     if (
-        !allBeaten(
-            game
-        )
+        !allBeaten(game)
     ) {
 
         return;
 
     }
-
 
     game.table = [];
 
-
-    refillHands(
-        game
-    );
-
+    refillHands(game);
 
     if (
-        checkGameOver(
-            game
-        )
+        checkGameOver(game)
     ) {
 
         return;
 
     }
-
 
     if (
         game.attacker ===
@@ -3095,30 +3266,21 @@ function finishSuccessfulRound(
         game.attacker =
             "cpu";
 
-
         game.defender =
             "player";
-
 
         game.phase =
             "cpu_attack";
 
-
         game.roundLimit =
             game.playerHand.length;
 
-
-        sendState(
-            game
-        );
-
+        sendState(game);
 
         setTimeout(
             () => {
 
-                cpuStartAttack(
-                    game
-                );
+                cpuStartAttack(game);
 
             },
             500
@@ -3129,22 +3291,16 @@ function finishSuccessfulRound(
         game.attacker =
             "player";
 
-
         game.defender =
             "cpu";
-
 
         game.phase =
             "player_attack";
 
-
         game.roundLimit =
             game.cpuHand.length;
 
-
-        sendState(
-            game
-        );
+        sendState(game);
 
     }
 
@@ -3168,7 +3324,6 @@ function playerPlay(
 
     }
 
-
     if (
         game.phase !==
         "player_attack" &&
@@ -3180,7 +3335,6 @@ function playerPlay(
 
     }
 
-
     const index =
         game.playerHand.findIndex(
             card =>
@@ -3188,25 +3342,15 @@ function playerPlay(
                 cardId
         );
 
-
-    if (
-        index === -1
-    ) {
+    if (index === -1) {
 
         return;
 
     }
 
-
     const card =
-        game.playerHand[
-            index
-        ];
+        game.playerHand[index];
 
-
-    /* =====================================================
-       PLAYER ATTACK
-    ===================================================== */
 
     if (
         game.phase ===
@@ -3223,12 +3367,10 @@ function playerPlay(
             game.socket.emit(
                 "action_error",
                 {
-
                     message:
                         game.table.length
                             ? "Такую карту нельзя подкинуть"
                             : "Эту карту нельзя положить"
-
                 }
             );
 
@@ -3236,53 +3378,37 @@ function playerPlay(
 
         }
 
-
         game.playerHand.splice(
             index,
             1
         );
 
-
         game.table.push({
 
-            attack:
-                card,
+            attack: card,
 
-            defense:
-                null
+            defense: null
 
         });
-
 
         game.phase =
             "cpu_defense";
 
-
-        sendState(
-            game
-        );
-
+        sendState(game);
 
         setTimeout(
             () => {
 
-                cpuDefense(
-                    game
-                );
+                cpuDefense(game);
 
             },
             500
         );
 
-
         return;
 
     }
 
-
-    /* =====================================================
-       PLAYER DEFENSE
-    ===================================================== */
 
     if (
         game.phase ===
@@ -3290,10 +3416,7 @@ function playerPlay(
     ) {
 
         const attackIndex =
-            firstUnbeaten(
-                game
-            );
-
+            firstUnbeaten(game);
 
         if (
             attackIndex === -1
@@ -3303,12 +3426,10 @@ function playerPlay(
 
         }
 
-
         const attack =
             game.table[
                 attackIndex
             ].attack;
-
 
         if (
             !canBeat(
@@ -3321,10 +3442,8 @@ function playerPlay(
             game.socket.emit(
                 "action_error",
                 {
-
                     message:
                         "Этой картой побить нельзя"
-
                 }
             );
 
@@ -3332,58 +3451,38 @@ function playerPlay(
 
         }
 
-
         game.playerHand.splice(
             index,
             1
         );
-
 
         game.table[
             attackIndex
         ].defense =
             card;
 
-
-        sendState(
-            game
-        );
-
-
-        /*
-         * После успешного отбивания
-         * компьютер принимает решение.
-         */
+        sendState(game);
 
         setTimeout(
             () => {
 
                 if (
-                    allBeaten(
-                        game
-                    )
+                    allBeaten(game)
                 ) {
 
                     game.phase =
                         "cpu_attack";
 
-
                     game.attacker =
                         "cpu";
-
 
                     game.defender =
                         "player";
 
-
                     game.roundLimit =
                         game.playerHand.length;
 
-
-                    sendState(
-                        game
-                    );
-
+                    sendState(game);
 
                     setTimeout(
                         () => {
@@ -3398,9 +3497,7 @@ function playerPlay(
 
                 } else {
 
-                    sendState(
-                        game
-                    );
+                    sendState(game);
 
                 }
 
@@ -3427,25 +3524,18 @@ function cpuContinueAttack(game) {
 
     }
 
-
     if (
-        !allBeaten(
-            game
-        )
+        !allBeaten(game)
     ) {
 
         game.phase =
             "player_defense";
 
-
-        sendState(
-            game
-        );
+        sendState(game);
 
         return;
 
     }
-
 
     const candidates =
         game.cpuHand.filter(
@@ -3455,7 +3545,6 @@ function cpuContinueAttack(game) {
                     card
                 )
         );
-
 
     if (
         candidates.length === 0
@@ -3469,7 +3558,6 @@ function cpuContinueAttack(game) {
 
     }
 
-
     candidates.sort(
         (a, b) => {
 
@@ -3479,13 +3567,11 @@ function cpuContinueAttack(game) {
                     a
                 );
 
-
             const bTrump =
                 isTrump(
                     game,
                     b
                 );
-
 
             if (
                 aTrump !==
@@ -3498,7 +3584,6 @@ function cpuContinueAttack(game) {
 
             }
 
-
             return (
                 a.value -
                 b.value
@@ -3507,10 +3592,8 @@ function cpuContinueAttack(game) {
         }
     );
 
-
     const card =
         candidates[0];
-
 
     const index =
         game.cpuHand.findIndex(
@@ -3519,46 +3602,35 @@ function cpuContinueAttack(game) {
                 card.id
         );
 
-
-    if (
-        index === -1
-    ) {
+    if (index === -1) {
 
         return;
 
     }
-
 
     game.cpuHand.splice(
         index,
         1
     );
 
-
     game.table.push({
 
-        attack:
-            card,
+        attack: card,
 
-        defense:
-            null
+        defense: null
 
     });
-
 
     game.phase =
         "player_defense";
 
-
-    sendState(
-        game
-    );
+    sendState(game);
 
 }
 
 
 /* =========================================================
-   NEW GAME
+   CREATE GAME
 ========================================================= */
 
 function createGame(
@@ -3571,7 +3643,6 @@ function createGame(
             playerId
         );
 
-
     if (existing) {
 
         existing.socket =
@@ -3581,16 +3652,11 @@ function createGame(
 
     }
 
-
     const deck =
         createDeck();
 
-
     const trump =
-        deck[
-            deck.length - 1
-        ];
-
+        deck[deck.length - 1];
 
     const game = {
 
@@ -3603,23 +3669,18 @@ function createGame(
 
         deck,
 
-        playerHand:
-            [],
+        playerHand: [],
 
-        cpuHand:
-            [],
+        cpuHand: [],
 
-        table:
-            [],
+        table: [],
 
         trumpSuit:
             trump.suit,
 
-        attacker:
-            null,
+        attacker: null,
 
-        defender:
-            null,
+        defender: null,
 
         phase:
             "dealing",
@@ -3633,10 +3694,6 @@ function createGame(
     };
 
 
-    /*
-     * Раздаём по 6 карт.
-     */
-
     for (
         let i = 0;
         i < 6;
@@ -3646,7 +3703,6 @@ function createGame(
         game.playerHand.push(
             game.deck.shift()
         );
-
 
         game.cpuHand.push(
             game.deck.shift()
@@ -3659,7 +3715,6 @@ function createGame(
         determineFirstAttacker(
             game
         );
-
 
     game.defender =
         game.attacker ===
@@ -3687,7 +3742,6 @@ function createGame(
         game
     );
 
-
     return game;
 
 }
@@ -3707,10 +3761,6 @@ io.on(
         );
 
 
-        /* =================================================
-           AUTHENTICATE
-        ================================================= */
-
         socket.on(
             "authenticate",
             data => {
@@ -3721,22 +3771,18 @@ io.on(
                         data &&
                         data.initData;
 
-
                     const user =
                         validateTelegramInitData(
                             initData
                         );
-
 
                     if (!user) {
 
                         socket.emit(
                             "server_error",
                             {
-
                                 message:
                                     "Ошибка Telegram авторизации"
-
                             }
                         );
 
@@ -3744,18 +3790,13 @@ io.on(
 
                     }
 
-
                     const player =
-                        createPlayer(
-                            user
-                        );
-
+                        createPlayer(user);
 
                     socket.playerId =
                         String(
                             player.telegram_id
                         );
-
 
                     socket.emit(
                         "authenticated",
@@ -3776,14 +3817,11 @@ io.on(
                         error
                     );
 
-
                     socket.emit(
                         "server_error",
                         {
-
                             message:
                                 "Ошибка авторизации"
-
                         }
                     );
 
@@ -3792,10 +3830,6 @@ io.on(
             }
         );
 
-
-        /* =================================================
-           START GAME
-        ================================================= */
 
         socket.on(
             "start_game",
@@ -3808,10 +3842,8 @@ io.on(
                     socket.emit(
                         "server_error",
                         {
-
                             message:
                                 "Сначала авторизуйтесь"
-
                         }
                     );
 
@@ -3819,22 +3851,16 @@ io.on(
 
                 }
 
-
                 const game =
                     createGame(
                         socket.playerId,
                         socket
                     );
 
-
                 game.socket =
                     socket;
 
-
-                sendState(
-                    game
-                );
-
+                sendState(game);
 
                 if (
                     game.phase ===
@@ -3858,10 +3884,6 @@ io.on(
         );
 
 
-        /* =================================================
-           PLAY CARD
-        ================================================= */
-
         socket.on(
             "play_card",
             data => {
@@ -3874,12 +3896,10 @@ io.on(
 
                 }
 
-
                 const game =
                     findGameByPlayer(
                         socket.playerId
                     );
-
 
                 if (!game) {
 
@@ -3887,17 +3907,8 @@ io.on(
 
                 }
 
-
-                if (
-                    game.socket !==
-                    socket
-                ) {
-
-                    game.socket =
-                        socket;
-
-                }
-
+                game.socket =
+                    socket;
 
                 playerPlay(
                     game,
@@ -3908,10 +3919,6 @@ io.on(
             }
         );
 
-
-        /* =================================================
-           TAKE CARDS
-        ================================================= */
 
         socket.on(
             "take_cards",
@@ -3925,12 +3932,10 @@ io.on(
 
                 }
 
-
                 const game =
                     findGameByPlayer(
                         socket.playerId
                     );
-
 
                 if (!game) {
 
@@ -3938,22 +3943,14 @@ io.on(
 
                 }
 
-
                 game.socket =
                     socket;
 
-
-                playerTake(
-                    game
-                );
+                playerTake(game);
 
             }
         );
 
-
-        /* =================================================
-           FINISH ROUND
-        ================================================= */
 
         socket.on(
             "finish_round",
@@ -3967,12 +3964,10 @@ io.on(
 
                 }
 
-
                 const game =
                     findGameByPlayer(
                         socket.playerId
                     );
-
 
                 if (!game) {
 
@@ -3980,10 +3975,8 @@ io.on(
 
                 }
 
-
                 game.socket =
                     socket;
-
 
                 if (
                     game.phase !==
@@ -3994,27 +3987,21 @@ io.on(
 
                 }
 
-
                 if (
-                    !allBeaten(
-                        game
-                    )
+                    !allBeaten(game)
                 ) {
 
                     socket.emit(
                         "action_error",
                         {
-
                             message:
                                 "Сначала нужно отбить все карты"
-
                         }
                     );
 
                     return;
 
                 }
-
 
                 finishSuccessfulRound(
                     game
@@ -4024,10 +4011,6 @@ io.on(
         );
 
 
-        /* =================================================
-           DISCONNECT
-        ================================================= */
-
         socket.on(
             "disconnect",
             () => {
@@ -4036,13 +4019,6 @@ io.on(
                     "SOCKET DISCONNECT:",
                     socket.id
                 );
-
-                /*
-                 * Игру не удаляем.
-                 *
-                 * При переподключении
-                 * игрок сможет продолжить.
-                 */
 
             }
         );
@@ -4063,6 +4039,9 @@ server.listen(
             `HEAVY LUX SERVER RUNNING ON PORT ${PORT}`
         );
 
+        console.log(
+            `PORT: ${PORT}`
+        );
 
         console.log(
             `BOT TOKEN: ${
@@ -4072,14 +4051,16 @@ server.listen(
             }`
         );
 
-
         console.log(
-            `CAR REGISTRATION: ${REGISTRATION_PRICE} HC`
+            `CARS: ${CARS.length}`
         );
 
+        console.log(
+            `MREO REGISTRATION: ${MREO_REGISTRATION_PRICE} HC`
+        );
 
         console.log(
-            `CAR CATALOG: ${CAR_CATALOG.length} vehicles`
+            `BEAUTIFUL PLATES: ${BEAUTIFUL_PLATES.length}`
         );
 
     }
