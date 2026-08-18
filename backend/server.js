@@ -2,36 +2,31 @@ const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
 const { Pool } = require("pg");
-const fs = require("fs");
-const path = require("path");
-
 require("dotenv").config();
-
-
-// =========================================================
-// CONFIG
-// =========================================================
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
 
-// =========================================================
+// =====================================================
 // MIDDLEWARE
-// =========================================================
+// =====================================================
 
-app.use(cors());
+app.use(cors({
+    origin: "*"
+}));
 
 app.use(express.json());
 
 
-// =========================================================
+// =====================================================
 // DATABASE
-// =========================================================
+// =====================================================
 
 if (!process.env.DATABASE_URL) {
     console.error("DATABASE_URL is not configured");
+    process.exit(1);
 }
 
 const pool = new Pool({
@@ -43,18 +38,18 @@ const pool = new Pool({
 });
 
 
-// =========================================================
-// GAME CONFIG
-// =========================================================
+// =====================================================
+// CONSTANTS
+// =====================================================
 
 const START_BALANCE = 5000;
 
-const MAX_LEVEL = 100;
+const MAX_PLAYERS_PER_ROOM = 2;
 
 
-// =========================================================
+// =====================================================
 // TITLES
-// =========================================================
+// =====================================================
 
 function getTitle(level) {
 
@@ -82,9 +77,9 @@ function getTitle(level) {
 }
 
 
-// =========================================================
-// TELEGRAM INIT DATA VALIDATION
-// =========================================================
+// =====================================================
+// TELEGRAM AUTH
+// =====================================================
 
 function validateTelegramInitData(initData) {
 
@@ -95,9 +90,7 @@ function validateTelegramInitData(initData) {
     const botToken = process.env.BOT_TOKEN;
 
     if (!botToken) {
-        throw new Error(
-            "BOT_TOKEN is not configured"
-        );
+        throw new Error("BOT_TOKEN is not configured");
     }
 
     const params = new URLSearchParams(initData);
@@ -127,18 +120,17 @@ function validateTelegramInitData(initData) {
         .digest("hex");
 
     if (
-        calculatedHash.length !==
-        receivedHash.length
+        calculatedHash.length !== receivedHash.length
     ) {
         return null;
     }
 
-    if (
-        !crypto.timingSafeEqual(
-            Buffer.from(calculatedHash),
-            Buffer.from(receivedHash)
-        )
-    ) {
+    const validHash = crypto.timingSafeEqual(
+        Buffer.from(calculatedHash),
+        Buffer.from(receivedHash)
+    );
+
+    if (!validHash) {
         return null;
     }
 
@@ -150,25 +142,25 @@ function validateTelegramInitData(initData) {
         return null;
     }
 
-    const currentTime =
-        Math.floor(Date.now() / 1000);
+    const currentTime = Math.floor(
+        Date.now() / 1000
+    );
 
-    // INIT DATA старше 24 часов недействительна
+    // Telegram initData старше 24 часов отклоняем
     if (
         currentTime - authDate > 86400
     ) {
         return null;
     }
 
-    // Дата не должна быть сильно в будущем
+    // Защита от времени из будущего
     if (
-        authDate - currentTime > 60
+        authDate > currentTime + 60
     ) {
         return null;
     }
 
-    const userString =
-        params.get("user");
+    const userString = params.get("user");
 
     if (!userString) {
         return null;
@@ -176,7 +168,13 @@ function validateTelegramInitData(initData) {
 
     try {
 
-        return JSON.parse(userString);
+        const user = JSON.parse(userString);
+
+        if (!user.id) {
+            return null;
+        }
+
+        return user;
 
     } catch {
 
@@ -186,306 +184,283 @@ function validateTelegramInitData(initData) {
 }
 
 
-// =========================================================
-// DATABASE INITIALIZATION
-// =========================================================
+// =====================================================
+// AUTH MIDDLEWARE
+// =====================================================
 
-async function initDatabase() {
+async function authenticateTelegram(req, res, next) {
 
     try {
 
-        const schemaPath = path.join(
-            __dirname,
-            "schema.sql"
-        );
+        const initData =
+            req.headers["x-telegram-init-data"];
 
-        const schema =
-            fs.readFileSync(
-                schemaPath,
-                "utf8"
-            );
+        if (!initData) {
 
-        await pool.query(schema);
+            return res.status(401).json({
+                success: false,
+                error: "Telegram authorization required"
+            });
 
-        console.log(
-            "Database initialized successfully"
-        );
+        }
+
+        const telegramUser =
+            validateTelegramInitData(initData);
+
+        if (!telegramUser) {
+
+            return res.status(401).json({
+                success: false,
+                error: "Invalid Telegram authorization"
+            });
+
+        }
+
+        req.telegramUser = telegramUser;
+
+        next();
 
     } catch (error) {
 
         console.error(
-            "Database initialization error:",
+            "AUTH MIDDLEWARE ERROR:",
             error
         );
 
-        throw error;
+        return res.status(500).json({
+            success: false,
+            error: "Authorization error"
+        });
+
     }
 }
 
 
-// =========================================================
-// GET PLAYER
-// =========================================================
+// =====================================================
+// DATABASE INITIALIZATION
+// =====================================================
 
-async function getPlayer(
-    telegramId
-) {
+async function initDatabase() {
 
-    const result =
-        await pool.query(
-            `
-            SELECT *
-            FROM players
-            WHERE telegram_id = $1
-            `,
-            [telegramId]
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS players (
+
+            id SERIAL PRIMARY KEY,
+
+            telegram_id BIGINT UNIQUE NOT NULL,
+
+            username TEXT,
+            first_name TEXT,
+
+            balance BIGINT NOT NULL DEFAULT 5000,
+
+            xp INTEGER NOT NULL DEFAULT 0,
+            level INTEGER NOT NULL DEFAULT 1,
+            title TEXT,
+
+            wins INTEGER NOT NULL DEFAULT 0,
+            losses INTEGER NOT NULL DEFAULT 0,
+            games INTEGER NOT NULL DEFAULT 0,
+
+            created_at TIMESTAMP
+                NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TIMESTAMP
+                NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
+    `);
 
-    if (
-        result.rows.length === 0
-    ) {
-        return null;
-    }
 
-    const player =
-        result.rows[0];
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS game_rooms (
 
-    player.title =
-        getTitle(player.level);
+            id UUID PRIMARY KEY,
 
-    return player;
+            status TEXT NOT NULL DEFAULT 'waiting',
+
+            host_telegram_id BIGINT NOT NULL,
+
+            max_players INTEGER
+                NOT NULL DEFAULT 2,
+
+            created_at TIMESTAMP
+                NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TIMESTAMP
+                NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
+
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS game_room_players (
+
+            id SERIAL PRIMARY KEY,
+
+            room_id UUID NOT NULL
+                REFERENCES game_rooms(id)
+                ON DELETE CASCADE,
+
+            telegram_id BIGINT NOT NULL,
+
+            seat INTEGER NOT NULL,
+
+            joined_at TIMESTAMP
+                NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+            UNIQUE(room_id, telegram_id),
+
+            UNIQUE(room_id, seat)
+        );
+    `);
+
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS game_actions (
+
+            id SERIAL PRIMARY KEY,
+
+            room_id UUID NOT NULL
+                REFERENCES game_rooms(id)
+                ON DELETE CASCADE,
+
+            telegram_id BIGINT NOT NULL,
+
+            action TEXT NOT NULL,
+
+            payload JSONB,
+
+            created_at TIMESTAMP
+                NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
+
+
+    console.log(
+        "Database initialized successfully"
+    );
 }
 
 
-// =========================================================
-// CREATE PLAYER
-// =========================================================
+// =====================================================
+// ROOT
+// =====================================================
 
-async function createPlayer(
-    telegramUser
-) {
+app.get("/", (req, res) => {
 
-    const result =
-        await pool.query(
-            `
-            INSERT INTO players
-            (
-                telegram_id,
-                username,
-                first_name,
-                balance,
-                xp,
-                level,
-                title
-            )
-            VALUES
-            (
-                $1,
-                $2,
-                $3,
-                $4,
-                $5,
-                $6,
-                $7
-            )
-            RETURNING *
-            `,
-            [
-                telegramUser.id,
+    res.json({
 
-                telegramUser.username ||
-                    null,
+        success: true,
 
-                telegramUser.first_name ||
-                    null,
+        project: "Heavy Lux Card",
 
-                START_BALANCE,
+        status: "online",
 
-                0,
+        version: "1.0.0"
 
-                1,
+    });
 
-                null
-            ]
-        );
-
-    return result.rows[0];
-}
+});
 
 
-// =========================================================
-// MAIN
-// =========================================================
+// =====================================================
+// HEALTH
+// =====================================================
 
-app.get(
-    "/",
-    (req, res) => {
+app.get("/api/health", async (req, res) => {
+
+    try {
+
+        const result =
+            await pool.query("SELECT NOW()");
 
         res.json({
 
             success: true,
 
-            project:
-                "Heavy Lux Card",
+            status: "online",
 
-            status:
-                "online"
+            database: "connected",
+
+            time: result.rows[0].now
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        res.status(500).json({
+
+            success: false,
+
+            status: "online",
+
+            database: "error"
 
         });
 
     }
-);
+
+});
 
 
-// =========================================================
-// HEALTH CHECK
-// =========================================================
+// =====================================================
+// TELEGRAM AUTH
+// =====================================================
 
-app.get(
-    "/api/health",
-    async (req, res) => {
+app.post("/api/auth", async (req, res) => {
 
-        try {
+    try {
 
-            const result =
-                await pool.query(
-                    "SELECT NOW()"
-                );
+        const { initData } = req.body;
 
-            res.json({
+        const telegramUser =
+            validateTelegramInitData(initData);
 
-                success: true,
+        if (!telegramUser) {
 
-                status:
-                    "online",
-
-                database:
-                    "connected",
-
-                time:
-                    result.rows[0].now
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "HEALTH ERROR:",
-                error
-            );
-
-            res.status(500).json({
+            return res.status(401).json({
 
                 success: false,
 
-                status:
-                    "online",
-
-                database:
-                    "error"
+                error:
+                    "Invalid Telegram authentication"
 
             });
 
         }
 
-    }
-);
+
+        const telegramId =
+            telegramUser.id;
+
+        const username =
+            telegramUser.username || null;
+
+        const firstName =
+            telegramUser.first_name || null;
 
 
-// =========================================================
-// TELEGRAM AUTHORIZATION
-// =========================================================
-
-app.post(
-    "/api/auth",
-    async (req, res) => {
-
-        try {
-
-            const {
-                initData
-            } = req.body;
-
-            if (!initData) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "initData is required"
-
-                });
-
-            }
-
-            const telegramUser =
-                validateTelegramInitData(
-                    initData
-                );
-
-            if (!telegramUser) {
-
-                return res.status(401).json({
-
-                    success: false,
-
-                    error:
-                        "Invalid Telegram authentication"
-
-                });
-
-            }
-
-            const telegramId =
-                telegramUser.id;
-
-            const username =
-                telegramUser.username ||
-                null;
-
-            const firstName =
-                telegramUser.first_name ||
-                null;
+        const existing =
+            await pool.query(
+                `
+                SELECT *
+                FROM players
+                WHERE telegram_id = $1
+                `,
+                [telegramId]
+            );
 
 
-            // -------------------------------------------------
-            // SEARCH PLAYER
-            // -------------------------------------------------
+        // =================================================
+        // EXISTING PLAYER
+        // =================================================
 
-            let player =
-                await getPlayer(
-                    telegramId
-                );
+        if (existing.rows.length > 0) {
 
-
-            // -------------------------------------------------
-            // NEW PLAYER
-            // -------------------------------------------------
-
-            if (!player) {
-
-                player =
-                    await createPlayer(
-                        telegramUser
-                    );
-
-                return res.json({
-
-                    success: true,
-
-                    new_player: true,
-
-                    player
-
-                });
-
-            }
-
-
-            // -------------------------------------------------
-            // UPDATE TELEGRAM DATA
-            // -------------------------------------------------
+            const player =
+                existing.rows[0];
 
             const updated =
                 await pool.query(
@@ -495,7 +470,8 @@ app.post(
                     SET
                         username = $1,
                         first_name = $2,
-                        title = $3
+                        title = $3,
+                        updated_at = CURRENT_TIMESTAMP
 
                     WHERE telegram_id = $4
 
@@ -503,72 +479,125 @@ app.post(
                     `,
                     [
                         username,
-
                         firstName,
-
-                        getTitle(
-                            player.level
-                        ),
-
+                        getTitle(player.level),
                         telegramId
                     ]
                 );
 
-            player =
-                updated.rows[0];
 
-
-            res.json({
+            return res.json({
 
                 success: true,
 
                 new_player: false,
 
-                player
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "AUTH ERROR:",
-                error
-            );
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Authentication server error"
+                player: updated.rows[0]
 
             });
 
         }
 
+
+        // =================================================
+        // NEW PLAYER
+        // =================================================
+
+        const created =
+            await pool.query(
+                `
+                INSERT INTO players
+                (
+                    telegram_id,
+                    username,
+                    first_name,
+                    balance,
+                    xp,
+                    level,
+                    title
+                )
+
+                VALUES
+                (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    0,
+                    1,
+                    NULL
+                )
+
+                RETURNING *
+                `,
+                [
+                    telegramId,
+                    username,
+                    firstName,
+                    START_BALANCE
+                ]
+            );
+
+
+        res.json({
+
+            success: true,
+
+            new_player: true,
+
+            player: created.rows[0]
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "AUTH ERROR:",
+            error
+        );
+
+        res.status(500).json({
+
+            success: false,
+
+            error:
+                "Authentication server error"
+
+        });
+
     }
-);
+
+});
 
 
-// =========================================================
-// GET PLAYER
-// =========================================================
+// =====================================================
+// GET CURRENT PLAYER
+// =====================================================
 
 app.get(
-    "/api/player/:telegram_id",
+    "/api/me",
+    authenticateTelegram,
     async (req, res) => {
 
         try {
 
             const telegramId =
-                req.params.telegram_id;
+                req.telegramUser.id;
 
-            const player =
-                await getPlayer(
-                    telegramId
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT *
+                    FROM players
+                    WHERE telegram_id = $1
+                    `,
+                    [telegramId]
                 );
 
-            if (!player) {
+
+            if (result.rows.length === 0) {
 
                 return res.status(404).json({
 
@@ -581,6 +610,14 @@ app.get(
 
             }
 
+
+            const player =
+                result.rows[0];
+
+            player.title =
+                getTitle(player.level);
+
+
             res.json({
 
                 success: true,
@@ -589,12 +626,10 @@ app.get(
 
             });
 
+
         } catch (error) {
 
-            console.error(
-                "PLAYER ERROR:",
-                error
-            );
+            console.error(error);
 
             res.status(500).json({
 
@@ -611,40 +646,55 @@ app.get(
 );
 
 
-// =========================================================
-// CREATE GAME ROOM
-// =========================================================
+// =====================================================
+// GET PLAYER BY TELEGRAM ID
+// =====================================================
 
-app.post(
-    "/api/rooms",
+app.get(
+    "/api/player/:telegram_id",
+    authenticateTelegram,
     async (req, res) => {
 
         try {
 
-            const {
-                telegram_id,
-                bet = 0
-            } = req.body;
+            const requestedId =
+                req.params.telegram_id;
 
-            if (!telegram_id) {
+            const currentId =
+                String(req.telegramUser.id);
 
-                return res.status(400).json({
+
+            // Нельзя смотреть чужие профили
+            // через этот endpoint
+
+            if (
+                requestedId !== currentId
+            ) {
+
+                return res.status(403).json({
 
                     success: false,
 
                     error:
-                        "telegram_id is required"
+                        "Access denied"
 
                 });
 
             }
 
-            const player =
-                await getPlayer(
-                    telegram_id
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT *
+                    FROM players
+                    WHERE telegram_id = $1
+                    `,
+                    [requestedId]
                 );
 
-            if (!player) {
+
+            if (result.rows.length === 0) {
 
                 return res.status(404).json({
 
@@ -657,91 +707,149 @@ app.post(
 
             }
 
-            const numericBet =
-                Number(bet);
 
-            if (
-                !Number.isInteger(
-                    numericBet
-                ) ||
-                numericBet < 0
-            ) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Invalid bet"
-
-                });
-
-            }
-
-            if (
-                numericBet >
-                Number(player.balance)
-            ) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Insufficient balance"
-
-                });
-
-            }
-
-
-            // -------------------------------------------------
-            // CREATE ROOM
-            // -------------------------------------------------
-
-            const result =
-                await pool.query(
-                    `
-                    INSERT INTO game_rooms
-                    (
-                        id,
-                        status,
-                        max_players,
-                        bet,
-                        created_by
-                    )
-                    VALUES
-                    (
-                        gen_random_uuid(),
-                        'waiting',
-                        2,
-                        $1,
-                        $2
-                    )
-                    RETURNING *
-                    `,
-                    [
-                        numericBet,
-                        telegram_id
-                    ]
-                );
-
-            const room =
+            const player =
                 result.rows[0];
 
+            player.title =
+                getTitle(player.level);
 
-            // -------------------------------------------------
-            // ADD CREATOR
-            // -------------------------------------------------
 
-            await pool.query(
+            res.json({
+
+                success: true,
+
+                player
+
+            });
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+
+                success: false,
+
+                error:
+                    "Database error"
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// CREATE GAME ROOM
+// =====================================================
+
+app.post(
+    "/api/game/create",
+    authenticateTelegram,
+    async (req, res) => {
+
+        const client =
+            await pool.connect();
+
+        try {
+
+            const telegramId =
+                req.telegramUser.id;
+
+
+            const roomId =
+                crypto.randomUUID();
+
+
+            await client.query("BEGIN");
+
+
+            // Проверяем, нет ли игрока
+            // уже в активной комнате
+
+            const activeRoom =
+                await client.query(
+                    `
+                    SELECT gr.id
+
+                    FROM game_rooms gr
+
+                    JOIN game_room_players grp
+                        ON grp.room_id = gr.id
+
+                    WHERE grp.telegram_id = $1
+
+                    AND gr.status IN
+                        ('waiting', 'playing')
+
+                    LIMIT 1
+                    `,
+                    [telegramId]
+                );
+
+
+            if (
+                activeRoom.rows.length > 0
+            ) {
+
+                await client.query(
+                    "ROLLBACK"
+                );
+
+                return res.status(409).json({
+
+                    success: false,
+
+                    error:
+                        "Player already has an active game",
+
+                    room_id:
+                        activeRoom.rows[0].id
+
+                });
+
+            }
+
+
+            await client.query(
                 `
-                INSERT INTO game_players
+                INSERT INTO game_rooms
+                (
+                    id,
+                    status,
+                    host_telegram_id,
+                    max_players
+                )
+
+                VALUES
+                (
+                    $1,
+                    'waiting',
+                    $2,
+                    $3
+                )
+                `,
+                [
+                    roomId,
+                    telegramId,
+                    MAX_PLAYERS_PER_ROOM
+                ]
+            );
+
+
+            await client.query(
+                `
+                INSERT INTO game_room_players
                 (
                     room_id,
                     telegram_id,
                     seat
                 )
+
                 VALUES
                 (
                     $1,
@@ -750,24 +858,34 @@ app.post(
                 )
                 `,
                 [
-                    room.id,
-                    telegram_id
+                    roomId,
+                    telegramId
                 ]
             );
 
 
+            await client.query("COMMIT");
+
+
             res.json({
 
                 success: true,
 
-                room
+                room_id: roomId,
+
+                status: "waiting"
 
             });
 
+
         } catch (error) {
 
+            await client.query(
+                "ROLLBACK"
+            );
+
             console.error(
-                "CREATE ROOM ERROR:",
+                "CREATE GAME ERROR:",
                 error
             );
 
@@ -776,9 +894,13 @@ app.post(
                 success: false,
 
                 error:
-                    "Could not create room"
+                    "Could not create game"
 
             });
+
+        } finally {
+
+            client.release();
 
         }
 
@@ -786,79 +908,13 @@ app.post(
 );
 
 
-// =========================================================
-// GET WAITING ROOMS
-// =========================================================
-
-app.get(
-    "/api/rooms",
-    async (req, res) => {
-
-        try {
-
-            const result =
-                await pool.query(
-                    `
-                    SELECT
-                        r.id,
-                        r.status,
-                        r.max_players,
-                        r.bet,
-                        r.created_at,
-
-                        COUNT(gp.id)::INTEGER
-                            AS players
-
-                    FROM game_rooms r
-
-                    LEFT JOIN game_players gp
-                        ON gp.room_id = r.id
-
-                    WHERE r.status = 'waiting'
-
-                    GROUP BY r.id
-
-                    ORDER BY r.created_at DESC
-                    `
-                );
-
-            res.json({
-
-                success: true,
-
-                rooms:
-                    result.rows
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "ROOMS ERROR:",
-                error
-            );
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Database error"
-
-            });
-
-        }
-
-    }
-);
-
-
-// =========================================================
-// JOIN ROOM
-// =========================================================
+// =====================================================
+// JOIN GAME
+// =====================================================
 
 app.post(
-    "/api/rooms/:roomId/join",
+    "/api/game/join",
+    authenticateTelegram,
     async (req, res) => {
 
         const client =
@@ -866,48 +922,46 @@ app.post(
 
         try {
 
-            const {
-                telegram_id
-            } = req.body;
+            const telegramId =
+                req.telegramUser.id;
 
-            if (!telegram_id) {
+            const { room_id } =
+                req.body;
+
+
+            if (!room_id) {
 
                 return res.status(400).json({
 
                     success: false,
 
                     error:
-                        "telegram_id is required"
+                        "room_id is required"
 
                 });
 
             }
 
-            await client.query(
-                "BEGIN"
-            );
+
+            await client.query("BEGIN");
 
 
-            // -------------------------------------------------
-            // ROOM
-            // -------------------------------------------------
-
-            const roomResult =
+            const room =
                 await client.query(
                     `
                     SELECT *
+
                     FROM game_rooms
+
                     WHERE id = $1
+
                     FOR UPDATE
                     `,
-                    [
-                        req.params.roomId
-                    ]
+                    [room_id]
                 );
 
-            if (
-                roomResult.rows.length === 0
-            ) {
+
+            if (room.rows.length === 0) {
 
                 await client.query(
                     "ROLLBACK"
@@ -918,18 +972,19 @@ app.post(
                     success: false,
 
                     error:
-                        "Room not found"
+                        "Game room not found"
 
                 });
 
             }
 
-            const room =
-                roomResult.rows[0];
+
+            const game =
+                room.rows[0];
 
 
             if (
-                room.status !== "waiting"
+                game.status !== "waiting"
             ) {
 
                 await client.query(
@@ -948,53 +1003,24 @@ app.post(
             }
 
 
-            // -------------------------------------------------
-            // PLAYER
-            // -------------------------------------------------
-
-            const player =
-                await getPlayer(
-                    telegram_id
-                );
-
-            if (!player) {
-
-                await client.query(
-                    "ROLLBACK"
-                );
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    error:
-                        "Player not found"
-
-                });
-
-            }
-
-
-            // -------------------------------------------------
-            // CHECK EXISTING
-            // -------------------------------------------------
-
-            const existing =
+            const players =
                 await client.query(
                     `
                     SELECT *
-                    FROM game_players
+
+                    FROM game_room_players
+
                     WHERE room_id = $1
-                    AND telegram_id = $2
+
+                    ORDER BY seat
                     `,
-                    [
-                        room.id,
-                        telegram_id
-                    ]
+                    [room_id]
                 );
 
+
             if (
-                existing.rows.length > 0
+                players.rows.length >=
+                game.max_players
             ) {
 
                 await client.query(
@@ -1006,68 +1032,71 @@ app.post(
                     success: false,
 
                     error:
-                        "Player already joined"
+                        "Game room is full"
 
                 });
 
             }
 
 
-            // -------------------------------------------------
-            // COUNT PLAYERS
-            // -------------------------------------------------
-
-            const countResult =
-                await client.query(
-                    `
-                    SELECT COUNT(*)::INTEGER
-                    FROM game_players
-                    WHERE room_id = $1
-                    `,
-                    [
-                        room.id
-                    ]
+            const alreadyJoined =
+                players.rows.find(
+                    p =>
+                        String(
+                            p.telegram_id
+                        ) ===
+                        String(
+                            telegramId
+                        )
                 );
 
-            const playerCount =
-                countResult.rows[0].count;
 
-            if (
-                playerCount >=
-                room.max_players
+            if (alreadyJoined) {
+
+                await client.query(
+                    "COMMIT"
+                );
+
+                return res.json({
+
+                    success: true,
+
+                    room_id,
+
+                    status:
+                        game.status
+
+                });
+
+            }
+
+
+            const usedSeats =
+                players.rows.map(
+                    p => p.seat
+                );
+
+
+            let seat = 1;
+
+            while (
+                usedSeats.includes(seat)
             ) {
 
-                await client.query(
-                    "ROLLBACK"
-                );
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Room is full"
-
-                });
+                seat++;
 
             }
 
-
-            // -------------------------------------------------
-            // JOIN
-            // -------------------------------------------------
-
-            const seat =
-                playerCount + 1;
 
             await client.query(
                 `
-                INSERT INTO game_players
+                INSERT INTO game_room_players
                 (
                     room_id,
                     telegram_id,
                     seat
                 )
+
                 VALUES
                 (
                     $1,
@@ -1076,33 +1105,42 @@ app.post(
                 )
                 `,
                 [
-                    room.id,
-                    telegram_id,
+                    room_id,
+                    telegramId,
                     seat
                 ]
             );
 
 
-            // -------------------------------------------------
-            // START WHEN 2 PLAYERS
-            // -------------------------------------------------
+            const newPlayerCount =
+                players.rows.length + 1;
+
+
+            let newStatus =
+                "waiting";
+
 
             if (
-                seat >= room.max_players
+                newPlayerCount >=
+                game.max_players
             ) {
+
+                newStatus =
+                    "playing";
+
 
                 await client.query(
                     `
                     UPDATE game_rooms
+
                     SET
                         status = 'playing',
-                        started_at = CURRENT_TIMESTAMP
+                        updated_at =
+                            CURRENT_TIMESTAMP
 
                     WHERE id = $1
                     `,
-                    [
-                        room.id
-                    ]
+                    [room_id]
                 );
 
             }
@@ -1113,27 +1151,18 @@ app.post(
             );
 
 
-            const updatedRoom =
-                await pool.query(
-                    `
-                    SELECT *
-                    FROM game_rooms
-                    WHERE id = $1
-                    `,
-                    [
-                        room.id
-                    ]
-                );
-
-
             res.json({
 
                 success: true,
 
-                room:
-                    updatedRoom.rows[0]
+                room_id,
+
+                status: newStatus,
+
+                seat
 
             });
+
 
         } catch (error) {
 
@@ -1142,7 +1171,7 @@ app.post(
             );
 
             console.error(
-                "JOIN ROOM ERROR:",
+                "JOIN GAME ERROR:",
                 error
             );
 
@@ -1151,7 +1180,7 @@ app.post(
                 success: false,
 
                 error:
-                    "Could not join room"
+                    "Could not join game"
 
             });
 
@@ -1165,91 +1194,124 @@ app.post(
 );
 
 
-// =========================================================
-// ROOM DETAILS
-// =========================================================
+// =====================================================
+// GET GAME ROOM
+// =====================================================
 
 app.get(
-    "/api/rooms/:roomId",
+    "/api/game/:room_id",
+    authenticateTelegram,
     async (req, res) => {
 
         try {
 
-            const roomResult =
+            const roomId =
+                req.params.room_id;
+
+            const telegramId =
+                req.telegramUser.id;
+
+
+            const result =
                 await pool.query(
                     `
-                    SELECT *
-                    FROM game_rooms
-                    WHERE id = $1
+                    SELECT
+                        gr.id,
+                        gr.status,
+                        gr.host_telegram_id,
+                        gr.max_players,
+                        gr.created_at,
+
+                        json_agg(
+                            json_build_object(
+                                'telegram_id',
+                                p.telegram_id,
+
+                                'username',
+                                p.username,
+
+                                'first_name',
+                                p.first_name,
+
+                                'seat',
+                                grp.seat
+                            )
+                            ORDER BY grp.seat
+                        ) AS players
+
+                    FROM game_rooms gr
+
+                    JOIN game_room_players grp
+                        ON grp.room_id = gr.id
+
+                    JOIN players p
+                        ON p.telegram_id =
+                           grp.telegram_id
+
+                    WHERE gr.id = $1
+
+                    GROUP BY gr.id
                     `,
-                    [
-                        req.params.roomId
-                    ]
+                    [roomId]
                 );
 
-            if (
-                roomResult.rows.length === 0
-            ) {
+
+            if (result.rows.length === 0) {
 
                 return res.status(404).json({
 
                     success: false,
 
                     error:
-                        "Room not found"
+                        "Game room not found"
 
                 });
 
             }
 
-            const playersResult =
-                await pool.query(
-                    `
-                    SELECT
-                        gp.seat,
-                        gp.telegram_id,
-                        gp.is_ready,
-                        gp.is_winner,
 
-                        p.username,
-                        p.first_name,
-                        p.level,
-                        p.title
+            const game =
+                result.rows[0];
 
-                    FROM game_players gp
 
-                    JOIN players p
-                        ON p.telegram_id =
-                           gp.telegram_id
-
-                    WHERE gp.room_id = $1
-
-                    ORDER BY gp.seat
-                    `,
-                    [
-                        req.params.roomId
-                    ]
+            const isPlayer =
+                game.players.some(
+                    player =>
+                        String(
+                            player.telegram_id
+                        ) ===
+                        String(
+                            telegramId
+                        )
                 );
+
+
+            if (!isPlayer) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    error:
+                        "You are not in this game"
+
+                });
+
+            }
 
 
             res.json({
 
                 success: true,
 
-                room:
-                    roomResult.rows[0],
-
-                players:
-                    playersResult.rows
+                game
 
             });
 
+
         } catch (error) {
 
-            console.error(
-                "ROOM DETAILS ERROR:",
-                error
-            );
+            console.error(error);
 
             res.status(500).json({
 
@@ -1266,29 +1328,262 @@ app.get(
 );
 
 
-// =========================================================
-// 404
-// =========================================================
+// =====================================================
+// SEND GAME ACTION
+// =====================================================
 
-app.use(
-    (req, res) => {
+app.post(
+    "/api/game/:room_id/action",
+    authenticateTelegram,
+    async (req, res) => {
 
-        res.status(404).json({
+        try {
 
-            success: false,
+            const roomId =
+                req.params.room_id;
 
-            error:
-                "Endpoint not found"
+            const telegramId =
+                req.telegramUser.id;
 
-        });
+            const {
+                action,
+                payload
+            } = req.body;
+
+
+            if (!action) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    error:
+                        "Action is required"
+
+                });
+
+            }
+
+
+            // Проверяем участие
+
+            const player =
+                await pool.query(
+                    `
+                    SELECT 1
+
+                    FROM game_room_players
+
+                    WHERE room_id = $1
+
+                    AND telegram_id = $2
+                    `,
+                    [
+                        roomId,
+                        telegramId
+                    ]
+                );
+
+
+            if (
+                player.rows.length === 0
+            ) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    error:
+                        "You are not in this game"
+
+                });
+
+            }
+
+
+            // Пока просто записываем действие.
+            // Здесь позже будет игровая логика
+            // Дурака / Heavy Lux Card.
+
+            await pool.query(
+                `
+                INSERT INTO game_actions
+                (
+                    room_id,
+                    telegram_id,
+                    action,
+                    payload
+                )
+
+                VALUES
+                (
+                    $1,
+                    $2,
+                    $3,
+                    $4
+                )
+                `,
+                [
+                    roomId,
+                    telegramId,
+                    action,
+                    payload || {}
+                ]
+            );
+
+
+            res.json({
+
+                success: true,
+
+                action
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "GAME ACTION ERROR:",
+                error
+            );
+
+            res.status(500).json({
+
+                success: false,
+
+                error:
+                    "Could not process action"
+
+            });
+
+        }
 
     }
 );
 
 
-// =========================================================
+// =====================================================
+// GET GAME ACTIONS
+// =====================================================
+
+app.get(
+    "/api/game/:room_id/actions",
+    authenticateTelegram,
+    async (req, res) => {
+
+        try {
+
+            const roomId =
+                req.params.room_id;
+
+            const telegramId =
+                req.telegramUser.id;
+
+
+            const player =
+                await pool.query(
+                    `
+                    SELECT 1
+
+                    FROM game_room_players
+
+                    WHERE room_id = $1
+
+                    AND telegram_id = $2
+                    `,
+                    [
+                        roomId,
+                        telegramId
+                    ]
+                );
+
+
+            if (
+                player.rows.length === 0
+            ) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    error:
+                        "You are not in this game"
+
+                });
+
+            }
+
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT
+                        id,
+                        telegram_id,
+                        action,
+                        payload,
+                        created_at
+
+                    FROM game_actions
+
+                    WHERE room_id = $1
+
+                    ORDER BY id ASC
+                    `,
+                    [roomId]
+                );
+
+
+            res.json({
+
+                success: true,
+
+                actions:
+                    result.rows
+
+            });
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+
+                success: false,
+
+                error:
+                    "Database error"
+
+            });
+
+        }
+
+    }
+);
+
+
+// =====================================================
+// 404
+// =====================================================
+
+app.use((req, res) => {
+
+    res.status(404).json({
+
+        success: false,
+
+        error: "Route not found"
+
+    });
+
+});
+
+
+// =====================================================
 // ERROR HANDLER
-// =========================================================
+// =====================================================
 
 app.use(
     (error, req, res, next) => {
@@ -1311,9 +1606,9 @@ app.use(
 );
 
 
-// =========================================================
+// =====================================================
 // START SERVER
-// =========================================================
+// =====================================================
 
 async function startServer() {
 
@@ -1321,32 +1616,13 @@ async function startServer() {
 
         await initDatabase();
 
+
         app.listen(
             PORT,
             () => {
 
                 console.log(
-                    "================================="
-                );
-
-                console.log(
-                    "Heavy Lux Card backend"
-                );
-
-                console.log(
-                    `Server: http://localhost:${PORT}`
-                );
-
-                console.log(
-                    "Database: connected"
-                );
-
-                console.log(
-                    "Telegram Auth: enabled"
-                );
-
-                console.log(
-                    "================================="
+                    `Heavy Lux Card backend running on port ${PORT}`
                 );
 
             }
@@ -1362,6 +1638,7 @@ async function startServer() {
         process.exit(1);
 
     }
+
 }
 
 
