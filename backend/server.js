@@ -1,15 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const { Server } = require("socket.io");
 
+/* =========================================================
+   CONFIG
+========================================================= */
+
 const app = express();
+
 const server = http.createServer(app);
-
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
 
 const io = new Server(server, {
     cors: {
@@ -18,91 +21,527 @@ const io = new Server(server, {
     }
 });
 
-/* =========================================================
-   CONFIG
-========================================================= */
+const PORT = process.env.PORT || 3000;
 
-const START_MONEY = 10000;
-const START_LEVEL = 1;
+const BOT_TOKEN = process.env.BOT_TOKEN || "";
 
-const TABLES = {
-    100: {
-        name: "НОВИЧОК",
-        bet: 100
-    },
-    500: {
-        name: "СТАНДАРТ",
-        bet: 500
-    },
-    2000: {
-        name: "ВЫСОКИЙ",
-        bet: 2000
-    },
-    10000: {
-        name: "VIP",
-        bet: 10000
-    }
-};
+const START_MONEY = 5000;
+
+const MAX_HAND = 6;
+
+const MAX_CHAT_MESSAGES = 100;
+
+const DATA_FILE = path.join(__dirname, "players.json");
+
 
 /* =========================================================
-   PLAYERS
+   MIDDLEWARE
 ========================================================= */
 
-const players = new Map();
+app.use(cors());
 
-/*
-player:
+app.use(express.json());
 
-{
-    id,
-    name,
-    avatar,
-    money,
-    level,
-    exp,
-    wins,
-    losses,
-    games
-}
-*/
 
 /* =========================================================
-   ROOMS
+   DATABASE
 ========================================================= */
 
-const rooms = new Map();
+let players = {};
 
-/*
-room:
+function loadPlayers() {
 
-{
-    id,
-    bet,
-    bank,
-    players: {
-        socketId: {
-            socketId,
-            playerId,
-            name,
-            hand: []
+    try {
+
+        if (fs.existsSync(DATA_FILE)) {
+
+            const data =
+                fs.readFileSync(
+                    DATA_FILE,
+                    "utf8"
+                );
+
+            players =
+                JSON.parse(data) || {};
+
         }
-    },
 
-    deck: [],
-    trumpSuit: null,
-    table: [],
+    } catch (error) {
 
-    attacker: socketId,
-    defender: socketId,
+        console.error(
+            "LOAD PLAYERS ERROR:",
+            error
+        );
 
-    phase: "waiting",
+        players = {};
 
-    winner: null
+    }
+
 }
-*/
+
+function savePlayers() {
+
+    try {
+
+        fs.writeFileSync(
+            DATA_FILE,
+            JSON.stringify(
+                players,
+                null,
+                2
+            ),
+            "utf8"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "SAVE PLAYERS ERROR:",
+            error
+        );
+
+    }
+
+}
+
+loadPlayers();
+
 
 /* =========================================================
-   CARDS
+   TELEGRAM AUTH
+========================================================= */
+
+function validateTelegramInitData(initData) {
+
+    if (!BOT_TOKEN) {
+
+        console.warn(
+            "BOT_TOKEN is not configured"
+        );
+
+        return null;
+
+    }
+
+    if (
+        !initData ||
+        typeof initData !== "string"
+    ) {
+
+        return null;
+
+    }
+
+    const params =
+        new URLSearchParams(
+            initData
+        );
+
+    const hash =
+        params.get("hash");
+
+    if (!hash) {
+
+        return null;
+
+    }
+
+    params.delete("hash");
+
+    const dataCheckString =
+        [...params.entries()]
+            .sort(
+                ([a], [b]) =>
+                    a.localeCompare(b)
+            )
+            .map(
+                ([key, value]) =>
+                    `${key}=${value}`
+            )
+            .join("\n");
+
+    const secretKey =
+        crypto
+            .createHmac(
+                "sha256",
+                "WebAppData"
+            )
+            .update(BOT_TOKEN)
+            .digest();
+
+    const calculatedHash =
+        crypto
+            .createHmac(
+                "sha256",
+                secretKey
+            )
+            .update(dataCheckString)
+            .digest("hex");
+
+    if (
+        calculatedHash.length !==
+        hash.length
+    ) {
+
+        return null;
+
+    }
+
+    if (
+        !crypto.timingSafeEqual(
+            Buffer.from(calculatedHash),
+            Buffer.from(hash)
+        )
+    ) {
+
+        return null;
+
+    }
+
+    const authDate =
+        Number(
+            params.get("auth_date") || 0
+        );
+
+    /*
+     * Не принимаем слишком старые
+     * Telegram initData.
+     */
+
+    if (
+        !authDate ||
+        Date.now() / 1000 - authDate >
+        86400
+    ) {
+
+        return null;
+
+    }
+
+    let user = null;
+
+    try {
+
+        user =
+            JSON.parse(
+                params.get("user") || "{}"
+            );
+
+    } catch {
+
+        return null;
+
+    }
+
+    if (!user || !user.id) {
+
+        return null;
+
+    }
+
+    return user;
+
+}
+
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+function createPlayer(user) {
+
+    const id =
+        String(user.id);
+
+    if (!players[id]) {
+
+        players[id] = {
+
+            telegram_id: id,
+
+            first_name:
+                user.first_name ||
+                "Игрок",
+
+            last_name:
+                user.last_name ||
+                "",
+
+            username:
+                user.username ||
+                "",
+
+            balance:
+                START_MONEY,
+
+            level: 1,
+
+            xp: 0,
+
+            title:
+                "Новичок",
+
+            wins: 0,
+
+            losses: 0,
+
+            games: 0,
+
+            created_at:
+                Date.now(),
+
+            updated_at:
+                Date.now()
+
+        };
+
+        savePlayers();
+
+    } else {
+
+        players[id].first_name =
+            user.first_name ||
+            players[id].first_name ||
+            "Игрок";
+
+        players[id].last_name =
+            user.last_name ||
+            players[id].last_name ||
+            "";
+
+        players[id].username =
+            user.username ||
+            players[id].username ||
+            "";
+
+        players[id].updated_at =
+            Date.now();
+
+        savePlayers();
+
+    }
+
+    return players[id];
+
+}
+
+
+function publicPlayer(player) {
+
+    if (!player) {
+
+        return null;
+
+    }
+
+    return {
+
+        telegram_id:
+            player.telegram_id,
+
+        first_name:
+            player.first_name,
+
+        last_name:
+            player.last_name,
+
+        username:
+            player.username,
+
+        balance:
+            player.balance,
+
+        level:
+            player.level,
+
+        xp:
+            player.xp,
+
+        title:
+            player.title,
+
+        wins:
+            player.wins,
+
+        losses:
+            player.losses,
+
+        games:
+            player.games
+
+    };
+
+}
+
+
+/* =========================================================
+   TITLES
+========================================================= */
+
+function getTitle(level) {
+
+    if (level >= 100) return "Легенда";
+
+    if (level >= 80) return "Император";
+
+    if (level >= 60) return "Магнат";
+
+    if (level >= 40) return "Мастер";
+
+    if (level >= 20) return "Ветеран";
+
+    return "Новичок";
+
+}
+
+
+function addXP(player, amount) {
+
+    player.xp += amount;
+
+    /*
+     * Простая система:
+     * каждый следующий уровень
+     * требует 100 XP.
+     */
+
+    while (
+        player.level < 100 &&
+        player.xp >=
+        player.level * 100
+    ) {
+
+        player.xp -=
+            player.level * 100;
+
+        player.level++;
+
+    }
+
+    player.title =
+        getTitle(
+            player.level
+        );
+
+    player.updated_at =
+        Date.now();
+
+    savePlayers();
+
+}
+
+
+/* =========================================================
+   API
+========================================================= */
+
+app.get(
+    "/",
+    (req, res) => {
+
+        res.json({
+
+            success: true,
+
+            game:
+                "Heavy Lux Card",
+
+            status:
+                "online"
+
+        });
+
+    }
+);
+
+
+app.get(
+    "/api/health",
+    (req, res) => {
+
+        res.json({
+
+            success: true,
+
+            status: "online",
+
+            players:
+                Object.keys(players).length
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   AUTH API
+========================================================= */
+
+app.post(
+    "/api/auth",
+    (req, res) => {
+
+        try {
+
+            const {
+                initData
+            } = req.body || {};
+
+            const user =
+                validateTelegramInitData(
+                    initData
+                );
+
+            if (!user) {
+
+                return res.status(401).json({
+
+                    success: false,
+
+                    error:
+                        "Telegram authorization failed"
+
+                });
+
+            }
+
+            const player =
+                createPlayer(user);
+
+            return res.json({
+
+                success: true,
+
+                player:
+                    publicPlayer(player)
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "AUTH ERROR:",
+                error
+            );
+
+            return res.status(500).json({
+
+                success: false,
+
+                error:
+                    "Internal server error"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   CARD DATA
 ========================================================= */
 
 const SUITS = [
@@ -112,48 +551,64 @@ const SUITS = [
     "♣"
 ];
 
+
 const RANKS = [
+
     {
         name: "6",
         value: 6
     },
+
     {
         name: "7",
         value: 7
     },
+
     {
         name: "8",
         value: 8
     },
+
     {
         name: "9",
         value: 9
     },
+
     {
         name: "10",
         value: 10
     },
+
     {
         name: "В",
         value: 11
     },
+
     {
         name: "Д",
         value: 12
     },
+
     {
         name: "К",
         value: 13
     },
+
     {
         name: "Т",
         value: 14
     }
+
 ];
+
+
+/* =========================================================
+   DECK
+========================================================= */
 
 function createDeck() {
 
-    const deck = [];
+    const result = [];
 
     let id = 0;
 
@@ -161,1081 +616,1521 @@ function createDeck() {
 
         for (const rank of RANKS) {
 
-            deck.push({
-                id: `card_${id++}`,
+            result.push({
+
+                id:
+                    `card_${id++}`,
+
                 suit,
-                rank: rank.name,
-                value: rank.value
+
+                rank:
+                    rank.name,
+
+                value:
+                    rank.value
+
             });
+
         }
+
     }
 
-    return shuffle(deck);
+    return shuffle(result);
+
 }
+
 
 function shuffle(array) {
 
-    const result = [...array];
-
     for (
-        let i = result.length - 1;
+        let i = array.length - 1;
         i > 0;
         i--
     ) {
 
         const j =
             Math.floor(
-                Math.random() * (i + 1)
+                Math.random() *
+                (i + 1)
             );
 
         [
-            result[i],
-            result[j]
-        ] = [
-            result[j],
-            result[i]
+            array[i],
+            array[j]
+        ] =
+        [
+            array[j],
+            array[i]
         ];
+
     }
 
-    return result;
+    return array;
+
 }
 
-/* =========================================================
-   PLAYER
-========================================================= */
-
-function getPlayer(socketId) {
-
-    if (!players.has(socketId)) {
-
-        players.set(socketId, {
-            id: socketId,
-            name: "Игрок",
-            avatar: "",
-            money: START_MONEY,
-            level: START_LEVEL,
-            exp: 0,
-            wins: 0,
-            losses: 0,
-            games: 0
-        });
-    }
-
-    return players.get(socketId);
-}
 
 /* =========================================================
-   SAFE PLAYER
+   GAME
 ========================================================= */
 
-function publicPlayer(player) {
+const games = new Map();
 
-    return {
-        id: player.id,
-        name: player.name,
-        avatar: player.avatar,
-        money: player.money,
-        level: player.level,
-        exp: player.exp,
-        wins: player.wins,
-        losses: player.losses,
-        games: player.games
-    };
-}
 
-/* =========================================================
-   ROOM ID
-========================================================= */
-
-function generateRoomId() {
-
-    return Math.random()
-        .toString(36)
-        .substring(2, 8)
-        .toUpperCase();
-}
-
-/* =========================================================
-   FIND OPEN ROOM
-========================================================= */
-
-function findWaitingRoom(bet) {
-
-    for (const room of rooms.values()) {
-
-        if (
-            room.bet === bet &&
-            Object.keys(room.players).length === 1 &&
-            room.phase === "waiting"
-        ) {
-
-            return room;
-        }
-    }
-
-    return null;
-}
-
-/* =========================================================
-   CREATE ROOM
-========================================================= */
-
-function createRoom(socket, bet) {
-
-    const player = getPlayer(socket.id);
-
-    if (player.money < bet) {
-
-        socket.emit("error_message", {
-            message: "Недостаточно HC"
-        });
-
-        return null;
-    }
-
-    player.money -= bet;
-
-    const room = {
-
-        id: generateRoomId(),
-
-        bet,
-
-        bank: bet,
-
-        players: {},
-
-        deck: [],
-
-        trumpSuit: null,
-
-        table: [],
-
-        attacker: null,
-
-        defender: null,
-
-        phase: "waiting",
-
-        winner: null
-    };
-
-    room.players[socket.id] = {
-
-        socketId: socket.id,
-
-        playerId: player.id,
-
-        name: player.name,
-
-        hand: []
-    };
-
-    rooms.set(
-        room.id,
-        room
-    );
-
-    socket.join(room.id);
-
-    socket.roomId = room.id;
-
-    return room;
-}
-
-/* =========================================================
-   JOIN ROOM
-========================================================= */
-
-function joinRoom(socket, room) {
-
-    const player = getPlayer(socket.id);
-
-    if (player.money < room.bet) {
-
-        socket.emit("error_message", {
-            message: "Недостаточно HC"
-        });
-
-        return false;
-    }
-
-    player.money -= room.bet;
-
-    room.bank += room.bet;
-
-    room.players[socket.id] = {
-
-        socketId: socket.id,
-
-        playerId: player.id,
-
-        name: player.name,
-
-        hand: []
-    };
-
-    socket.join(room.id);
-
-    socket.roomId = room.id;
-
-    return true;
-}
-
-/* =========================================================
-   START GAME
-========================================================= */
-
-function startGame(room) {
-
-    const socketIds =
-        Object.keys(room.players);
-
-    if (socketIds.length !== 2) {
-        return;
-    }
-
-    room.deck =
-        createDeck();
-
-    const trump =
-        room.deck[room.deck.length - 1];
-
-    room.trumpSuit =
-        trump.suit;
-
-    room.table = [];
-
-    const p1 =
-        room.players[socketIds[0]];
-
-    const p2 =
-        room.players[socketIds[1]];
-
-    p1.hand = [];
-    p2.hand = [];
-
-    for (let i = 0; i < 6; i++) {
-
-        p1.hand.push(
-            room.deck.shift()
-        );
-
-        p2.hand.push(
-            room.deck.shift()
-        );
-    }
-
-    /*
-        Определяем первого атакующего
-        по младшему козырю.
-    */
-
-    const p1Trumps =
-        p1.hand
-            .filter(
-                card =>
-                    card.suit ===
-                    room.trumpSuit
-            )
-            .sort(
-                (a, b) =>
-                    a.value - b.value
-            );
-
-    const p2Trumps =
-        p2.hand
-            .filter(
-                card =>
-                    card.suit ===
-                    room.trumpSuit
-            )
-            .sort(
-                (a, b) =>
-                    a.value - b.value
-            );
-
-    let attacker;
-
-    if (
-        p1Trumps.length &&
-        p2Trumps.length
-    ) {
-
-        attacker =
-            p1Trumps[0].value <=
-            p2Trumps[0].value
-                ? socketIds[0]
-                : socketIds[1];
-
-    } else if (p1Trumps.length) {
-
-        attacker =
-            socketIds[0];
-
-    } else if (p2Trumps.length) {
-
-        attacker =
-            socketIds[1];
-
-    } else {
-
-        const p1Min =
-            Math.min(
-                ...p1.hand.map(
-                    c => c.value
-                )
-            );
-
-        const p2Min =
-            Math.min(
-                ...p2.hand.map(
-                    c => c.value
-                )
-            );
-
-        attacker =
-            p1Min <= p2Min
-                ? socketIds[0]
-                : socketIds[1];
-    }
-
-    room.attacker =
-        attacker;
-
-    room.defender =
-        attacker === socketIds[0]
-            ? socketIds[1]
-            : socketIds[0];
-
-    room.phase =
-        "attack";
-
-    refillHands(room);
-
-    broadcastRoom(room);
-}
-
-/* =========================================================
-   REFILL
-========================================================= */
-
-function refillHands(room) {
-
-    const ids =
-        Object.keys(room.players);
-
-    /*
-        Сначала атакующий.
-    */
-
-    const order = [
-        room.attacker,
-        room.defender
-    ];
-
-    for (const socketId of order) {
-
-        const player =
-            room.players[socketId];
-
-        while (
-            player.hand.length < 6 &&
-            room.deck.length > 0
-        ) {
-
-            player.hand.push(
-                room.deck.shift()
-            );
-        }
-    }
-}
-
-/* =========================================================
-   TRUMP
-========================================================= */
-
-function isTrump(room, card) {
+function isTrump(
+    game,
+    card
+) {
 
     return (
         card &&
-        card.suit ===
-        room.trumpSuit
+        card.suit === game.trumpSuit
     );
+
 }
 
-/* =========================================================
-   CAN BEAT
-========================================================= */
 
 function canBeat(
-    room,
+    game,
     attack,
     defense
 ) {
 
-    if (!attack || !defense) {
+    if (
+        !attack ||
+        !defense
+    ) {
+
         return false;
+
     }
 
-    const attackTrump =
-        isTrump(room, attack);
-
-    const defenseTrump =
-        isTrump(room, defense);
-
     if (
-        defenseTrump &&
-        !attackTrump
+        isTrump(game, defense) &&
+        !isTrump(game, attack)
     ) {
+
         return true;
+
     }
 
     if (
-        attackTrump &&
-        !defenseTrump
+        !isTrump(game, defense) &&
+        isTrump(game, attack)
     ) {
+
         return false;
+
     }
 
     return (
-        attack.suit === defense.suit &&
-        defense.value > attack.value
+
+        attack.suit ===
+        defense.suit &&
+
+        defense.value >
+        attack.value
+
     );
+
 }
 
-/* =========================================================
-   TABLE RANKS
-========================================================= */
 
-function tableRanks(room) {
+function tableRanks(game) {
 
-    const ranks = [];
+    const result = [];
 
     for (
-        const pair of room.table
+        const pair of game.table
     ) {
 
-        ranks.push(
+        result.push(
             pair.attack.rank
         );
 
         if (pair.defense) {
 
-            ranks.push(
+            result.push(
                 pair.defense.rank
             );
+
         }
+
     }
 
-    return ranks;
+    return result;
+
 }
 
-/* =========================================================
-   CAN ADD
-========================================================= */
 
-function canAdd(
-    room,
+function canAddCard(
+    game,
     card
 ) {
 
     if (!card) {
+
         return false;
+
     }
 
     if (
-        room.table.length >=
-        room.players[
-            room.defender
-        ].hand.length
+        game.table.length >=
+        game.roundLimit
     ) {
 
         return false;
+
     }
 
     if (
-        room.table.length === 0
+        game.table.length === 0
     ) {
 
         return true;
+
     }
 
-    return tableRanks(room)
-        .includes(card.rank);
-}
-
-/* =========================================================
-   FIND CARD
-========================================================= */
-
-function findCard(
-    player,
-    cardId
-) {
-
-    return player.hand.find(
-        card =>
-            card.id === cardId
-    );
-}
-
-/* =========================================================
-   REMOVE CARD
-========================================================= */
-
-function removeCard(
-    player,
-    cardId
-) {
-
-    const index =
-        player.hand.findIndex(
-            card =>
-                card.id === cardId
+    return tableRanks(game)
+        .includes(
+            card.rank
         );
 
-    if (index === -1) {
-        return null;
-    }
-
-    return player.hand.splice(
-        index,
-        1
-    )[0];
 }
 
-/* =========================================================
-   FIRST UNBEATEN
-========================================================= */
 
-function firstUnbeaten(room) {
+function firstUnbeaten(game) {
 
     for (
         let i = 0;
-        i < room.table.length;
+        i < game.table.length;
         i++
     ) {
 
         if (
-            !room.table[i].defense
+            !game.table[i].defense
         ) {
 
             return i;
+
         }
+
     }
 
     return -1;
+
 }
 
-/* =========================================================
-   ALL BEATEN
-========================================================= */
 
-function allBeaten(room) {
+function allBeaten(game) {
 
     return (
-        room.table.length > 0 &&
-        firstUnbeaten(room) === -1
+        game.table.length > 0 &&
+        firstUnbeaten(game) === -1
     );
+
 }
 
+
 /* =========================================================
-   ATTACK
+   FIND PLAYER
 ========================================================= */
 
-function attackCard(
-    socket,
-    cardId
+function findGameByPlayer(
+    telegramId
 ) {
 
-    const room =
-        rooms.get(
-            socket.roomId
-        );
-
-    if (!room) return;
-
-    if (
-        room.phase !== "attack"
-    ) {
-        return;
-    }
-
-    if (
-        room.attacker !== socket.id
-    ) {
-
-        socket.emit(
-            "error_message",
-            {
-                message:
-                    "Сейчас не твой ход"
-            }
-        );
-
-        return;
-    }
-
-    const player =
-        room.players[socket.id];
-
-    const card =
-        findCard(
-            player,
-            cardId
-        );
-
-    if (!card) return;
-
-    if (
-        !canAdd(
-            room,
-            card
-        )
-    ) {
-
-        socket.emit(
-            "error_message",
-            {
-                message:
-                    "Эту карту нельзя подкинуть"
-            }
-        );
-
-        return;
-    }
-
-    removeCard(
-        player,
-        cardId
-    );
-
-    room.table.push({
-        attack: card,
-        defense: null
-    });
-
-    room.phase =
-        "defense";
-
-    broadcastRoom(room);
-}
-
-/* =========================================================
-   DEFEND
-========================================================= */
-
-function defendCard(
-    socket,
-    cardId
-) {
-
-    const room =
-        rooms.get(
-            socket.roomId
-        );
-
-    if (!room) return;
-
-    if (
-        room.phase !== "defense"
-    ) {
-        return;
-    }
-
-    if (
-        room.defender !== socket.id
-    ) {
-
-        return;
-    }
-
-    const index =
-        firstUnbeaten(room);
-
-    if (index === -1) {
-        return;
-    }
-
-    const player =
-        room.players[socket.id];
-
-    const card =
-        findCard(
-            player,
-            cardId
-        );
-
-    if (!card) return;
-
-    const target =
-        room.table[index].attack;
-
-    if (
-        !canBeat(
-            room,
-            target,
-            card
-        )
-    ) {
-
-        socket.emit(
-            "error_message",
-            {
-                message:
-                    "Этой картой нельзя отбиться"
-            }
-        );
-
-        return;
-    }
-
-    removeCard(
-        player,
-        cardId
-    );
-
-    room.table[index].defense =
-        card;
-
-    broadcastRoom(room);
-}
-
-/* =========================================================
-   TAKE
-========================================================= */
-
-function takeCards(socket) {
-
-    const room =
-        rooms.get(
-            socket.roomId
-        );
-
-    if (!room) return;
-
-    if (
-        room.phase !== "defense"
-    ) {
-        return;
-    }
-
-    if (
-        room.defender !== socket.id
-    ) {
-        return;
-    }
-
-    const player =
-        room.players[socket.id];
-
     for (
-        const pair of room.table
+        const game of games.values()
     ) {
-
-        player.hand.push(
-            pair.attack
-        );
-
-        if (pair.defense) {
-
-            player.hand.push(
-                pair.defense
-            );
-        }
-    }
-
-    room.table = [];
-
-    /*
-        Защищающийся забрал карты.
-
-        Атакующий сохраняет право атаки.
-    */
-
-    refillHands(room);
-
-    if (
-        checkWinner(room)
-    ) {
-        return;
-    }
-
-    room.phase =
-        "attack";
-
-    broadcastRoom(room);
-}
-
-/* =========================================================
-   BITO
-========================================================= */
-
-function finishRound(socket) {
-
-    const room =
-        rooms.get(
-            socket.roomId
-        );
-
-    if (!room) return;
-
-    if (
-        room.phase !== "attack"
-    ) {
-        return;
-    }
-
-    if (
-        room.attacker !== socket.id
-    ) {
-        return;
-    }
-
-    if (
-        !allBeaten(room)
-    ) {
-
-        socket.emit(
-            "error_message",
-            {
-                message:
-                    "Не все карты отбиты"
-            }
-        );
-
-        return;
-    }
-
-    room.table = [];
-
-    const oldAttacker =
-        room.attacker;
-
-    room.attacker =
-        room.defender;
-
-    room.defender =
-        oldAttacker;
-
-    refillHands(room);
-
-    if (
-        checkWinner(room)
-    ) {
-        return;
-    }
-
-    room.phase =
-        "attack";
-
-    broadcastRoom(room);
-}
-
-/* =========================================================
-   WINNER
-========================================================= */
-
-function checkWinner(room) {
-
-    if (
-        room.deck.length > 0
-    ) {
-        return false;
-    }
-
-    const ids =
-        Object.keys(
-            room.players
-        );
-
-    for (
-        const id of ids
-    ) {
-
-        const player =
-            room.players[id];
 
         if (
-            player.hand.length === 0
+            game.playerId ===
+            telegramId
         ) {
 
-            finishGame(
-                room,
-                id
-            );
+            return game;
 
-            return true;
         }
+
     }
 
-    return false;
+    return null;
+
 }
 
+
 /* =========================================================
-   FINISH GAME
+   FIRST ATTACKER
+========================================================= */
+
+function determineFirstAttacker(
+    game
+) {
+
+    const playerTrumps =
+        game.playerHand
+            .filter(
+                card =>
+                    isTrump(
+                        game,
+                        card
+                    )
+            )
+            .sort(
+                (a, b) =>
+                    a.value -
+                    b.value
+            );
+
+    const cpuTrumps =
+        game.cpuHand
+            .filter(
+                card =>
+                    isTrump(
+                        game,
+                        card
+                    )
+            )
+            .sort(
+                (a, b) =>
+                    a.value -
+                    b.value
+            );
+
+    if (
+        playerTrumps.length &&
+        cpuTrumps.length
+    ) {
+
+        return (
+            playerTrumps[0].value <=
+            cpuTrumps[0].value
+        )
+            ? "player"
+            : "cpu";
+
+    }
+
+    if (
+        playerTrumps.length
+    ) {
+
+        return "player";
+
+    }
+
+    if (
+        cpuTrumps.length
+    ) {
+
+        return "cpu";
+
+    }
+
+    const playerMin =
+        Math.min(
+            ...game.playerHand.map(
+                card =>
+                    card.value
+            )
+        );
+
+    const cpuMin =
+        Math.min(
+            ...game.cpuHand.map(
+                card =>
+                    card.value
+            )
+        );
+
+    return (
+        playerMin <=
+        cpuMin
+    )
+        ? "player"
+        : "cpu";
+
+}
+
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+function publicGameState(game) {
+
+    return {
+
+        id:
+            game.id,
+
+        phase:
+            game.phase,
+
+        attacker:
+            game.attacker,
+
+        defender:
+            game.defender,
+
+        trumpSuit:
+            game.trumpSuit,
+
+        deckCount:
+            game.deck.length,
+
+        playerHand:
+            game.playerHand,
+
+        playerCount:
+            game.playerHand.length,
+
+        cpuCount:
+            game.cpuHand.length,
+
+        table:
+            game.table,
+
+        roundLimit:
+            game.roundLimit
+
+    };
+
+}
+
+
+function sendState(game) {
+
+    if (!game.socket) {
+
+        return;
+
+    }
+
+    game.socket.emit(
+        "game_state",
+        publicGameState(game)
+    );
+
+}
+
+
+/* =========================================================
+   GAME OVER
 ========================================================= */
 
 function finishGame(
-    room,
-    winnerSocketId
+    game,
+    winner
 ) {
 
     if (
-        room.winner
+        game.finished
     ) {
+
         return;
+
     }
 
-    room.winner =
-        winnerSocketId;
+    game.finished = true;
 
-    room.phase =
-        "finished";
+    const player =
+        players[game.playerId];
 
-    const ids =
-        Object.keys(
-            room.players
+    if (winner === "player") {
+
+        player.wins++;
+
+        player.games++;
+
+        player.balance += 500;
+
+        addXP(
+            player,
+            50
         );
 
-    const loserSocketId =
-        ids.find(
-            id =>
-                id !==
-                winnerSocketId
-        );
-
-    const winner =
-        getPlayer(
-            winnerSocketId
-        );
-
-    const loser =
-        getPlayer(
-            loserSocketId
-        );
-
-    winner.money +=
-        room.bank;
-
-    winner.wins++;
-    winner.games++;
-
-    loser.losses++;
-    loser.games++;
-
-    winner.exp += 100;
-
-    if (
-        winner.exp >=
-        winner.level * 500
+    } else if (
+        winner === "cpu"
     ) {
 
-        winner.exp = 0;
-        winner.level++;
+        player.losses++;
+
+        player.games++;
+
+        addXP(
+            player,
+            15
+        );
+
+    } else {
+
+        player.games++;
+
+        addXP(
+            player,
+            25
+        );
+
     }
 
-    broadcastRoom(room);
+    savePlayers();
 
-    io.to(room.id).emit(
+    sendState(game);
+
+    game.socket.emit(
         "game_finished",
         {
-            winner:
-                winnerSocketId,
-            winnerName:
-                room.players[
-                    winnerSocketId
-                ].name,
-            prize:
-                room.bank
+
+            winner,
+
+            message:
+                winner === "player"
+                    ? "Ты победил!"
+                    : winner === "cpu"
+                        ? "Компьютер победил"
+                        : "Ничья",
+
+            player:
+                publicPlayer(player)
+
         }
     );
+
 }
 
+
 /* =========================================================
-   PUBLIC ROOM STATE
+   CHECK GAME OVER
 ========================================================= */
 
-function publicRoom(room) {
+function checkGameOver(game) {
 
-    const ids =
-        Object.keys(
-            room.players
+    if (
+        game.deck.length > 0
+    ) {
+
+        return false;
+
+    }
+
+    if (
+        game.playerHand.length === 0 &&
+        game.cpuHand.length === 0
+    ) {
+
+        finishGame(
+            game,
+            "draw"
         );
 
-    return {
-        roomId: room.id,
+        return true;
 
-        bet: room.bet,
+    }
 
-        bank: room.bank,
+    if (
+        game.playerHand.length === 0
+    ) {
 
-        deckCount:
-            room.deck.length,
+        finishGame(
+            game,
+            "player"
+        );
 
-        trumpSuit:
-            room.trumpSuit,
+        return true;
 
-        phase:
-            room.phase,
+    }
 
-        attacker:
-            room.attacker,
+    if (
+        game.cpuHand.length === 0
+    ) {
 
-        defender:
-            room.defender,
+        finishGame(
+            game,
+            "cpu"
+        );
 
-        table:
-            room.table,
+        return true;
 
-        players:
-            ids.map(
-                id => {
+    }
 
-                    const p =
-                        room.players[id];
+    return false;
 
-                    const profile =
-                        getPlayer(id);
-
-                    return {
-                        socketId:
-                            id,
-
-                        name:
-                            p.name,
-
-                        handCount:
-                            p.hand.length,
-
-                        hand:
-                            p.hand,
-
-                        profile:
-                            publicPlayer(
-                                profile
-                            )
-                    };
-                }
-            )
-    };
 }
 
+
 /* =========================================================
-   BROADCAST
+   REFILL
 ========================================================= */
 
-function broadcastRoom(room) {
+function refillHands(game) {
 
-    io.to(room.id).emit(
-        "room_state",
-        publicRoom(room)
-    );
+    while (
+        game.playerHand.length < MAX_HAND &&
+        game.deck.length > 0
+    ) {
+
+        game.playerHand.push(
+            game.deck.shift()
+        );
+
+    }
+
+    while (
+        game.cpuHand.length < MAX_HAND &&
+        game.deck.length > 0
+    ) {
+
+        game.cpuHand.push(
+            game.deck.shift()
+        );
+
+    }
+
 }
 
+
 /* =========================================================
-   SOCKET
+   CPU CARD
+========================================================= */
+
+function cpuBestDefense(
+    game,
+    attack
+) {
+
+    const available =
+        game.cpuHand.filter(
+            card =>
+                canBeat(
+                    game,
+                    attack,
+                    card
+                )
+        );
+
+    available.sort(
+        (a, b) => {
+
+            const aTrump =
+                isTrump(
+                    game,
+                    a
+                );
+
+            const bTrump =
+                isTrump(
+                    game,
+                    b
+                );
+
+            if (
+                aTrump !==
+                bTrump
+            ) {
+
+                return aTrump
+                    ? 1
+                    : -1;
+
+            }
+
+            return (
+                a.value -
+                b.value
+            );
+
+        }
+    );
+
+    return (
+        available[0] ||
+        null
+    );
+
+}
+
+
+function cpuBestAttack(game) {
+
+    const available =
+        game.cpuHand.slice();
+
+    available.sort(
+        (a, b) => {
+
+            const aTrump =
+                isTrump(
+                    game,
+                    a
+                );
+
+            const bTrump =
+                isTrump(
+                    game,
+                    b
+                );
+
+            if (
+                aTrump !==
+                bTrump
+            ) {
+
+                return aTrump
+                    ? 1
+                    : -1;
+
+            }
+
+            return (
+                a.value -
+                b.value
+            );
+
+        }
+    );
+
+    return (
+        available[0] ||
+        null
+    );
+
+}
+
+
+/* =========================================================
+   CPU ATTACK
+========================================================= */
+
+function cpuStartAttack(game) {
+
+    if (
+        game.finished
+    ) {
+
+        return;
+
+    }
+
+    if (
+        game.phase !==
+        "cpu_attack"
+    ) {
+
+        return;
+
+    }
+
+    const card =
+        cpuBestAttack(game);
+
+    if (!card) {
+
+        checkGameOver(game);
+
+        return;
+
+    }
+
+    const index =
+        game.cpuHand.findIndex(
+            c =>
+                c.id ===
+                card.id
+        );
+
+    if (index === -1) {
+
+        return;
+
+    }
+
+    game.cpuHand.splice(
+        index,
+        1
+    );
+
+    game.table.push({
+
+        attack: card,
+
+        defense: null
+
+    });
+
+    game.phase =
+        "player_defense";
+
+    sendState(game);
+
+}
+
+
+/* =========================================================
+   CPU DEFENSE
+========================================================= */
+
+function cpuDefense(game) {
+
+    if (
+        game.finished
+    ) {
+
+        return;
+
+    }
+
+    const index =
+        firstUnbeaten(game);
+
+    if (index === -1) {
+
+        game.phase =
+            "player_attack";
+
+        sendState(game);
+
+        return;
+
+    }
+
+    const target =
+        game.table[index].attack;
+
+    const card =
+        cpuBestDefense(
+            game,
+            target
+        );
+
+    if (!card) {
+
+        cpuTake(game);
+
+        return;
+
+    }
+
+    const handIndex =
+        game.cpuHand.findIndex(
+            c =>
+                c.id ===
+                card.id
+        );
+
+    if (handIndex === -1) {
+
+        return;
+
+    }
+
+    game.cpuHand.splice(
+        handIndex,
+        1
+    );
+
+    game.table[index].defense =
+        card;
+
+    sendState(game);
+
+    setTimeout(
+        () => {
+
+            if (
+                game.finished
+            ) {
+
+                return;
+
+            }
+
+            if (
+                allBeaten(game)
+            ) {
+
+                game.phase =
+                    "player_attack";
+
+                sendState(game);
+
+            } else {
+
+                cpuDefense(game);
+
+            }
+
+        },
+        500
+    );
+
+}
+
+
+/* =========================================================
+   CPU TAKE
+========================================================= */
+
+function cpuTake(game) {
+
+    for (
+        const pair of game.table
+    ) {
+
+        game.cpuHand.push(
+            pair.attack
+        );
+
+        if (
+            pair.defense
+        ) {
+
+            game.cpuHand.push(
+                pair.defense
+            );
+
+        }
+
+    }
+
+    game.table = [];
+
+    refillHands(game);
+
+    if (
+        checkGameOver(game)
+    ) {
+
+        return;
+
+    }
+
+    game.attacker =
+        "player";
+
+    game.defender =
+        "cpu";
+
+    game.phase =
+        "player_attack";
+
+    game.roundLimit =
+        game.cpuHand.length;
+
+    sendState(game);
+
+}
+
+
+/* =========================================================
+   PLAYER TAKE
+========================================================= */
+
+function playerTake(game) {
+
+    if (
+        game.phase !==
+        "player_defense"
+    ) {
+
+        return;
+
+    }
+
+    for (
+        const pair of game.table
+    ) {
+
+        game.playerHand.push(
+            pair.attack
+        );
+
+        if (
+            pair.defense
+        ) {
+
+            game.playerHand.push(
+                pair.defense
+            );
+
+        }
+
+    }
+
+    game.table = [];
+
+    refillHands(game);
+
+    if (
+        checkGameOver(game)
+    ) {
+
+        return;
+
+    }
+
+    game.attacker =
+        "cpu";
+
+    game.defender =
+        "player";
+
+    game.phase =
+        "cpu_attack";
+
+    game.roundLimit =
+        game.playerHand.length;
+
+    sendState(game);
+
+    setTimeout(
+        () => {
+
+            cpuStartAttack(game);
+
+        },
+        500
+    );
+
+}
+
+
+/* =========================================================
+   SUCCESSFUL ROUND
+========================================================= */
+
+function finishSuccessfulRound(game) {
+
+    if (
+        !allBeaten(game)
+    ) {
+
+        return;
+
+    }
+
+    game.table = [];
+
+    refillHands(game);
+
+    if (
+        checkGameOver(game)
+    ) {
+
+        return;
+
+    }
+
+    if (
+        game.attacker ===
+        "player"
+    ) {
+
+        game.attacker =
+            "cpu";
+
+        game.defender =
+            "player";
+
+        game.phase =
+            "cpu_attack";
+
+        game.roundLimit =
+            game.playerHand.length;
+
+        sendState(game);
+
+        setTimeout(
+            () => {
+
+                cpuStartAttack(game);
+
+            },
+            500
+        );
+
+    } else {
+
+        game.attacker =
+            "player";
+
+        game.defender =
+            "cpu";
+
+        game.phase =
+            "player_attack";
+
+        game.roundLimit =
+            game.cpuHand.length;
+
+        sendState(game);
+
+    }
+
+}
+
+
+/* =========================================================
+   PLAYER PLAY
+========================================================= */
+
+function playerPlay(
+    game,
+    cardId
+) {
+
+    if (
+        game.finished
+    ) {
+
+        return;
+
+    }
+
+    if (
+        game.phase !==
+        "player_attack" &&
+        game.phase !==
+        "player_defense"
+    ) {
+
+        return;
+
+    }
+
+    const index =
+        game.playerHand.findIndex(
+            card =>
+                card.id ===
+                cardId
+        );
+
+    if (index === -1) {
+
+        return;
+
+    }
+
+    const card =
+        game.playerHand[index];
+
+
+    /* PLAYER ATTACK */
+
+    if (
+        game.phase ===
+        "player_attack"
+    ) {
+
+        if (
+            !canAddCard(
+                game,
+                card
+            )
+        ) {
+
+            game.socket.emit(
+                "action_error",
+                {
+                    message:
+                        game.table.length
+                            ? "Такую карту нельзя подкинуть"
+                            : "Эту карту нельзя положить"
+                }
+            );
+
+            return;
+
+        }
+
+        game.playerHand.splice(
+            index,
+            1
+        );
+
+        game.table.push({
+
+            attack: card,
+
+            defense: null
+
+        });
+
+        game.phase =
+            "cpu_defense";
+
+        sendState(game);
+
+        setTimeout(
+            () => {
+
+                cpuDefense(game);
+
+            },
+            500
+        );
+
+        return;
+
+    }
+
+
+    /* PLAYER DEFENSE */
+
+    if (
+        game.phase ===
+        "player_defense"
+    ) {
+
+        const attackIndex =
+            firstUnbeaten(game);
+
+        if (
+            attackIndex === -1
+        ) {
+
+            return;
+
+        }
+
+        const attack =
+            game.table[
+                attackIndex
+            ].attack;
+
+        if (
+            !canBeat(
+                game,
+                attack,
+                card
+            )
+        ) {
+
+            game.socket.emit(
+                "action_error",
+                {
+                    message:
+                        "Этой картой побить нельзя"
+                }
+            );
+
+            return;
+
+        }
+
+        game.playerHand.splice(
+            index,
+            1
+        );
+
+        game.table[
+            attackIndex
+        ].defense =
+            card;
+
+        sendState(game);
+
+        /*
+         * Важное правило:
+         * после успешного отбивания
+         * игроку не переходит право
+         * подкидывания.
+         *
+         * Компьютер принимает решение.
+         */
+
+        setTimeout(
+            () => {
+
+                if (
+                    allBeaten(game)
+                ) {
+
+                    game.phase =
+                        "cpu_attack";
+
+                    game.attacker =
+                        "cpu";
+
+                    game.defender =
+                        "player";
+
+                    game.roundLimit =
+                        game.playerHand.length;
+
+                    sendState(game);
+
+                    setTimeout(
+                        () => {
+
+                            cpuContinueAttack(
+                                game
+                            );
+
+                        },
+                        500
+                    );
+
+                } else {
+
+                    sendState(game);
+
+                }
+
+            },
+            500
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CPU CONTINUE ATTACK
+========================================================= */
+
+function cpuContinueAttack(game) {
+
+    if (
+        game.finished
+    ) {
+
+        return;
+
+    }
+
+    if (
+        !allBeaten(game)
+    ) {
+
+        game.phase =
+            "player_defense";
+
+        sendState(game);
+
+        return;
+
+    }
+
+    const candidates =
+        game.cpuHand.filter(
+            card =>
+                canAddCard(
+                    game,
+                    card
+                )
+        );
+
+    if (
+        candidates.length === 0
+    ) {
+
+        finishSuccessfulRound(
+            game
+        );
+
+        return;
+
+    }
+
+    candidates.sort(
+        (a, b) => {
+
+            const aTrump =
+                isTrump(
+                    game,
+                    a
+                );
+
+            const bTrump =
+                isTrump(
+                    game,
+                    b
+                );
+
+            if (
+                aTrump !==
+                bTrump
+            ) {
+
+                return aTrump
+                    ? 1
+                    : -1;
+
+            }
+
+            return (
+                a.value -
+                b.value
+            );
+
+        }
+    );
+
+    const card =
+        candidates[0];
+
+    const index =
+        game.cpuHand.findIndex(
+            c =>
+                c.id ===
+                card.id
+        );
+
+    if (index === -1) {
+
+        return;
+
+    }
+
+    game.cpuHand.splice(
+        index,
+        1
+    );
+
+    game.table.push({
+
+        attack: card,
+
+        defense: null
+
+    });
+
+    game.phase =
+        "player_defense";
+
+    sendState(game);
+
+}
+
+
+/* =========================================================
+   NEW GAME
+========================================================= */
+
+function createGame(
+    playerId,
+    socket
+) {
+
+    const existing =
+        findGameByPlayer(
+            playerId
+        );
+
+    if (existing) {
+
+        existing.socket =
+            socket;
+
+        return existing;
+
+    }
+
+    const deck =
+        createDeck();
+
+    const trump =
+        deck[deck.length - 1];
+
+    const game = {
+
+        id:
+            crypto.randomUUID(),
+
+        playerId,
+
+        socket,
+
+        deck,
+
+        playerHand: [],
+
+        cpuHand: [],
+
+        table: [],
+
+        trumpSuit:
+            trump.suit,
+
+        attacker: null,
+
+        defender: null,
+
+        phase:
+            "dealing",
+
+        roundLimit:
+            6,
+
+        finished:
+            false
+
+    };
+
+
+    /*
+     * Козырная карта остаётся
+     * последней картой колоды.
+     *
+     * Она не раздаётся.
+     */
+
+    for (
+        let i = 0;
+        i < 6;
+        i++
+    ) {
+
+        game.playerHand.push(
+            game.deck.shift()
+        );
+
+        game.cpuHand.push(
+            game.deck.shift()
+        );
+
+    }
+
+
+    game.attacker =
+        determineFirstAttacker(
+            game
+        );
+
+    game.defender =
+        game.attacker === "player"
+            ? "cpu"
+            : "player";
+
+
+    game.roundLimit =
+        game.defender === "player"
+            ? game.playerHand.length
+            : game.cpuHand.length;
+
+
+    game.phase =
+        game.attacker === "player"
+            ? "player_attack"
+            : "cpu_attack";
+
+
+    games.set(
+        game.id,
+        game
+    );
+
+
+    return game;
+
+}
+
+
+/* =========================================================
+   SOCKET.IO
 ========================================================= */
 
 io.on(
@@ -1243,404 +2138,293 @@ io.on(
     socket => {
 
         console.log(
-            "CONNECTED:",
+            "SOCKET CONNECT:",
             socket.id
         );
 
-        const player =
-            getPlayer(
-                socket.id
-            );
-
-        socket.emit(
-            "profile",
-            publicPlayer(
-                player
-            )
-        );
-
-        /* ==========================================
-           PROFILE
-        ========================================== */
 
         socket.on(
-            "set_profile",
+            "authenticate",
             data => {
 
-                const player =
-                    getPlayer(
-                        socket.id
-                    );
+                try {
 
-                if (
-                    data &&
-                    typeof data.name ===
-                    "string"
-                ) {
+                    const initData =
+                        data &&
+                        data.initData;
 
-                    player.name =
-                        data.name
-                            .trim()
-                            .slice(
-                                0,
-                                24
-                            ) ||
-                        "Игрок";
-                }
+                    const user =
+                        validateTelegramInitData(
+                            initData
+                        );
 
-                if (
-                    data &&
-                    typeof data.avatar ===
-                    "string"
-                ) {
+                    if (!user) {
 
-                    player.avatar =
-                        data.avatar
-                            .slice(
-                                0,
-                                500
-                            );
-                }
-
-                socket.emit(
-                    "profile",
-                    publicPlayer(
-                        player
-                    )
-                );
-            }
-        );
-
-        /* ==========================================
-           FIND TABLE
-        ========================================== */
-
-        socket.on(
-            "find_game",
-            bet => {
-
-                bet =
-                    Number(bet);
-
-                if (
-                    !TABLES[bet]
-                ) {
-
-                    socket.emit(
-                        "error_message",
-                        {
-                            message:
-                                "Неверный стол"
-                        }
-                    );
-
-                    return;
-                }
-
-                const player =
-                    getPlayer(
-                        socket.id
-                    );
-
-                if (
-                    player.money < bet
-                ) {
-
-                    socket.emit(
-                        "error_message",
-                        {
-                            message:
-                                "Недостаточно HC"
-                        }
-                    );
-
-                    return;
-                }
-
-                /*
-                    Уже находится за столом.
-                */
-
-                if (
-                    socket.roomId
-                ) {
-
-                    socket.emit(
-                        "error_message",
-                        {
-                            message:
-                                "Ты уже находишься за столом"
-                        }
-                    );
-
-                    return;
-                }
-
-                let room =
-                    findWaitingRoom(
-                        bet
-                    );
-
-                if (room) {
-
-                    if (
-                        joinRoom(
-                            socket,
-                            room
-                        )
-                    ) {
-
-                        io.to(room.id).emit(
-                            "match_found",
+                        socket.emit(
+                            "server_error",
                             {
-                                roomId:
-                                    room.id
+                                message:
+                                    "Ошибка Telegram авторизации"
                             }
                         );
 
-                        startGame(
-                            room
-                        );
+                        return;
+
                     }
 
-                    return;
-                }
+                    const player =
+                        createPlayer(user);
 
-                room =
-                    createRoom(
-                        socket,
-                        bet
+                    socket.playerId =
+                        String(
+                            player.telegram_id
+                        );
+
+                    socket.emit(
+                        "authenticated",
+                        {
+
+                            player:
+                                publicPlayer(
+                                    player
+                                )
+
+                        }
                     );
 
-                if (!room) {
-                    return;
+                } catch (error) {
+
+                    console.error(
+                        "SOCKET AUTH ERROR:",
+                        error
+                    );
+
+                    socket.emit(
+                        "server_error",
+                        {
+                            message:
+                                "Ошибка авторизации"
+                        }
+                    );
+
                 }
 
-                socket.emit(
-                    "waiting",
-                    {
-                        roomId:
-                            room.id,
-                        bet
-                    }
-                );
-
-                broadcastRoom(
-                    room
-                );
             }
         );
 
-        /* ==========================================
-           ATTACK
-        ========================================== */
 
         socket.on(
-            "attack",
-            cardId => {
-
-                attackCard(
-                    socket,
-                    cardId
-                );
-            }
-        );
-
-        /* ==========================================
-           DEFENSE
-        ========================================== */
-
-        socket.on(
-            "defend",
-            cardId => {
-
-                defendCard(
-                    socket,
-                    cardId
-                );
-            }
-        );
-
-        /* ==========================================
-           TAKE
-        ========================================== */
-
-        socket.on(
-            "take",
+            "start_game",
             () => {
 
-                takeCards(
-                    socket
-                );
+                if (
+                    !socket.playerId
+                ) {
+
+                    socket.emit(
+                        "server_error",
+                        {
+                            message:
+                                "Сначала авторизуйтесь"
+                        }
+                    );
+
+                    return;
+
+                }
+
+                const game =
+                    createGame(
+                        socket.playerId,
+                        socket
+                    );
+
+                game.socket =
+                    socket;
+
+                sendState(game);
+
+                if (
+                    game.phase ===
+                    "cpu_attack"
+                ) {
+
+                    setTimeout(
+                        () => {
+
+                            cpuStartAttack(
+                                game
+                            );
+
+                        },
+                        700
+                    );
+
+                }
+
             }
         );
 
-        /* ==========================================
-           BITO
-        ========================================== */
 
         socket.on(
-            "bito",
-            () => {
+            "play_card",
+            data => {
 
-                finishRound(
+                if (
+                    !socket.playerId
+                ) {
+
+                    return;
+
+                }
+
+                const game =
+                    findGameByPlayer(
+                        socket.playerId
+                    );
+
+                if (!game) {
+
+                    return;
+
+                }
+
+                if (
+                    game.socket !==
                     socket
+                ) {
+
+                    game.socket =
+                        socket;
+
+                }
+
+                playerPlay(
+                    game,
+                    data &&
+                    data.cardId
                 );
+
             }
         );
 
-        /* ==========================================
-           LEAVE
-        ========================================== */
 
         socket.on(
-            "leave_room",
+            "take_cards",
             () => {
 
-                leaveRoom(
-                    socket
-                );
+                if (
+                    !socket.playerId
+                ) {
+
+                    return;
+
+                }
+
+                const game =
+                    findGameByPlayer(
+                        socket.playerId
+                    );
+
+                if (!game) {
+
+                    return;
+
+                }
+
+                game.socket =
+                    socket;
+
+                playerTake(game);
+
             }
         );
 
-        /* ==========================================
-           DISCONNECT
-        ========================================== */
+
+        socket.on(
+            "finish_round",
+            () => {
+
+                if (
+                    !socket.playerId
+                ) {
+
+                    return;
+
+                }
+
+                const game =
+                    findGameByPlayer(
+                        socket.playerId
+                    );
+
+                if (!game) {
+
+                    return;
+
+                }
+
+                game.socket =
+                    socket;
+
+                if (
+                    game.phase !==
+                    "player_attack"
+                ) {
+
+                    return;
+
+                }
+
+                if (
+                    !allBeaten(game)
+                ) {
+
+                    socket.emit(
+                        "action_error",
+                        {
+                            message:
+                                "Сначала нужно отбить все карты"
+                        }
+                    );
+
+                    return;
+
+                }
+
+                finishSuccessfulRound(
+                    game
+                );
+
+            }
+        );
+
 
         socket.on(
             "disconnect",
             () => {
 
                 console.log(
-                    "DISCONNECTED:",
+                    "SOCKET DISCONNECT:",
                     socket.id
                 );
 
-                leaveRoom(
-                    socket
-                );
+                /*
+                 * Игру не удаляем.
+                 *
+                 * При переподключении
+                 * игрок сможет продолжить.
+                 */
 
-                players.delete(
-                    socket.id
-                );
             }
         );
+
     }
 );
 
-/* =========================================================
-   LEAVE ROOM
-========================================================= */
-
-function leaveRoom(socket) {
-
-    if (
-        !socket.roomId
-    ) {
-        return;
-    }
-
-    const room =
-        rooms.get(
-            socket.roomId
-        );
-
-    if (!room) {
-
-        socket.roomId =
-            null;
-
-        return;
-    }
-
-    const ids =
-        Object.keys(
-            room.players
-        );
-
-    /*
-        Если игра уже идёт,
-        оставшемуся игроку возвращаем
-        его ставку + ставку соперника
-        как победителю по disconnect.
-    */
-
-    if (
-        room.phase !== "waiting" &&
-        room.phase !== "finished" &&
-        ids.length === 2
-    ) {
-
-        const opponent =
-            ids.find(
-                id =>
-                    id !== socket.id
-            );
-
-        if (opponent) {
-
-            finishGame(
-                room,
-                opponent
-            );
-        }
-    }
-
-    delete room.players[
-        socket.id
-    ];
-
-    socket.leave(
-        room.id
-    );
-
-    socket.roomId =
-        null;
-
-    if (
-        Object.keys(
-            room.players
-        ).length === 0
-    ) {
-
-        rooms.delete(
-            room.id
-        );
-    }
-}
 
 /* =========================================================
-   HEALTH
-========================================================= */
-
-app.get(
-    "/",
-    (req, res) => {
-
-        res.json({
-            ok: true,
-            service:
-                "Heavy Lux Card",
-            online:
-                io.engine.clientsCount,
-            rooms:
-                rooms.size
-        });
-    }
-);
-
-app.get(
-    "/health",
-    (req, res) => {
-
-        res.json({
-            status: "ok"
-        });
-    }
-);
-
-/* =========================================================
-   START
+   START SERVER
 ========================================================= */
 
 server.listen(
@@ -1648,7 +2432,16 @@ server.listen(
     () => {
 
         console.log(
-            `Heavy Lux Card server running on port ${PORT}`
+            `HEAVY LUX SERVER RUNNING ON PORT ${PORT}`
         );
+
+        console.log(
+            `BOT TOKEN: ${
+                BOT_TOKEN
+                    ? "configured"
+                    : "NOT CONFIGURED"
+            }`
+        );
+
     }
 );
