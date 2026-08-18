@@ -585,15 +585,217 @@ body {
 
 <script>
 
-/* =========================================
-   TELEGRAM
-========================================= */
-
 const tg = window.Telegram.WebApp;
 
 tg.ready();
 tg.expand();
 
+const API_URL = "https://heavy-lux-card-api.onrender.com";
+
+console.log("=== HEAVY LUX DEBUG ===");
+console.log("Telegram:", tg);
+console.log("initData:", tg.initData);
+console.log("initDataUnsafe:", tg.initDataUnsafe);
+console.log("API:", API_URL);
+
+
+// ======================================
+// AUTH
+// ======================================
+
+async function authenticate() {
+
+    const loading = document.getElementById("loading");
+    const errorBox = document.getElementById("error");
+
+    try {
+
+        loading.innerText = "Авторизация...";
+
+        const initData = tg.initData;
+
+        console.log("INIT DATA LENGTH:", initData ? initData.length : 0);
+        console.log("INIT DATA:", initData);
+
+
+        // Проверяем Telegram
+        if (!initData) {
+
+            throw new Error(
+                "Telegram не передал initData.\n\n" +
+                "Откройте приложение именно внутри Telegram."
+            );
+        }
+
+
+        // Отправляем данные на сервер
+        console.log("Отправляем запрос на:", API_URL + "/api/auth");
+
+
+        const response = await fetch(
+            API_URL + "/api/auth",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    initData: initData
+                })
+            }
+        );
+
+
+        console.log("HTTP STATUS:", response.status);
+
+
+        const text = await response.text();
+
+        console.log("SERVER RESPONSE:", text);
+
+
+        let data;
+
+        try {
+
+            data = JSON.parse(text);
+
+        } catch {
+
+            throw new Error(
+                "Сервер вернул не JSON:\n\n" + text
+            );
+
+        }
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Ошибка сервера " +
+                response.status +
+                ":\n\n" +
+                (data.error || text)
+            );
+
+        }
+
+
+        if (!data.success) {
+
+            throw new Error(
+                data.error ||
+                "Авторизация не выполнена"
+            );
+
+        }
+
+
+        console.log("PLAYER:", data.player);
+
+
+        showPlayer(data.player);
+
+
+    } catch (error) {
+
+        console.error("AUTH ERROR:", error);
+
+
+        loading.style.display = "none";
+
+
+        errorBox.innerText =
+            "❌ ОШИБКА\n\n" +
+            error.message +
+            "\n\n" +
+            "API: " +
+            API_URL +
+            "\n\n" +
+            "initData: " +
+            (tg.initData ? "ПОЛУЧЕН" : "НЕ ПОЛУЧЕН");
+
+
+        errorBox.style.display = "block";
+
+    }
+
+}
+
+
+// ======================================
+// PLAYER
+// ======================================
+
+function showPlayer(player) {
+
+    document.getElementById("loading").style.display = "none";
+
+    document.getElementById("error").style.display = "none";
+
+    document.getElementById("game").style.display = "block";
+
+
+    const name =
+        player.first_name ||
+        player.username ||
+        "Игрок";
+
+
+    document.getElementById("playerName").innerText = name;
+
+
+    document.getElementById("balance").innerText =
+        Number(player.balance).toLocaleString("ru-RU");
+
+
+    document.getElementById("level").innerText =
+        "Уровень " + player.level;
+
+
+    document.getElementById("xp").innerText =
+        player.xp + " XP";
+
+
+    document.getElementById("playerTitle").innerText =
+        player.title || "";
+
+
+    const progress =
+        Math.min(
+            (player.xp % 1000) / 1000 * 100,
+            100
+        );
+
+
+    document.getElementById("progressBar").style.width =
+        progress + "%";
+
+}
+
+
+// ======================================
+// GAME
+// ======================================
+
+function startGame() {
+
+    tg.showAlert(
+        "Игра будет добавлена следующим этапом."
+    );
+
+}
+
+
+// ======================================
+// START
+// ======================================
+
+authenticate();
+
+</script>
 /* =========================================
    API
 ========================================= */
