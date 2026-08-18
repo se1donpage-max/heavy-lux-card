@@ -1,7 +1,7 @@
 {
-  "name": "heavy-lux-card-backend",
-  "version": "1.0.0",
-  "description": "Heavy Lux Card backend",
+  "name": "heavy-lux-backend",
+  "version": "2.0.0",
+  "description": "Heavy Lux multiplayer backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -11,6 +11,5 @@
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "pg": "^8.16.3"
-    "ws": "^8.18.3"
   }
 }
