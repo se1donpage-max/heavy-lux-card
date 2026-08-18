@@ -12,13 +12,15 @@
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
 <style>
+
 *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
     user-select:none;
 }
 
-html,body{
+html,
+body{
     margin:0;
     padding:0;
     width:100%;
@@ -27,34 +29,52 @@ html,body{
     background:#050505;
     color:#fff;
     font-family:Arial,Helvetica,sans-serif;
-    touch-action:none;
 }
 
 body{
     min-height:100vh;
 }
 
+button{
+    border:0;
+    outline:0;
+    cursor:pointer;
+}
+
 #app{
     position:relative;
     width:100%;
-    height:100vh;
+    height:100dvh;
     overflow:hidden;
+    background:
+        radial-gradient(
+            circle at center,
+            #151515 0%,
+            #080808 48%,
+            #030303 100%
+        );
 }
 
-/* =========================
-   TOP
-========================= */
+/* =========================================
+   TOP BAR
+========================================= */
 
 .topbar{
     position:absolute;
-    top:env(safe-area-inset-top,8px);
+    top:env(safe-area-inset-top);
     left:0;
     right:0;
-    height:52px;
-    padding:8px 14px;
+
+    height:58px;
+
+    padding:
+        9px
+        13px;
+
     display:flex;
     align-items:center;
     justify-content:space-between;
+
     z-index:100;
 }
 
@@ -64,93 +84,285 @@ body{
     letter-spacing:2px;
 }
 
-.info{
+.status{
     display:flex;
+    align-items:center;
     gap:6px;
 }
 
-.info-item{
+.status-item{
     padding:6px 9px;
-    border:1px solid #292929;
+
+    border:1px solid #282828;
     border-radius:9px;
+
     background:#0b0b0b;
-    color:#999;
-    font-size:10px;
+
+    color:#888;
+
+    font-size:9px;
 }
 
-.info-item b{
+.status-item b{
     color:#fff;
 }
 
-/* =========================
+/* =========================================
+   MESSAGE
+========================================= */
+
+.message{
+    position:absolute;
+
+    left:50%;
+    top:76px;
+
+    transform:translateX(-50%);
+
+    padding:9px 15px;
+
+    border:1px solid #292929;
+    border-radius:10px;
+
+    background:#090909;
+
+    color:#ccc;
+
+    font-size:10px;
+    font-weight:700;
+
+    z-index:500;
+
+    opacity:0;
+
+    pointer-events:none;
+
+    transition:
+        opacity .2s ease;
+}
+
+.message.show{
+    opacity:1;
+}
+
+/* =========================================
+   LOBBY
+========================================= */
+
+.lobby{
+    position:absolute;
+    inset:0;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:#050505;
+
+    z-index:1000;
+}
+
+.lobby-box{
+    width:86%;
+    max-width:360px;
+
+    text-align:center;
+}
+
+.title{
+    font-size:30px;
+    font-weight:900;
+    letter-spacing:5px;
+}
+
+.subtitle{
+    margin-top:8px;
+
+    color:#666;
+
+    font-size:10px;
+    letter-spacing:3px;
+}
+
+.name-input{
+    width:100%;
+
+    margin-top:30px;
+
+    padding:14px;
+
+    border:1px solid #292929;
+    border-radius:10px;
+
+    outline:none;
+
+    background:#0c0c0c;
+
+    color:#fff;
+
+    text-align:center;
+
+    font-size:13px;
+}
+
+.start-button{
+    width:100%;
+
+    margin-top:10px;
+
+    padding:15px;
+
+    border-radius:10px;
+
+    background:#fff;
+    color:#000;
+
+    font-size:12px;
+    font-weight:900;
+}
+
+.start-button:active{
+    transform:scale(.97);
+}
+
+.waiting{
+    display:none;
+
+    margin-top:20px;
+
+    color:#888;
+
+    font-size:11px;
+}
+
+/* =========================================
+   GAME
+========================================= */
+
+.game{
+    position:absolute;
+    inset:0;
+
+    display:none;
+}
+
+/* =========================================
+   OPPONENT
+========================================= */
+
+.opponent{
+    position:absolute;
+
+    top:72px;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    text-align:center;
+
+    z-index:80;
+}
+
+.avatar{
+    width:45px;
+    height:45px;
+
+    margin:auto;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    border:1px solid #444;
+    border-radius:50%;
+
+    background:#111;
+
+    color:#aaa;
+
+    font-size:13px;
+    font-weight:900;
+}
+
+.opponent-name{
+    margin-top:5px;
+
+    font-size:11px;
+    font-weight:900;
+}
+
+.opponent-count{
+    margin-top:3px;
+
+    color:#666;
+
+    font-size:9px;
+}
+
+/* =========================================
    TABLE
-========================= */
+========================================= */
 
 .table{
     position:absolute;
+
     left:50%;
     top:50%;
-    width:min(96vw,700px);
-    height:min(76vh,650px);
+
+    width:min(94vw,700px);
+    height:min(70vh,600px);
+
     transform:translate(-50%,-50%);
 }
 
-/* =========================
+/* =========================================
    DECK
-========================= */
+========================================= */
 
 .deck-area{
     position:absolute;
+
     left:11%;
     top:50%;
-    width:125px;
+
+    width:130px;
     height:130px;
+
     transform:translate(-50%,-50%);
+
     z-index:20;
 }
 
 .deck{
     position:absolute;
+
     left:0;
-    top:17px;
+    top:15px;
+
     width:66px;
     height:94px;
-    z-index:5;
+
     transform:rotate(-5deg);
 }
 
 .deck-card{
     position:absolute;
     inset:0;
+
+    border:2px solid #888;
     border-radius:8px;
-    border:2px solid #aaa;
+
     background:
         repeating-linear-gradient(
             45deg,
-            #0b0b0b 0,
-            #0b0b0b 5px,
+            #090909 0,
+            #090909 5px,
             #242424 5px,
             #242424 10px
         );
-    box-shadow:0 5px 14px rgba(0,0,0,.65);
-}
 
-.deck-card::after{
-    content:"HL";
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    width:38px;
-    height:38px;
-    border:1px solid #777;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:11px;
-    font-weight:900;
-    letter-spacing:2px;
-    color:#ddd;
+    box-shadow:
+        0 5px 14px rgba(0,0,0,.7);
 }
 
 .deck-card:nth-child(1){
@@ -165,34 +377,70 @@ body{
     transform:translate(0,0);
 }
 
-/* =========================
+.deck-card::after{
+    content:"HL";
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    width:37px;
+    height:37px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    border:1px solid #777;
+
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:2px;
+
+    color:#ddd;
+}
+
+/* =========================================
    TRUMP
-========================= */
+========================================= */
 
 .trump{
     position:absolute;
+
     left:58px;
     top:31px;
+
     width:66px;
     height:94px;
-    z-index:2;
+
     transform:rotate(76deg);
 }
 
-/* =========================
+/* =========================================
    CARD
-========================= */
+========================================= */
 
 .card{
-    position:absolute;
+    position:relative;
+
     width:66px;
     height:94px;
-    border-radius:8px;
-    background:#fff;
-    color:#080808;
+
     border:1px solid #ccc;
-    box-shadow:0 7px 16px rgba(0,0,0,.55);
+    border-radius:8px;
+
+    background:#fff;
+
+    color:#080808;
+
+    box-shadow:
+        0 7px 16px rgba(0,0,0,.6);
+
     overflow:hidden;
+
     font-weight:900;
 }
 
@@ -200,170 +448,171 @@ body{
     color:#111;
 }
 
-.card.back{
-    background:
-        repeating-linear-gradient(
-            45deg,
-            #0b0b0b 0,
-            #0b0b0b 5px,
-            #242424 5px,
-            #242424 10px
-        );
-    border:2px solid #999;
-}
-
-.card.back::after{
-    content:"HL";
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    width:38px;
-    height:38px;
-    border:1px solid #777;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:11px;
-    font-weight:900;
-    letter-spacing:2px;
-    color:#ddd;
-}
-
 .card-value{
     position:absolute;
+
     top:5px;
     left:6px;
+
     font-size:15px;
 }
 
 .card-suit{
     position:absolute;
+
     top:23px;
     left:7px;
-    font-size:14px;
+
+    font-size:13px;
 }
 
 .card-center{
     position:absolute;
+
     left:50%;
     top:52%;
+
     transform:translate(-50%,-50%);
+
     font-size:30px;
 }
 
 .card-corner{
     position:absolute;
+
     right:5px;
     bottom:4px;
+
     transform:rotate(180deg);
-    font-size:11px;
-}
 
-/* =========================
-   OPPONENT
-========================= */
-
-.opponent{
-    position:absolute;
-    top:7vh;
-    left:50%;
-    transform:translateX(-50%);
-    text-align:center;
-    z-index:50;
-}
-
-.avatar{
-    width:48px;
-    height:48px;
-    margin:auto;
-    border:1px solid #444;
-    border-radius:50%;
-    background:#111;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:20px;
-}
-
-.opponent-name{
-    margin-top:5px;
-    font-size:12px;
-    font-weight:900;
-}
-
-.opponent-count{
-    margin-top:3px;
-    color:#777;
     font-size:10px;
 }
 
-/* =========================
+/* =========================================
+   CARD BACK
+========================================= */
+
+.card.back{
+    border:2px solid #999;
+
+    background:
+        repeating-linear-gradient(
+            45deg,
+            #090909 0,
+            #090909 5px,
+            #242424 5px,
+            #242424 10px
+        );
+}
+
+.card.back::after{
+    content:"HL";
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    width:36px;
+    height:36px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    border:1px solid #777;
+
+    color:#ddd;
+
+    font-size:10px;
+    font-weight:900;
+    letter-spacing:2px;
+}
+
+/* =========================================
    OPPONENT HAND
-========================= */
+========================================= */
 
 .opponent-hand{
     position:absolute;
+
     left:50%;
-    top:0;
-    width:260px;
-    height:105px;
+    top:48px;
+
+    width:280px;
+    height:100px;
+
     transform:translateX(-50%);
-    z-index:35;
+
+    z-index:50;
 }
 
 .opponent-hand .card{
+    position:absolute;
+
     width:58px;
     height:84px;
 }
 
-/* =========================
-   PLAYER
-========================= */
+/* =========================================
+   TABLE CARDS
+========================================= */
 
-.player-info{
+.attack-zone,
+.defense-zone{
     position:absolute;
-    bottom:7vh;
+
     left:50%;
-    transform:translateX(-50%);
-    text-align:center;
-    z-index:120;
+    top:50%;
+
+    width:350px;
+    height:260px;
+
+    transform:translate(-50%,-50%);
+
+    z-index:60;
 }
 
-.player-name{
-    font-size:12px;
-    font-weight:900;
+.played-card{
+    position:absolute;
+
+    width:66px;
+    height:94px;
+
+    transition:
+        left .25s ease,
+        top .25s ease;
 }
 
-.player-count{
-    margin-top:3px;
-    color:#777;
-    font-size:10px;
-}
-
-/* =========================
+/* =========================================
    PLAYER HAND
-========================= */
+========================================= */
 
 .hand{
     position:absolute;
+
     left:50%;
     bottom:0;
+
     width:100%;
-    height:145px;
+    height:150px;
+
     transform:translateX(-50%);
+
     z-index:200;
-    pointer-events:none;
 }
 
 .hand .card{
-    pointer-events:auto;
+    position:absolute;
+
     transform-origin:center bottom;
+
     transition:
-        left .22s ease,
-        bottom .22s ease,
-        transform .22s ease,
-        box-shadow .2s ease;
+        left .2s ease,
+        bottom .2s ease,
+        transform .2s ease;
 }
 
 .hand .card.allowed{
@@ -373,207 +622,163 @@ body{
 }
 
 .hand .card.not-allowed{
-    opacity:.38;
+    opacity:.35;
 }
 
 .hand .card.selected{
-    bottom:18px!important;
+    bottom:20px!important;
+
     box-shadow:
         0 0 0 2px #fff,
-        0 12px 25px rgba(255,255,255,.25);
+        0 12px 25px rgba(255,255,255,.3);
 }
 
-/* =========================
-   TABLE CARDS
-========================= */
+/* =========================================
+   PLAYER INFO
+========================================= */
 
-.attack-zone,
-.defense-zone{
+.player-info{
     position:absolute;
+
     left:50%;
-    top:50%;
-    width:340px;
-    height:250px;
-    transform:translate(-50%,-50%);
-    z-index:60;
-}
+    bottom:65px;
 
-.played-card{
-    position:absolute;
-    width:66px;
-    height:94px;
-    transition:
-        left .32s cubic-bezier(.2,.8,.2,1),
-        top .32s cubic-bezier(.2,.8,.2,1),
-        transform .32s ease,
-        opacity .25s ease;
-}
-
-/* =========================
-   CONTROLS
-========================= */
-
-.controls{
-    position:absolute;
-    left:50%;
-    bottom:17vh;
     transform:translateX(-50%);
-    display:flex;
-    gap:7px;
-    z-index:400;
+
+    text-align:center;
+
+    z-index:220;
 }
 
-button{
-    border:1px solid #333;
-    border-radius:10px;
-    background:#0c0c0c;
-    color:#fff;
-    padding:10px 16px;
+.player-name{
     font-size:11px;
     font-weight:900;
 }
 
-button.primary{
+.player-count{
+    margin-top:3px;
+
+    color:#666;
+
+    font-size:9px;
+}
+
+/* =========================================
+   CONTROLS
+========================================= */
+
+.controls{
+    position:absolute;
+
+    left:50%;
+    bottom:17%;
+
+    transform:translateX(-50%);
+
+    display:flex;
+    gap:7px;
+
+    z-index:400;
+}
+
+.control-button{
+    display:none;
+
+    padding:11px 18px;
+
+    border:1px solid #333;
+    border-radius:10px;
+
+    background:#0d0d0d;
+    color:#fff;
+
+    font-size:10px;
+    font-weight:900;
+}
+
+.control-button.primary{
     background:#fff;
     color:#000;
 }
 
-button.danger{
-    background:#171717;
-}
+/* =========================================
+   CONNECTION
+========================================= */
 
-button:active{
-    transform:scale(.95);
-}
-
-/* =========================
-   MESSAGE
-========================= */
-
-.message{
+.connection{
     position:absolute;
+
     left:50%;
-    top:15vh;
+    bottom:12px;
+
     transform:translateX(-50%);
-    padding:8px 13px;
-    border:1px solid #292929;
-    border-radius:10px;
-    background:#090909;
-    color:#bbb;
-    font-size:10px;
-    z-index:500;
-    opacity:0;
-    transition:opacity .2s ease;
+
+    color:#555;
+
+    font-size:8px;
+
+    z-index:300;
 }
 
-.message.show{
-    opacity:1;
-}
+/* =========================================
+   GAME OVER
+========================================= */
 
-/* =========================
-   START
-========================= */
-
-.start{
+.game-over{
     position:absolute;
     inset:0;
-    background:#050505;
-    z-index:1000;
-    display:flex;
-    justify-content:center;
+
+    display:none;
+
     align-items:center;
+    justify-content:center;
+
+    background:rgba(0,0,0,.88);
+
+    z-index:2000;
 }
 
-.start-box{
-    width:82%;
-    max-width:340px;
+.game-over-box{
+    width:80%;
+    max-width:320px;
+
+    padding:30px 20px;
+
+    border:1px solid #292929;
+    border-radius:15px;
+
+    background:#090909;
+
     text-align:center;
 }
 
-.start-title{
-    font-size:29px;
+.game-over-title{
+    font-size:22px;
     font-weight:900;
-    letter-spacing:5px;
 }
 
-.start-sub{
-    margin-top:8px;
-    color:#666;
-    font-size:10px;
-    letter-spacing:3px;
-}
-
-.start-button{
+.restart-button{
     width:100%;
-    margin-top:30px;
-    padding:16px;
-    border:0;
+
+    margin-top:20px;
+
+    padding:13px;
+
+    border-radius:10px;
+
     background:#fff;
     color:#000;
-    font-size:14px;
+
+    font-size:11px;
+    font-weight:900;
 }
 
-/* =========================
-   DRAG
-========================= */
-
-.dragging{
-    position:fixed!important;
-    z-index:9999!important;
-    transition:none!important;
-    pointer-events:none!important;
-    transform:scale(1.08) rotate(0deg)!important;
-    opacity:1!important;
-}
-
-/* =========================
-   ANIMATIONS
-========================= */
-
-@keyframes dealPlayer{
-    from{
-        opacity:0;
-        transform:translateY(100px) scale(.55);
-    }
-    to{
-        opacity:1;
-    }
-}
-
-@keyframes dealOpponent{
-    from{
-        opacity:0;
-        transform:translateY(-100px) scale(.55);
-    }
-    to{
-        opacity:1;
-    }
-}
-
-@keyframes playCard{
-    from{
-        opacity:0;
-        transform:scale(.55) rotate(-12deg);
-    }
-    to{
-        opacity:1;
-        transform:scale(1) rotate(0);
-    }
-}
-
-.deal-player{
-    animation:dealPlayer .22s ease forwards;
-}
-
-.deal-opponent{
-    animation:dealOpponent .22s ease forwards;
-}
-
-.play-animation{
-    animation:playCard .28s ease forwards;
-}
+/* =========================================
+   MOBILE
+========================================= */
 
 @media(max-width:390px){
+
     .card{
         width:59px;
         height:84px;
@@ -584,15 +789,17 @@ button:active{
         height:84px;
     }
 
-    .hand{
-        height:130px;
-    }
-
     .attack-zone,
     .defense-zone{
         width:310px;
     }
+
+    .hand{
+        height:135px;
+    }
+
 }
+
 </style>
 </head>
 
@@ -600,103 +807,256 @@ button:active{
 
 <div id="app">
 
-    <div class="topbar">
-        <div class="logo">HEAVY LUX CARD</div>
+    <!-- =====================================
+         LOBBY
+    ====================================== -->
 
-        <div class="info">
-            <div class="info-item">
-                КОЗЫРЬ <b id="trumpInfo">—</b>
-            </div>
+    <div
+        id="lobby"
+        class="lobby"
+    >
 
-            <div class="info-item">
-                КОЛОДА <b id="deckCount">0</b>
-            </div>
-        </div>
-    </div>
+        <div class="lobby-box">
 
-    <div id="message" class="message"></div>
-
-    <div class="opponent">
-        <div class="avatar">AI</div>
-        <div class="opponent-name">Heavy AI</div>
-
-        <div class="opponent-count">
-            Карт: <b id="opponentCount">0</b>
-        </div>
-    </div>
-
-    <div id="opponentHand"
-         class="opponent-hand"></div>
-
-    <div class="table">
-
-        <div class="deck-area">
-
-            <div id="deck" class="deck">
-                <div class="deck-card"></div>
-                <div class="deck-card"></div>
-                <div class="deck-card"></div>
-            </div>
-
-            <div id="trumpCard"
-                 class="card trump"></div>
-
-        </div>
-
-        <div id="attackZone"
-             class="attack-zone"></div>
-
-        <div id="defenseZone"
-             class="defense-zone"></div>
-
-    </div>
-
-    <div id="playerHand"
-         class="hand"></div>
-
-    <div class="player-info">
-        <div id="playerName"
-             class="player-name">
-            Игрок
-        </div>
-
-        <div class="player-count">
-            Карт: <b id="playerCount">0</b>
-        </div>
-    </div>
-
-    <div class="controls">
-
-        <button id="takeButton"
-                class="danger"
-                style="display:none">
-            ВЗЯТЬ
-        </button>
-
-        <button id="beatButton"
-                class="primary"
-                style="display:none">
-            БИТО
-        </button>
-
-    </div>
-
-    <div id="startScreen"
-         class="start">
-
-        <div class="start-box">
-
-            <div class="start-title">
+            <div class="title">
                 HEAVY LUX
             </div>
 
-            <div class="start-sub">
-                CLASSIC DURAK
+            <div class="subtitle">
+                CLASSIC DURAK ONLINE
             </div>
 
-            <button id="startButton"
-                    class="start-button">
-                НАЧАТЬ ИГРУ
+            <input
+                id="nameInput"
+                class="name-input"
+                maxlength="20"
+                placeholder="Твоё имя"
+            >
+
+            <button
+                id="findButton"
+                class="start-button"
+            >
+                НАЙТИ СОПЕРНИКА
+            </button>
+
+            <div
+                id="waiting"
+                class="waiting"
+            >
+                Ищем соперника...
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================
+         GAME
+    ====================================== -->
+
+    <div
+        id="game"
+        class="game"
+    >
+
+        <!-- TOP -->
+
+        <div class="topbar">
+
+            <div class="logo">
+                HEAVY LUX CARD
+            </div>
+
+            <div class="status">
+
+                <div class="status-item">
+                    КОЗЫРЬ
+                    <b id="trump">—</b>
+                </div>
+
+                <div class="status-item">
+                    КОЛОДА
+                    <b id="deckCount">0</b>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- MESSAGE -->
+
+        <div
+            id="message"
+            class="message"
+        ></div>
+
+
+        <!-- OPPONENT -->
+
+        <div class="opponent">
+
+            <div
+                id="opponentAvatar"
+                class="avatar"
+            >
+                ?
+            </div>
+
+            <div
+                id="opponentName"
+                class="opponent-name"
+            >
+                Игрок
+            </div>
+
+            <div class="opponent-count">
+
+                Карт:
+                <b id="opponentCount">
+                    0
+                </b>
+
+            </div>
+
+        </div>
+
+
+        <!-- OPPONENT HAND -->
+
+        <div
+            id="opponentHand"
+            class="opponent-hand"
+        ></div>
+
+
+        <!-- TABLE -->
+
+        <div class="table">
+
+            <div class="deck-area">
+
+                <div
+                    id="deck"
+                    class="deck"
+                >
+
+                    <div class="deck-card"></div>
+                    <div class="deck-card"></div>
+                    <div class="deck-card"></div>
+
+                </div>
+
+                <div
+                    id="trumpCard"
+                    class="card trump"
+                ></div>
+
+            </div>
+
+
+            <div
+                id="attackZone"
+                class="attack-zone"
+            ></div>
+
+            <div
+                id="defenseZone"
+                class="defense-zone"
+            ></div>
+
+        </div>
+
+
+        <!-- PLAYER HAND -->
+
+        <div
+            id="playerHand"
+            class="hand"
+        ></div>
+
+
+        <!-- PLAYER -->
+
+        <div class="player-info">
+
+            <div
+                id="playerName"
+                class="player-name"
+            >
+                Игрок
+            </div>
+
+            <div class="player-count">
+
+                Карт:
+                <b id="playerCount">
+                    0
+                </b>
+
+            </div>
+
+        </div>
+
+
+        <!-- CONTROLS -->
+
+        <div class="controls">
+
+            <button
+                id="takeButton"
+                class="control-button"
+            >
+                ВЗЯТЬ
+            </button>
+
+            <button
+                id="beatButton"
+                class="control-button primary"
+            >
+                БИТО
+            </button>
+
+        </div>
+
+
+        <!-- CONNECTION -->
+
+        <div
+            id="connection"
+            class="connection"
+        >
+            Подключение...
+        </div>
+
+    </div>
+
+
+    <!-- =====================================
+         GAME OVER
+    ====================================== -->
+
+    <div
+        id="gameOver"
+        class="game-over"
+    >
+
+        <div class="game-over-box">
+
+            <div
+                id="gameOverTitle"
+                class="game-over-title"
+            >
+                Игра окончена
+            </div>
+
+            <button
+                id="restartButton"
+                class="restart-button"
+            >
+                НОВАЯ ИГРА
             </button>
 
         </div>
@@ -705,35 +1065,17 @@ button:active{
 
 </div>
 
+
 <script>
 
-/* =========================================================
+/* =========================================
    TELEGRAM
-========================================================= */
+========================================= */
 
 const tg =
     window.Telegram
         ? window.Telegram.WebApp
         : null;
-      /* =========================================================
-   SOCKET.IO
-========================================================= */
-
-const socket = io("https://heavy-lux-card.onrender.com", {
-    transports: ["websocket", "polling"]
-});
-
-socket.on("connect", () => {
-    console.log("Socket.IO connected:", socket.id);
-});
-
-socket.on("connect_error", (error) => {
-    console.error("Socket.IO connection error:", error);
-});
-
-socket.on("disconnect", (reason) => {
-    console.log("Socket.IO disconnected:", reason);
-});
 
 if(tg){
     tg.ready();
@@ -741,78 +1083,50 @@ if(tg){
 }
 
 
-/* =========================================================
-   CARD DATA
-========================================================= */
+/* =========================================
+   SOCKET
+========================================= */
 
-const SUITS = [
-    "♠",
-    "♥",
-    "♦",
-    "♣"
-];
-
-const RANKS = [
-    {name:"6",value:6},
-    {name:"7",value:7},
-    {name:"8",value:8},
-    {name:"9",value:9},
-    {name:"10",value:10},
-    {name:"В",value:11},
-    {name:"Д",value:12},
-    {name:"К",value:13},
-    {name:"Т",value:14}
-];
+const socket = io(
+    "https://heavy-lux-card.onrender.com",
+    {
+        transports:[
+            "websocket",
+            "polling"
+        ]
+    }
+);
 
 
-/* =========================================================
+/* =========================================
    STATE
-========================================================= */
+========================================= */
 
-let deck = [];
-
-let playerHand = [];
-let cpuHand = [];
-
-let tableAttacks = [];
-
-let trumpSuit = null;
-
-/*
-    attacker = тот, кто имеет право
-    атаковать и подкидывать.
-
-    defender = тот, кто обязан отбиваться.
-*/
-
-let attacker = null;
-let defender = null;
-
-/*
-    player_attack
-    player_defense
-    cpu_attack
-    cpu_defense
-    finished
-*/
-
-let phase = "waiting";
-
-let roundLimit = 0;
-
+let myId = null;
+let gameState = null;
 let selectedCardId = null;
-let dragState = null;
-
-let gameStarted = false;
 
 let playerName = "Игрок";
 
-let actionLocked = false;
 
-
-/* =========================================================
+/* =========================================
    DOM
-========================================================= */
+========================================= */
+
+const lobby =
+    document.getElementById("lobby");
+
+const game =
+    document.getElementById("game");
+
+const nameInput =
+    document.getElementById("nameInput");
+
+const findButton =
+    document.getElementById("findButton");
+
+const waiting =
+    document.getElementById("waiting");
 
 const playerHandEl =
     document.getElementById("playerHand");
@@ -826,90 +1140,272 @@ const attackZone =
 const defenseZone =
     document.getElementById("defenseZone");
 
-const trumpCardEl =
-    document.getElementById("trumpCard");
-
-const messageEl =
-    document.getElementById("message");
-
 const takeButton =
     document.getElementById("takeButton");
 
 const beatButton =
     document.getElementById("beatButton");
 
+const message =
+    document.getElementById("message");
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
-function sleep(ms){
-    return new Promise(
-        resolve=>setTimeout(resolve,ms)
-    );
-}
+const connection =
+    document.getElementById("connection");
 
 
-function shuffle(array){
+/* =========================================
+   SOCKET CONNECTION
+========================================= */
 
-    for(
-        let i=array.length-1;
-        i>0;
-        i--
-    ){
+socket.on(
+    "connect",
+    () => {
 
-        const j =
-            Math.floor(
-                Math.random()*(i+1)
+        myId =
+            socket.id;
+
+        connection.innerText =
+            "● ONLINE";
+
+        connection.style.color =
+            "#aaa";
+    }
+);
+
+
+socket.on(
+    "disconnect",
+    () => {
+
+        connection.innerText =
+            "● OFFLINE";
+
+        connection.style.color =
+            "#555";
+
+        showMessage(
+            "Соединение потеряно"
+        );
+    }
+);
+
+
+socket.on(
+    "connect_error",
+    () => {
+
+        connection.innerText =
+            "Ошибка соединения";
+
+    }
+);
+
+
+/* =========================================
+   FIND GAME
+========================================= */
+
+findButton.addEventListener(
+    "click",
+    () => {
+
+        playerName =
+            nameInput.value.trim();
+
+        if(!playerName){
+
+            playerName =
+                "Игрок";
+        }
+
+        findButton.disabled =
+            true;
+
+        waiting.style.display =
+            "block";
+
+        socket.emit(
+            "find_game",
+            {
+                name:playerName
+            }
+        );
+    }
+);
+
+
+/* =========================================
+   WAITING
+========================================= */
+
+socket.on(
+    "waiting",
+    data => {
+
+        waiting.innerText =
+            data.message ||
+            "Ищем соперника...";
+
+    }
+);
+
+
+/* =========================================
+   GAME FOUND
+========================================= */
+
+socket.on(
+    "game_found",
+    () => {
+
+        lobby.style.display =
+            "none";
+
+        game.style.display =
+            "block";
+
+        showMessage(
+            "Соперник найден!"
+        );
+    }
+);
+
+
+/* =========================================
+   GAME STATE
+========================================= */
+
+socket.on(
+    "game_state",
+    state => {
+
+        gameState =
+            state;
+
+        render();
+    }
+);
+
+
+/* =========================================
+   ERROR
+========================================= */
+
+socket.on(
+    "error_message",
+    text => {
+
+        showMessage(
+            text
+        );
+    }
+);
+
+
+/* =========================================
+   OPPONENT LEFT
+========================================= */
+
+socket.on(
+    "opponent_left",
+    () => {
+
+        showMessage(
+            "Соперник вышел из игры"
+        );
+
+        setTimeout(
+            () => {
+
+                location.reload();
+
+            },
+            1500
+        );
+    }
+);
+
+
+/* =========================================
+   GAME OVER
+========================================= */
+
+socket.on(
+    "game_over",
+    data => {
+
+        const gameOver =
+            document.getElementById(
+                "gameOver"
             );
 
-        [array[i],array[j]] =
-        [array[j],array[i]];
+        const title =
+            document.getElementById(
+                "gameOverTitle"
+            );
+
+        title.innerText =
+            data.message;
+
+        gameOver.style.display =
+            "flex";
+    }
+);
+
+
+/* =========================================
+   RENDER
+========================================= */
+
+function render(){
+
+    if(!gameState){
+        return;
     }
 
-    return array;
+    document.getElementById(
+        "trump"
+    ).innerText =
+        gameState.trumpSuit;
+
+    document.getElementById(
+        "deckCount"
+    ).innerText =
+        gameState.deckCount;
+
+    document.getElementById(
+        "playerName"
+    ).innerText =
+        playerName;
+
+    document.getElementById(
+        "playerCount"
+    ).innerText =
+        gameState.hand.length;
+
+    document.getElementById(
+        "opponentName"
+    ).innerText =
+        gameState.opponent.name;
+
+    document.getElementById(
+        "opponentCount"
+    ).innerText =
+        gameState.opponent.cards;
+
+    renderPlayerHand();
+
+    renderOpponentHand();
+
+    renderTable();
+
+    updateButtons();
 }
 
 
-/* =========================================================
-   CREATE DECK
-========================================================= */
-
-function createDeck(){
-
-    const result = [];
-
-    let id = 0;
-
-    for(const suit of SUITS){
-
-        for(const rank of RANKS){
-
-            result.push({
-                id:`card_${id++}`,
-                suit,
-                rank:rank.name,
-                value:rank.value
-            });
-        }
-    }
-
-    return shuffle(result);
-}
-
-
-/* =========================================================
-   CARD RULES
-========================================================= */
-
-function isTrump(card){
-
-    return (
-        card &&
-        card.suit === trumpSuit
-    );
-}
-
+/* =========================================
+   RED CARD
+========================================= */
 
 function isRed(card){
 
@@ -920,159 +1416,27 @@ function isRed(card){
 }
 
 
-/*
-    СТРОГАЯ ФУНКЦИЯ ОТБОЯ.
+/* =========================================
+   CREATE CARD
+========================================= */
 
-    1. Козырь бьёт любой некозырь.
-    2. Некозырь не бьёт козырь.
-    3. Некозырь бьёт некозырь
-       только той же масти.
-*/
-
-function canBeat(attack,defense){
-
-    if(!attack || !defense){
-        return false;
-    }
-
-    if(
-        isTrump(defense) &&
-        !isTrump(attack)
-    ){
-        return true;
-    }
-
-    if(
-        !isTrump(defense) &&
-        isTrump(attack)
-    ){
-        return false;
-    }
-
-    return (
-        attack.suit === defense.suit &&
-        defense.value > attack.value
-    );
-}
-
-
-/* =========================================================
-   TABLE RANKS
-========================================================= */
-
-function getTableRanks(){
-
-    const result = [];
-
-    for(const pair of tableAttacks){
-
-        result.push(
-            pair.attack.rank
-        );
-
-        if(pair.defense){
-
-            result.push(
-                pair.defense.rank
-            );
-        }
-    }
-
-    return result;
-}
-
-
-/* =========================================================
-   CAN ADD
-========================================================= */
-
-function canAddCard(card){
-
-    if(!card){
-        return false;
-    }
-
-    if(
-        tableAttacks.length >=
-        roundLimit
-    ){
-        return false;
-    }
-
-    /*
-        Первый удар.
-    */
-
-    if(
-        tableAttacks.length === 0
-    ){
-        return true;
-    }
-
-    /*
-        Подкинуть можно только
-        ранг, который уже есть
-        на столе.
-    */
-
-    return getTableRanks()
-        .includes(card.rank);
-}
-
-
-/* =========================================================
-   UNBEATEN
-========================================================= */
-
-function getFirstUnbeaten(){
-
-    for(
-        let i=0;
-        i<tableAttacks.length;
-        i++
-    ){
-
-        if(
-            !tableAttacks[i].defense
-        ){
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-
-function allBeaten(){
-
-    return (
-        tableAttacks.length > 0 &&
-        getFirstUnbeaten() === -1
-    );
-}
-
-
-/* =========================================================
-   RENDER CARD
-========================================================= */
-
-function createCardElement(card){
+function createCard(card){
 
     const el =
         document.createElement("div");
 
     el.className =
-        "card" +
-        (
-            isRed(card)
-                ? " red"
-                : ""
-        );
+        "card";
+
+    if(isRed(card)){
+        el.classList.add("red");
+    }
 
     el.dataset.id =
         card.id;
 
     el.innerHTML = `
+
         <div class="card-value">
             ${card.rank}
         </div>
@@ -1088,13 +1452,18 @@ function createCardElement(card){
         <div class="card-corner">
             ${card.rank}${card.suit}
         </div>
+
     `;
 
     return el;
 }
 
 
-function createBackCard(){
+/* =========================================
+   BACK
+========================================= */
+
+function createBack(){
 
     const el =
         document.createElement("div");
@@ -1106,180 +1475,30 @@ function createBackCard(){
 }
 
 
-/* =========================================================
-   TRUMP
-========================================================= */
-
-function setupTrump(){
-
-    const trump =
-        deck[deck.length-1];
-
-    trumpSuit =
-        trump.suit;
-
-    trumpCardEl.className =
-        "card trump" +
-        (
-            isRed(trump)
-                ? " red"
-                : ""
-        );
-
-    trumpCardEl.innerHTML = `
-        <div class="card-value">
-            ${trump.rank}
-        </div>
-
-        <div class="card-suit">
-            ${trump.suit}
-        </div>
-
-        <div class="card-center">
-            ${trump.suit}
-        </div>
-
-        <div class="card-corner">
-            ${trump.rank}${trump.suit}
-        </div>
-    `;
-}
-
-
-/* =========================================================
-   INITIAL DEAL
-========================================================= */
-
-async function dealInitial(){
-
-    playerHand = [];
-    cpuHand = [];
-
-    renderAll();
-
-    for(let i=0;i<6;i++){
-
-        if(deck.length <= 1){
-            break;
-        }
-
-        playerHand.push(
-            deck.shift()
-        );
-
-        renderAll();
-
-        animateLastPlayerCard();
-
-        await sleep(120);
-
-        if(deck.length <= 1){
-            break;
-        }
-
-        cpuHand.push(
-            deck.shift()
-        );
-
-        renderAll();
-
-        animateLastOpponentCard();
-
-        await sleep(120);
-    }
-
-    renderAll();
-}
-
-
-/* =========================================================
-   REFILL
-========================================================= */
-
-async function refillHands(){
-
-    /*
-        В классическом Дураке
-        сначала добирает атакующий.
-    */
-
-    const attackerHand =
-        attacker === "player"
-            ? playerHand
-            : cpuHand;
-
-    const defenderHand =
-        defender === "player"
-            ? playerHand
-            : cpuHand;
-
-    while(
-        attackerHand.length < 6 &&
-        deck.length > 0
-    ){
-
-        attackerHand.push(
-            deck.shift()
-        );
-
-        renderAll();
-
-        await sleep(100);
-    }
-
-    while(
-        defenderHand.length < 6 &&
-        deck.length > 0
-    ){
-
-        defenderHand.push(
-            deck.shift()
-        );
-
-        renderAll();
-
-        await sleep(100);
-    }
-}
-
-
-/* =========================================================
-   RENDER
-========================================================= */
-
-function renderAll(){
-
-    renderPlayerHand();
-    renderOpponentHand();
-    renderTable();
-
-    updateInfo();
-    updateAllowedCards();
-    updateButtons();
-}
-
-
-/* =========================================================
+/* =========================================
    PLAYER HAND
-========================================================= */
+========================================= */
 
 function renderPlayerHand(){
 
     playerHandEl.innerHTML = "";
 
-    const count =
-        playerHand.length;
+    const hand =
+        gameState.hand;
 
-    playerHand.forEach(
-        (card,index)=>{
+    const count =
+        hand.length;
+
+    hand.forEach(
+        (card,index) => {
 
             const el =
-                createCardElement(card);
+                createCard(card);
 
             const spread =
                 Math.min(
                     52,
-                    300 /
+                    310 /
                     Math.max(
                         count,
                         1
@@ -1317,9 +1536,30 @@ function renderPlayerHand(){
                 );
             }
 
-            addCardInteraction(
-                el,
-                card
+            if(
+                isAllowed(card)
+            ){
+
+                el.classList.add(
+                    "allowed"
+                );
+
+            }else{
+
+                el.classList.add(
+                    "not-allowed"
+                );
+            }
+
+            el.addEventListener(
+                "click",
+                () => {
+
+                    handleCardClick(
+                        card
+                    );
+
+                }
             );
 
             playerHandEl.appendChild(
@@ -1330,68 +1570,234 @@ function renderPlayerHand(){
 }
 
 
-/* =========================================================
+/* =========================================
+   ALLOWED
+========================================= */
+
+function isAllowed(card){
+
+    if(!gameState){
+        return false;
+    }
+
+    if(
+        gameState.attacker ===
+        myId
+    ){
+
+        if(
+            gameState.table.length === 0
+        ){
+            return true;
+        }
+
+        if(
+            gameState.table.length >=
+            gameState.opponent.cards
+        ){
+            return false;
+        }
+
+        const ranks = [];
+
+        for(
+            const pair of
+            gameState.table
+        ){
+
+            ranks.push(
+                pair.attack.rank
+            );
+
+            if(pair.defense){
+
+                ranks.push(
+                    pair.defense.rank
+                );
+            }
+        }
+
+        return ranks.includes(
+            card.rank
+        );
+    }
+
+
+    if(
+        gameState.defender ===
+        myId
+    ){
+
+        const pair =
+            gameState.table.find(
+                p => !p.defense
+            );
+
+        if(!pair){
+            return false;
+        }
+
+        const attack =
+            pair.attack;
+
+        const attackTrump =
+            attack.suit ===
+            gameState.trumpSuit;
+
+        const defenseTrump =
+            card.suit ===
+            gameState.trumpSuit;
+
+        if(
+            defenseTrump &&
+            !attackTrump
+        ){
+            return true;
+        }
+
+        if(
+            !defenseTrump &&
+            attackTrump
+        ){
+            return false;
+        }
+
+        return (
+            card.suit ===
+            attack.suit &&
+            card.value >
+            attack.value
+        );
+    }
+
+    return false;
+}
+
+
+/* =========================================
+   CARD CLICK
+========================================= */
+
+function handleCardClick(card){
+
+    if(!gameState){
+        return;
+    }
+
+    if(
+        !isAllowed(card)
+    ){
+
+        showMessage(
+            "Эту карту сейчас нельзя использовать"
+        );
+
+        return;
+    }
+
+    if(
+        gameState.attacker ===
+        myId
+    ){
+
+        socket.emit(
+            "play_card",
+            {
+                cardId:card.id
+            }
+        );
+
+        selectedCardId =
+            null;
+
+        return;
+    }
+
+    if(
+        gameState.defender ===
+        myId
+    ){
+
+        socket.emit(
+            "defend_card",
+            {
+                cardId:card.id
+            }
+        );
+
+        selectedCardId =
+            null;
+    }
+}
+
+
+/* =========================================
    OPPONENT HAND
-========================================================= */
+========================================= */
 
 function renderOpponentHand(){
 
     opponentHandEl.innerHTML = "";
 
     const count =
-        cpuHand.length;
+        gameState.opponent.cards;
 
-    cpuHand.forEach(
-        (card,index)=>{
+    for(
+        let i=0;
+        i<count;
+        i++
+    ){
 
-            const el =
-                createBackCard();
+        const card =
+            createBack();
 
-            const offset =
+        const offset =
+            (
+                i -
+                (count-1)/2
+            ) * 30;
+
+        card.style.left =
+            `calc(50% + ${offset}px - 29px)`;
+
+        card.style.top =
+            `${Math.abs(
+                i -
+                (count-1)/2
+            ) * .7}px`;
+
+        card.style.transform =
+            `rotate(${
                 (
-                    index -
+                    i -
                     (count-1)/2
-                ) * 30;
+                ) * 3
+            }deg)`;
 
-            el.style.left =
-                `calc(50% + ${offset}px - 29px)`;
-
-            el.style.top =
-                `${Math.abs(
-                    index -
-                    (count-1)/2
-                ) * .8}px`;
-
-            el.style.transform =
-                `rotate(${
-                    (
-                        index -
-                        (count-1)/2
-                    ) * 3
-                }deg)`;
-
-            opponentHandEl.appendChild(
-                el
-            );
-        }
-    );
+        opponentHandEl.appendChild(
+            card
+        );
+    }
 }
 
 
-/* =========================================================
+/* =========================================
    TABLE
-========================================================= */
+========================================= */
 
 function renderTable(){
 
-    attackZone.innerHTML = "";
-    defenseZone.innerHTML = "";
+    attackZone.innerHTML =
+        "";
 
-    tableAttacks.forEach(
-        (pair,index)=>{
+    defenseZone.innerHTML =
+        "";
+
+    gameState.table.forEach(
+        (pair,index) => {
 
             const attack =
-                createCardElement(
+                createCard(
                     pair.attack
                 );
 
@@ -1399,23 +1805,32 @@ function renderTable(){
                 "played-card"
             );
 
-            const pos =
-                getAttackPosition(index);
+            const x =
+                15 +
+                (index % 4) *
+                80;
+
+            const y =
+                25 +
+                Math.floor(
+                    index / 4
+                ) * 105;
 
             attack.style.left =
-                `${pos.x}px`;
+                `${x}px`;
 
             attack.style.top =
-                `${pos.y}px`;
+                `${y}px`;
 
             attackZone.appendChild(
                 attack
             );
 
+
             if(pair.defense){
 
                 const defense =
-                    createCardElement(
+                    createCard(
                         pair.defense
                     );
 
@@ -1423,1199 +1838,122 @@ function renderTable(){
                     "played-card"
                 );
 
-                const dpos =
-                    getDefensePosition(index);
-
                 defense.style.left =
-                    `${dpos.x}px`;
+                    `${x + 20}px`;
 
                 defense.style.top =
-                    `${dpos.y}px`;
+                    `${y - 20}px`;
+
+                defense.style.transform =
+                    "rotate(4deg)";
 
                 defenseZone.appendChild(
                     defense
                 );
             }
+
         }
     );
 }
 
 
-function getAttackPosition(index){
-
-    return {
-        x:15+(index%4)*80,
-        y:25+
-          Math.floor(index/4)*105
-    };
-}
-
-
-function getDefensePosition(index){
-
-    return {
-        x:34+(index%4)*80,
-        y:5+
-          Math.floor(index/4)*105
-    };
-}
-
-
-/* =========================================================
-   CARD INTERACTION
-========================================================= */
-
-function addCardInteraction(el,card){
-
-    let moved = false;
-    let startX = 0;
-    let startY = 0;
-
-    el.addEventListener(
-        "pointerdown",
-        event=>{
-
-            if(
-                phase !== "player_attack" &&
-                phase !== "player_defense"
-            ){
-                return;
-            }
-
-            startX =
-                event.clientX;
-
-            startY =
-                event.clientY;
-
-            moved = false;
-
-            selectedCardId =
-                card.id;
-
-            renderPlayerHand();
-
-            const fresh =
-                playerHandEl.querySelector(
-                    `[data-id="${card.id}"]`
-                );
-
-            if(!fresh){
-                return;
-            }
-
-            fresh.setPointerCapture(
-                event.pointerId
-            );
-
-            const rect =
-                fresh.getBoundingClientRect();
-
-            dragState = {
-                card,
-                element:fresh,
-                offsetX:
-                    event.clientX-
-                    rect.left,
-                offsetY:
-                    event.clientY-
-                    rect.top
-            };
-
-            fresh.classList.add(
-                "dragging"
-            );
-        }
-    );
-
-    el.addEventListener(
-        "pointermove",
-        event=>{
-
-            if(
-                !dragState ||
-                dragState.card.id !==
-                card.id
-            ){
-                return;
-            }
-
-            const dx =
-                event.clientX-startX;
-
-            const dy =
-                event.clientY-startY;
-
-            if(
-                Math.abs(dx)>6 ||
-                Math.abs(dy)>6
-            ){
-                moved = true;
-            }
-
-            dragState.element.style.left =
-                `${
-                    event.clientX-
-                    dragState.offsetX
-                }px`;
-
-            dragState.element.style.top =
-                `${
-                    event.clientY-
-                    dragState.offsetY
-                }px`;
-
-            dragState.element.style.bottom =
-                "auto";
-        }
-    );
-
-    el.addEventListener(
-        "pointerup",
-        async event=>{
-
-            if(
-                !dragState ||
-                dragState.card.id !==
-                card.id
-            ){
-                return;
-            }
-
-            const state =
-                dragState;
-
-            dragState = null;
-
-            state.element.classList.remove(
-                "dragging"
-            );
-
-            const table =
-                document
-                    .querySelector(".table")
-                    .getBoundingClientRect();
-
-            const inside =
-                event.clientX >= table.left &&
-                event.clientX <= table.right &&
-                event.clientY >= table.top &&
-                event.clientY <= table.bottom;
-
-            if(!moved){
-
-                selectedCardId =
-                    selectedCardId ===
-                    card.id
-                        ? null
-                        : card.id;
-
-                renderAll();
-
-                return;
-            }
-
-            if(!inside){
-
-                selectedCardId = null;
-
-                renderAll();
-
-                return;
-            }
-
-            selectedCardId = null;
-
-            await playPlayerCard(card);
-        }
-    );
-
-    el.addEventListener(
-        "pointercancel",
-        ()=>{
-            dragState = null;
-            selectedCardId = null;
-            renderAll();
-        }
-    );
-}
-
-
-/* =========================================================
-   PLAY PLAYER CARD
-========================================================= */
-
-async function playPlayerCard(card){
-
-    if(actionLocked){
-        return;
-    }
-
-    if(
-        phase !== "player_attack" &&
-        phase !== "player_defense"
-    ){
-        return;
-    }
-
-    if(
-        !playerHand.some(
-            c=>c.id===card.id
-        )
-    ){
-        return;
-    }
-
-    /* =========================
-       PLAYER ATTACK
-    ========================= */
-
-    if(
-        phase === "player_attack"
-    ){
-
-        if(
-            !canAddCard(card)
-        ){
-
-            showMessage(
-                tableAttacks.length
-                    ? "Такую карту нельзя подкинуть"
-                    : "Эта карта недоступна"
-            );
-
-            renderAll();
-
-            return;
-        }
-
-        removeFromHand(
-            playerHand,
-            card.id
-        );
-
-        tableAttacks.push({
-            attack:card,
-            defense:null
-        });
-
-        renderAll();
-
-        showMessage(
-            "Ты походил"
-        );
-
-        await sleep(450);
-
-        /*
-            Теперь отбивается компьютер.
-        */
-
-        phase =
-            "cpu_defense";
-
-        renderAll();
-
-        await cpuDefense();
-
-        return;
-    }
-
-
-    /* =========================
-       PLAYER DEFENSE
-    ========================= */
-
-    if(
-        phase === "player_defense"
-    ){
-
-        const index =
-            getFirstUnbeaten();
-
-        if(index === -1){
-            return;
-        }
-
-        const target =
-            tableAttacks[index].attack;
-
-        if(
-            !canBeat(
-                target,
-                card
-            )
-        ){
-
-            showMessage(
-                "Этой картой побить нельзя"
-            );
-
-            renderAll();
-
-            return;
-        }
-
-        removeFromHand(
-            playerHand,
-            card.id
-        );
-
-        tableAttacks[index].defense =
-            card;
-
-        renderAll();
-
-        showMessage(
-            "Ты отбился"
-        );
-
-        await sleep(450);
-
-        /*
-            КЛЮЧЕВОЕ ПРАВИЛО:
-
-            После того как игрок,
-            будучи защищающимся,
-            отбил карту,
-
-            ход НЕ переходит к игроку.
-
-            Решение принимает атакующий —
-            компьютер.
-
-            Компьютер либо подкидывает,
-            либо завершает атаку.
-        */
-
-        if(allBeaten()){
-
-            phase =
-                "cpu_attack";
-
-            renderAll();
-
-            await cpuContinueAttack();
-
-        }else{
-
-            /*
-                Теоретически сюда попасть
-                можно только если на столе
-                несколько атак и осталась
-                необитая карта.
-            */
-
-            phase =
-                "player_defense";
-
-            renderAll();
-        }
-    }
-}
-
-
-/* =========================================================
-   CPU DEFENSE
-========================================================= */
-
-async function cpuDefense(){
-
-    if(
-        phase !== "cpu_defense"
-    ){
-        return;
-    }
-
-    if(actionLocked){
-        return;
-    }
-
-    const index =
-        getFirstUnbeaten();
-
-    /*
-        Всё отбито.
-
-        Но CPU в этой функции
-        НЕ имеет права атаковать.
-    */
-
-    if(index === -1){
-
-        /*
-            Атакующий здесь игрок.
-            Значит решение о БИТО
-            принадлежит игроку.
-        */
-
-        phase =
-            "player_attack";
-
-        renderAll();
-
-        return;
-    }
-
-    const target =
-        tableAttacks[index].attack;
-
-    const available =
-        cpuHand.filter(
-            card =>
-                canBeat(
-                    target,
-                    card
-                )
-        );
-
-    /*
-        CPU не может отбиться.
-    */
-
-    if(
-        available.length === 0
-    ){
-
-        await cpuTakeCards();
-
-        return;
-    }
-
-    /*
-        Выбираем минимальную
-        достаточную карту.
-
-        Некозырь предпочтительнее
-        козыря.
-    */
-
-    available.sort(
-        (a,b)=>{
-
-            const at =
-                isTrump(a);
-
-            const bt =
-                isTrump(b);
-
-            if(at !== bt){
-                return at ? 1 : -1;
-            }
-
-            return a.value-b.value;
-        }
-    );
-
-    const card =
-        available[0];
-
-    await sleep(500);
-
-    removeFromHand(
-        cpuHand,
-        card.id
-    );
-
-    tableAttacks[index].defense =
-        card;
-
-    renderAll();
-
-    showMessage(
-        "Компьютер отбился"
-    );
-
-    await sleep(500);
-
-    /*
-        Теперь компьютер НЕ подкидывает.
-
-        Он защищающийся.
-
-        Право продолжать атаку
-        принадлежит игроку.
-    */
-
-    if(allBeaten()){
-
-        phase =
-            "player_attack";
-
-        renderAll();
-
-        showMessage(
-            "Твой ход — подкинь или БИТО"
-        );
-
-    }else{
-
-        await cpuDefense();
-    }
-}
-
-
-/* =========================================================
-   CPU CONTINUE ATTACK
-========================================================= */
-
-async function cpuContinueAttack(){
-
-    /*
-        Эта функция вызывается ТОЛЬКО когда:
-
-        attacker = cpu
-        defender = player
-
-        То есть компьютер имеет право
-        решать, подкидывать или закончить.
-    */
-
-    if(
-        phase !== "cpu_attack"
-    ){
-        return;
-    }
-
-    if(
-        !allBeaten()
-    ){
-        phase =
-            "player_defense";
-
-        renderAll();
-
-        return;
-    }
-
-    /*
-        Ищем карты по рангам стола.
-    */
-
-    const candidates =
-        cpuHand.filter(
-            card =>
-                canAddCard(card)
-        );
-
-    /*
-        Компьютер ничего не может подкинуть.
-
-        Раунд закончен.
-    */
-
-    if(
-        candidates.length === 0
-    ){
-
-        await finishSuccessfulRound();
-
-        return;
-    }
-
-    /*
-        Выбираем минимальную карту.
-
-        Козыри бережём.
-    */
-
-    candidates.sort(
-        (a,b)=>{
-
-            const at =
-                isTrump(a);
-
-            const bt =
-                isTrump(b);
-
-            if(at !== bt){
-                return at ? 1 : -1;
-            }
-
-            return a.value-b.value;
-        }
-    );
-
-    const card =
-        candidates[0];
-
-    await sleep(600);
-
-    removeFromHand(
-        cpuHand,
-        card.id
-    );
-
-    tableAttacks.push({
-        attack:card,
-        defense:null
-    });
-
-    renderAll();
-
-    showMessage(
-        "Компьютер подкинул"
-    );
-
-    await sleep(450);
-
-    /*
-        Теперь игрок снова защищается.
-    */
-
-    phase =
-        "player_defense";
-
-    renderAll();
-}
-
-
-/* =========================================================
-   CPU TAKE
-========================================================= */
-
-async function cpuTakeCards(){
-
-    actionLocked = true;
-
-    showMessage(
-        "Компьютер забирает карты"
-    );
-
-    await sleep(600);
-
-    for(
-        const pair of tableAttacks
-    ){
-
-        cpuHand.push(
-            pair.attack
-        );
-
-        if(pair.defense){
-
-            cpuHand.push(
-                pair.defense
-            );
-        }
-    }
-
-    tableAttacks = [];
-
-    actionLocked = false;
-
-    renderAll();
-
-    await sleep(350);
-
-    /*
-        CPU был защищающимся.
-
-        Атакующий остаётся игрок.
-    */
-
-    await refillHands();
-
-    if(
-        checkGameOver()
-    ){
-        return;
-    }
-
-    attacker =
-        "player";
-
-    defender =
-        "cpu";
-
-    phase =
-        "player_attack";
-
-    roundLimit =
-        cpuHand.length;
-
-    renderAll();
-
-    showMessage(
-        "Твой ход продолжается"
-    );
-}
-
-
-/* =========================================================
-   PLAYER TAKE
-========================================================= */
-
-takeButton.addEventListener(
-    "click",
-    async()=>{
-
-        if(
-            phase !==
-            "player_defense"
-        ){
-            return;
-        }
-
-        await playerTakeCards();
-    }
-);
-
-
-async function playerTakeCards(){
-
-    if(
-        actionLocked ||
-        phase !==
-        "player_defense"
-    ){
-        return;
-    }
-
-    actionLocked = true;
-
-    showMessage(
-        "Ты забираешь карты"
-    );
-
-    await sleep(350);
-
-    for(
-        const pair of tableAttacks
-    ){
-
-        playerHand.push(
-            pair.attack
-        );
-
-        if(pair.defense){
-
-            playerHand.push(
-                pair.defense
-            );
-        }
-    }
-
-    tableAttacks = [];
-
-    actionLocked = false;
-
-    renderAll();
-
-    await sleep(350);
-
-    /*
-        Если игрок забрал,
-        атакующий всё равно
-        сохраняет право атаки.
-
-        В данном случае атаковал CPU.
-    */
-
-    await refillHands();
-
-    if(
-        checkGameOver()
-    ){
-        return;
-    }
-
-    attacker =
-        "cpu";
-
-    defender =
-        "player";
-
-    phase =
-        "cpu_attack";
-
-    roundLimit =
-        playerHand.length;
-
-    renderAll();
-
-    await sleep(500);
-
-    await cpuStartAttack();
-}
-
-
-/* =========================================================
-   PLAYER FINISH ATTACK
-========================================================= */
-
-beatButton.addEventListener(
-    "click",
-    async()=>{
-
-        if(
-            phase !==
-            "player_attack"
-        ){
-            return;
-        }
-
-        if(
-            !allBeaten()
-        ){
-            showMessage(
-                "Сначала нужно отбить все карты"
-            );
-
-            return;
-        }
-
-        await finishSuccessfulRound();
-    }
-);
-
-
-/* =========================================================
-   SUCCESSFUL ROUND
-========================================================= */
-
-async function finishSuccessfulRound(){
-
-    if(actionLocked){
-        return;
-    }
-
-    if(!allBeaten()){
-        return;
-    }
-
-    actionLocked = true;
-
-    showMessage(
-        "Бито"
-    );
-
-    await sleep(650);
-
-    /*
-        Карты уходят в отбой.
-    */
-
-    tableAttacks = [];
-
-    renderAll();
-
-    await sleep(250);
-
-    /*
-        Добор.
-
-        ВАЖНО:
-        attacker сохраняется до refillHands().
-    */
-
-    await refillHands();
-
-    actionLocked = false;
-
-    if(
-        checkGameOver()
-    ){
-        return;
-    }
-
-    /*
-        После успешного отбоя
-        атакующий меняется.
-
-        Был игрок → становится CPU.
-        Был CPU → становится игрок.
-    */
-
-    if(
-        attacker === "player"
-    ){
-
-        attacker =
-            "cpu";
-
-        defender =
-            "player";
-
-        phase =
-            "cpu_attack";
-
-        roundLimit =
-            playerHand.length;
-
-        renderAll();
-
-        await sleep(500);
-
-        await cpuStartAttack();
-
-    }else{
-
-        attacker =
-            "player";
-
-        defender =
-            "cpu";
-
-        phase =
-            "player_attack";
-
-        roundLimit =
-            cpuHand.length;
-
-        renderAll();
-
-        showMessage(
-            "Твой ход"
-        );
-    }
-}
-
-
-/* =========================================================
-   CPU START ATTACK
-========================================================= */
-
-async function cpuStartAttack(){
-
-    if(
-        phase !==
-        "cpu_attack"
-    ){
-        return;
-    }
-
-    if(actionLocked){
-        return;
-    }
-
-    if(cpuHand.length === 0){
-
-        checkGameOver();
-
-        return;
-    }
-
-    /*
-        Если это новая атака,
-        на столе ещё нет карт.
-
-        CPU имеет право положить
-        любую карту.
-    */
-
-    const candidates =
-        cpuHand.slice();
-
-    candidates.sort(
-        (a,b)=>{
-
-            const at =
-                isTrump(a);
-
-            const bt =
-                isTrump(b);
-
-            if(at !== bt){
-                return at ? 1 : -1;
-            }
-
-            return a.value-b.value;
-        }
-    );
-
-    const card =
-        candidates[0];
-
-    await sleep(550);
-
-    removeFromHand(
-        cpuHand,
-        card.id
-    );
-
-    tableAttacks.push({
-        attack:card,
-        defense:null
-    });
-
-    renderAll();
-
-    showMessage(
-        "Компьютер атакует"
-    );
-
-    await sleep(450);
-
-    /*
-        Теперь игрок — защищающийся.
-    */
-
-    phase =
-        "player_defense";
-
-    renderAll();
-}
-
-
-/* =========================================================
-   ALLOWED CARDS
-========================================================= */
-
-function updateAllowedCards(){
-
-    const elements =
-        playerHandEl.querySelectorAll(
-            ".card"
-        );
-
-    elements.forEach(
-        el=>{
-
-            const card =
-                playerHand.find(
-                    c =>
-                        c.id ===
-                        el.dataset.id
-                );
-
-            if(!card){
-                return;
-            }
-
-            let allowed = false;
-
-            if(
-                phase ===
-                "player_attack"
-            ){
-
-                allowed =
-                    canAddCard(card);
-
-            }else if(
-                phase ===
-                "player_defense"
-            ){
-
-                const index =
-                    getFirstUnbeaten();
-
-                if(index !== -1){
-
-                    allowed =
-                        canBeat(
-                            tableAttacks[index].attack,
-                            card
-                        );
-                }
-            }
-
-            if(allowed){
-
-                el.classList.add(
-                    "allowed"
-                );
-
-                el.classList.remove(
-                    "not-allowed"
-                );
-
-            }else{
-
-                el.classList.remove(
-                    "allowed"
-                );
-
-                if(
-                    phase ===
-                    "player_attack" ||
-                    phase ===
-                    "player_defense"
-                ){
-
-                    el.classList.add(
-                        "not-allowed"
-                    );
-                }
-            }
-        }
-    );
-}
-
-
-/* =========================================================
+/* =========================================
    BUTTONS
-========================================================= */
+========================================= */
 
 function updateButtons(){
 
     /*
-        ВЗЯТЬ появляется
-        только защищающемуся игроку.
-    */
+     * ВЗЯТЬ
+     */
 
-    takeButton.style.display =
-        phase === "player_defense"
-            ? "block"
-            : "none";
+    if(
+        gameState.defender ===
+        myId
+    ){
+
+        takeButton.style.display =
+            "block";
+
+    }else{
+
+        takeButton.style.display =
+            "none";
+    }
+
 
     /*
-        БИТО появляется
-        только атакующему игроку
-        после полного отбоя.
-    */
+     * БИТО
+     */
 
-    beatButton.style.display =
-        (
-            phase === "player_attack" &&
-            allBeaten()
-        )
-            ? "block"
-            : "none";
+    const allBeaten =
+        gameState.table.length > 0 &&
+        gameState.table.every(
+            pair =>
+                pair.defense
+        );
+
+    if(
+        gameState.attacker ===
+        myId &&
+        allBeaten
+    ){
+
+        beatButton.style.display =
+            "block";
+
+    }else{
+
+        beatButton.style.display =
+            "none";
+    }
 }
 
 
-/* =========================================================
-   INFO
-========================================================= */
+/* =========================================
+   TAKE
+========================================= */
 
-function updateInfo(){
+takeButton.addEventListener(
+    "click",
+    () => {
 
-    document.getElementById(
-        "deckCount"
-    ).innerText =
-        deck.length;
+        socket.emit(
+            "take_cards"
+        );
 
-    document.getElementById(
-        "trumpInfo"
-    ).innerText =
-        trumpSuit || "—";
-
-    document.getElementById(
-        "playerCount"
-    ).innerText =
-        playerHand.length;
-
-    document.getElementById(
-        "opponentCount"
-    ).innerText =
-        cpuHand.length;
-}
+    }
+);
 
 
-/* =========================================================
+/* =========================================
+   BEAT
+========================================= */
+
+beatButton.addEventListener(
+    "click",
+    () => {
+
+        socket.emit(
+            "finish_round"
+        );
+
+    }
+);
+
+
+/* =========================================
    MESSAGE
-========================================================= */
+========================================= */
 
-let messageTimer = null;
+let messageTimer;
 
 function showMessage(text){
 
-    messageEl.innerText =
+    message.innerText =
         text;
 
-    messageEl.classList.add(
+    message.classList.add(
         "show"
     );
 
@@ -2625,362 +1963,57 @@ function showMessage(text){
 
     messageTimer =
         setTimeout(
-            ()=>{
-                messageEl.classList.remove(
+            () => {
+
+                message.classList.remove(
                     "show"
                 );
+
             },
-            1600
+            1800
         );
 }
 
 
-/* =========================================================
-   REMOVE FROM HAND
-========================================================= */
+/* =========================================
+   TELEGRAM NAME
+========================================= */
 
-function removeFromHand(
-    hand,
-    id
+if(
+    tg &&
+    tg.initDataUnsafe &&
+    tg.initDataUnsafe.user
 ){
 
-    const index =
-        hand.findIndex(
-            card =>
-                card.id === id
-        );
+    const user =
+        tg.initDataUnsafe.user;
 
-    if(index !== -1){
+    playerName =
+        user.first_name ||
+        user.username ||
+        "Игрок";
 
-        hand.splice(
-            index,
-            1
-        );
-    }
+    nameInput.value =
+        playerName;
 }
 
 
-/* =========================================================
-   ANIMATION
-========================================================= */
+/* =========================================
+   RESTART
+========================================= */
 
-function animateLastPlayerCard(){
-
-    const cards =
-        playerHandEl.querySelectorAll(
-            ".card"
-        );
-
-    const last =
-        cards[cards.length-1];
-
-    if(last){
-
-        last.classList.add(
-            "deal-player"
-        );
-    }
-}
-
-
-function animateLastOpponentCard(){
-
-    const cards =
-        opponentHandEl.querySelectorAll(
-            ".card"
-        );
-
-    const last =
-        cards[cards.length-1];
-
-    if(last){
-
-        last.classList.add(
-            "deal-opponent"
-        );
-    }
-}
-
-
-/* =========================================================
-   GAME OVER
-========================================================= */
-
-function checkGameOver(){
-
-    /*
-        Пока колода не закончилась,
-        игрок с 0 картами ещё не обязательно
-        победил — он может получить карты
-        при следующем доборе.
-    */
-
-    if(deck.length > 0){
-        return false;
-    }
-
-    if(
-        playerHand.length === 0 &&
-        cpuHand.length === 0
-    ){
-
-        endGame(
-            "Ничья"
-        );
-
-        return true;
-    }
-
-    if(
-        playerHand.length === 0
-    ){
-
-        endGame(
-            "Ты победил!"
-        );
-
-        return true;
-    }
-
-    if(
-        cpuHand.length === 0
-    ){
-
-        endGame(
-            "Компьютер победил"
-        );
-
-        return true;
-    }
-
-    return false;
-}
-
-
-function endGame(text){
-
-    phase =
-        "finished";
-
-    renderAll();
-
-    showMessage(
-        text
-    );
-
-    setTimeout(
-        ()=>{
-
-            if(tg){
-
-                tg.showAlert(
-                    text
-                );
-
-            }else{
-
-                alert(text);
-            }
-
-        },
-        500
-    );
-}
-
-
-/* =========================================================
-   DETERMINE FIRST ATTACKER
-========================================================= */
-
-function determineFirstAttacker(){
-
-    const playerTrumps =
-        playerHand
-            .filter(
-                c=>isTrump(c)
-            )
-            .sort(
-                (a,b)=>
-                    a.value-b.value
-            );
-
-    const cpuTrumps =
-        cpuHand
-            .filter(
-                c=>isTrump(c)
-            )
-            .sort(
-                (a,b)=>
-                    a.value-b.value
-            );
-
-    if(
-        playerTrumps.length &&
-        cpuTrumps.length
-    ){
-
-        return (
-            playerTrumps[0].value <=
-            cpuTrumps[0].value
-        )
-            ? "player"
-            : "cpu";
-    }
-
-    if(playerTrumps.length){
-        return "player";
-    }
-
-    if(cpuTrumps.length){
-        return "cpu";
-    }
-
-    const playerMin =
-        Math.min(
-            ...playerHand.map(
-                c=>c.value
-            )
-        );
-
-    const cpuMin =
-        Math.min(
-            ...cpuHand.map(
-                c=>c.value
-            )
-        );
-
-    return (
-        playerMin <= cpuMin
+document
+    .getElementById(
+        "restartButton"
     )
-        ? "player"
-        : "cpu";
-}
+    .addEventListener(
+        "click",
+        () => {
 
+            location.reload();
 
-/* =========================================================
-   START
-========================================================= */
-
-document.getElementById(
-    "startButton"
-).addEventListener(
-    "click",
-    async()=>{
-
-        if(gameStarted){
-            return;
         }
-
-        gameStarted = true;
-
-        document.getElementById(
-            "startScreen"
-        ).style.display =
-            "none";
-
-        if(
-            tg &&
-            tg.initDataUnsafe &&
-            tg.initDataUnsafe.user
-        ){
-
-            const user =
-                tg.initDataUnsafe.user;
-
-            playerName =
-                user.first_name ||
-                user.username ||
-                "Игрок";
-        }
-
-        document.getElementById(
-            "playerName"
-        ).innerText =
-            playerName;
-
-        /*
-            Новая уникальная колода.
-        */
-
-        deck =
-            createDeck();
-
-        /*
-            Последняя карта определяет
-            козырную масть.
-        */
-
-        setupTrump();
-
-        /*
-            Первые 6 карт каждому.
-        */
-
-        await dealInitial();
-
-        /*
-            Первый атакующий.
-        */
-
-        attacker =
-            determineFirstAttacker();
-
-        defender =
-            attacker === "player"
-                ? "cpu"
-                : "player";
-
-        /*
-            В начале раунда количество
-            атакующих карт не может
-            превышать количество карт
-            защищающегося.
-        */
-
-        roundLimit =
-            defender === "player"
-                ? playerHand.length
-                : cpuHand.length;
-
-        if(
-            attacker === "player"
-        ){
-
-            phase =
-                "player_attack";
-
-            showMessage(
-                "Твой ход"
-            );
-
-        }else{
-
-            phase =
-                "cpu_attack";
-
-            showMessage(
-                "Компьютер начинает"
-            );
-
-            renderAll();
-
-            await sleep(700);
-
-            await cpuStartAttack();
-        }
-
-        renderAll();
-    }
-);
-
-
-/* =========================================================
-   INITIAL RENDER
-========================================================= */
-
-renderAll();
-
-updateInfo();
+    );
 
 </script>
 
