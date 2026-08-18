@@ -1,0 +1,4169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+
+<title>Heavy Lux Card</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+}
+
+html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#050505;
+    color:#fff;
+    font-family:Arial,Helvetica,sans-serif;
+    touch-action:none;
+}
+
+body{
+    min-height:100vh;
+}
+
+#app{
+    position:relative;
+    width:100%;
+    height:100vh;
+    overflow:hidden;
+}
+
+/* =========================================================
+   TOP
+========================================================= */
+
+.topbar{
+    position:absolute;
+    top:env(safe-area-inset-top,8px);
+    left:0;
+    right:0;
+    height:52px;
+    padding:8px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    z-index:100;
+}
+
+.logo{
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:2px;
+}
+
+.info{
+    display:flex;
+    gap:6px;
+}
+
+.info-item{
+    padding:6px 9px;
+    border:1px solid #292929;
+    border-radius:9px;
+    background:#0b0b0b;
+    color:#999;
+    font-size:10px;
+}
+
+.info-item b{
+    color:#fff;
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.profile{
+    position:absolute;
+    top:58px;
+    left:14px;
+    z-index:150;
+
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    padding:6px 10px;
+
+    background:#090909;
+    border:1px solid #242424;
+    border-radius:10px;
+}
+
+.profile-avatar{
+    width:27px;
+    height:27px;
+
+    border-radius:50%;
+    border:1px solid #444;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    background:#151515;
+
+    font-size:11px;
+    font-weight:900;
+}
+
+.profile-info{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+}
+
+.profile-name{
+    font-size:10px;
+    font-weight:900;
+}
+
+.profile-meta{
+    color:#777;
+    font-size:8px;
+}
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table{
+    position:absolute;
+    left:50%;
+    top:50%;
+
+    width:min(96vw,700px);
+    height:min(76vh,650px);
+
+    transform:translate(-50%,-50%);
+}
+
+/* =========================================================
+   DECK
+========================================================= */
+
+.deck-area{
+    position:absolute;
+    left:11%;
+    top:50%;
+
+    width:125px;
+    height:130px;
+
+    transform:translate(-50%,-50%);
+
+    z-index:20;
+}
+
+.deck{
+    position:absolute;
+    left:0;
+    top:17px;
+
+    width:66px;
+    height:94px;
+
+    z-index:5;
+
+    transform:rotate(-5deg);
+}
+
+.deck-card{
+    position:absolute;
+    inset:0;
+
+    border-radius:8px;
+    border:2px solid #aaa;
+
+    background:
+        repeating-linear-gradient(
+            45deg,
+            #0b0b0b 0,
+            #0b0b0b 5px,
+            #242424 5px,
+            #242424 10px
+        );
+
+    box-shadow:0 5px 14px rgba(0,0,0,.65);
+}
+
+.deck-card::after{
+    content:"HL";
+
+    position:absolute;
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    width:38px;
+    height:38px;
+
+    border:1px solid #777;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:2px;
+
+    color:#ddd;
+}
+
+.deck-card:nth-child(1){
+    transform:translate(-6px,-5px);
+}
+
+.deck-card:nth-child(2){
+    transform:translate(-3px,-2px);
+}
+
+.deck-card:nth-child(3){
+    transform:translate(0,0);
+}
+
+/* =========================================================
+   TRUMP
+========================================================= */
+
+.trump{
+    position:absolute;
+
+    left:58px;
+    top:31px;
+
+    width:66px;
+    height:94px;
+
+    z-index:2;
+
+    transform:rotate(76deg);
+}
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.card{
+    position:absolute;
+
+    width:66px;
+    height:94px;
+
+    border-radius:8px;
+
+    background:#fff;
+    color:#080808;
+
+    border:1px solid #ccc;
+
+    box-shadow:0 7px 16px rgba(0,0,0,.55);
+
+    overflow:hidden;
+
+    font-weight:900;
+}
+
+.card.red{
+    color:#111;
+}
+
+.card.back{
+    background:
+        repeating-linear-gradient(
+            45deg,
+            #0b0b0b 0,
+            #0b0b0b 5px,
+            #242424 5px,
+            #242424 10px
+        );
+
+    border:2px solid #999;
+}
+
+.card.back::after{
+    content:"HL";
+
+    position:absolute;
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    width:38px;
+    height:38px;
+
+    border:1px solid #777;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:2px;
+
+    color:#ddd;
+}
+
+.card-value{
+    position:absolute;
+    top:5px;
+    left:6px;
+
+    font-size:15px;
+}
+
+.card-suit{
+    position:absolute;
+    top:23px;
+    left:7px;
+
+    font-size:14px;
+}
+
+.card-center{
+    position:absolute;
+    left:50%;
+    top:52%;
+
+    transform:translate(-50%,-50%);
+
+    font-size:30px;
+}
+
+.card-corner{
+    position:absolute;
+    right:5px;
+    bottom:4px;
+
+    transform:rotate(180deg);
+
+    font-size:11px;
+}
+
+/* =========================================================
+   OPPONENT
+========================================================= */
+
+.opponent{
+    position:absolute;
+
+    top:7vh;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    text-align:center;
+
+    z-index:50;
+}
+
+.avatar{
+    width:48px;
+    height:48px;
+
+    margin:auto;
+
+    border:1px solid #444;
+    border-radius:50%;
+
+    background:#111;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:20px;
+}
+
+.opponent-name{
+    margin-top:5px;
+
+    font-size:12px;
+    font-weight:900;
+}
+
+.opponent-count{
+    margin-top:3px;
+
+    color:#777;
+
+    font-size:10px;
+}
+
+/* =========================================================
+   OPPONENT HAND
+========================================================= */
+
+.opponent-hand{
+    position:absolute;
+
+    left:50%;
+    top:0;
+
+    width:260px;
+    height:105px;
+
+    transform:translateX(-50%);
+
+    z-index:35;
+}
+
+.opponent-hand .card{
+    width:58px;
+    height:84px;
+}
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+.player-info{
+    position:absolute;
+
+    bottom:7vh;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    text-align:center;
+
+    z-index:120;
+}
+
+.player-name{
+    font-size:12px;
+    font-weight:900;
+}
+
+.player-count{
+    margin-top:3px;
+
+    color:#777;
+
+    font-size:10px;
+}
+
+/* =========================================================
+   PLAYER HAND
+========================================================= */
+
+.hand{
+    position:absolute;
+
+    left:50%;
+    bottom:0;
+
+    width:100%;
+    height:145px;
+
+    transform:translateX(-50%);
+
+    z-index:200;
+
+    pointer-events:none;
+}
+
+.hand .card{
+    pointer-events:auto;
+
+    transform-origin:center bottom;
+
+    transition:
+        left .22s ease,
+        bottom .22s ease,
+        transform .22s ease,
+        box-shadow .2s ease;
+}
+
+.hand .card.allowed{
+    box-shadow:
+        0 0 0 2px #fff,
+        0 8px 20px rgba(255,255,255,.18);
+}
+
+.hand .card.not-allowed{
+    opacity:.38;
+}
+
+.hand .card.selected{
+    bottom:18px!important;
+
+    box-shadow:
+        0 0 0 2px #fff,
+        0 12px 25px rgba(255,255,255,.25);
+}
+
+/* =========================================================
+   TABLE CARDS
+========================================================= */
+
+.attack-zone,
+.defense-zone{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:340px;
+    height:250px;
+
+    transform:translate(-50%,-50%);
+
+    z-index:60;
+}
+
+.played-card{
+    position:absolute;
+
+    width:66px;
+    height:94px;
+
+    transition:
+        left .32s cubic-bezier(.2,.8,.2,1),
+        top .32s cubic-bezier(.2,.8,.2,1),
+        transform .32s ease,
+        opacity .25s ease;
+}
+
+/* =========================================================
+   CONTROLS
+========================================================= */
+
+.controls{
+    position:absolute;
+
+    left:50%;
+    bottom:17vh;
+
+    transform:translateX(-50%);
+
+    display:flex;
+    gap:7px;
+
+    z-index:400;
+}
+
+button{
+    border:1px solid #333;
+    border-radius:10px;
+
+    background:#0c0c0c;
+    color:#fff;
+
+    padding:10px 16px;
+
+    font-size:11px;
+    font-weight:900;
+}
+
+button.primary{
+    background:#fff;
+    color:#000;
+}
+
+button.danger{
+    background:#171717;
+}
+
+button:active{
+    transform:scale(.95);
+}
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+.message{
+    position:absolute;
+
+    left:50%;
+    top:15vh;
+
+    transform:translateX(-50%);
+
+    padding:8px 13px;
+
+    border:1px solid #292929;
+    border-radius:10px;
+
+    background:#090909;
+    color:#bbb;
+
+    font-size:10px;
+
+    z-index:500;
+
+    opacity:0;
+
+    transition:opacity .2s ease;
+}
+
+.message.show{
+    opacity:1;
+}
+
+/* =========================================================
+   START
+========================================================= */
+
+.start{
+    position:absolute;
+
+    inset:0;
+
+    background:#050505;
+
+    z-index:1000;
+
+    display:flex;
+
+    justify-content:center;
+    align-items:center;
+}
+
+.start-box{
+    width:82%;
+    max-width:340px;
+
+    text-align:center;
+}
+
+.start-title{
+    font-size:29px;
+
+    font-weight:900;
+
+    letter-spacing:5px;
+}
+
+.start-sub{
+    margin-top:8px;
+
+    color:#666;
+
+    font-size:10px;
+
+    letter-spacing:3px;
+}
+
+.start-button{
+    width:100%;
+
+    margin-top:30px;
+
+    padding:16px;
+
+    border:0;
+
+    background:#fff;
+    color:#000;
+
+    font-size:14px;
+}
+
+/* =========================================================
+   DRAG
+========================================================= */
+
+.dragging{
+    position:fixed!important;
+
+    z-index:9999!important;
+
+    transition:none!important;
+
+    pointer-events:none!important;
+
+    transform:
+        scale(1.08)
+        rotate(0deg)!important;
+
+    opacity:1!important;
+}
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes dealPlayer{
+
+    from{
+        opacity:0;
+
+        transform:
+            translateY(100px)
+            scale(.55);
+    }
+
+    to{
+        opacity:1;
+    }
+}
+
+@keyframes dealOpponent{
+
+    from{
+        opacity:0;
+
+        transform:
+            translateY(-100px)
+            scale(.55);
+    }
+
+    to{
+        opacity:1;
+    }
+}
+
+@keyframes playCard{
+
+    from{
+        opacity:0;
+
+        transform:
+            scale(.55)
+            rotate(-12deg);
+    }
+
+    to{
+        opacity:1;
+
+        transform:
+            scale(1)
+            rotate(0);
+    }
+}
+
+.deal-player{
+    animation:
+        dealPlayer .22s ease forwards;
+}
+
+.deal-opponent{
+    animation:
+        dealOpponent .22s ease forwards;
+}
+
+.play-animation{
+    animation:
+        playCard .28s ease forwards;
+}
+
+@media(max-width:390px){
+
+    .card{
+        width:59px;
+        height:84px;
+    }
+
+    .played-card{
+        width:59px;
+        height:84px;
+    }
+
+    .hand{
+        height:130px;
+    }
+
+    .attack-zone,
+    .defense-zone{
+        width:310px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <!-- =====================================================
+         TOP
+    ====================================================== -->
+
+    <div class="topbar">
+
+        <div class="logo">
+            HEAVY LUX CARD
+        </div>
+
+        <div class="info">
+
+            <div class="info-item">
+                HC <b id="balance">5 000</b>
+            </div>
+
+            <div class="info-item">
+                LVL <b id="level">1</b>
+            </div>
+
+            <div class="info-item">
+                КОЗЫРЬ <b id="trumpInfo">—</b>
+            </div>
+
+            <div class="info-item">
+                КОЛОДА <b id="deckCount">0</b>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         PROFILE
+    ====================================================== -->
+
+    <div class="profile">
+
+        <div
+            id="profileAvatar"
+            class="profile-avatar">
+            HL
+        </div>
+
+        <div class="profile-info">
+
+            <div
+                id="profileName"
+                class="profile-name">
+                Авторизация...
+            </div>
+
+            <div
+                id="profileMeta"
+                class="profile-meta">
+                Heavy Lux Card
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         MESSAGE
+    ====================================================== -->
+
+    <div
+        id="message"
+        class="message">
+    </div>
+
+
+    <!-- =====================================================
+         OPPONENT
+    ====================================================== -->
+
+    <div class="opponent">
+
+        <div class="avatar">
+            AI
+        </div>
+
+        <div class="opponent-name">
+            Heavy AI
+        </div>
+
+        <div class="opponent-count">
+            Карт:
+            <b id="opponentCount">
+                0
+            </b>
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         OPPONENT HAND
+    ====================================================== -->
+
+    <div
+        id="opponentHand"
+        class="opponent-hand">
+    </div>
+
+
+    <!-- =====================================================
+         TABLE
+    ====================================================== -->
+
+    <div class="table">
+
+        <div class="deck-area">
+
+            <div
+                id="deck"
+                class="deck">
+
+                <div class="deck-card"></div>
+                <div class="deck-card"></div>
+                <div class="deck-card"></div>
+
+            </div>
+
+            <div
+                id="trumpCard"
+                class="card trump">
+            </div>
+
+        </div>
+
+
+        <div
+            id="attackZone"
+            class="attack-zone">
+        </div>
+
+
+        <div
+            id="defenseZone"
+            class="defense-zone">
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         PLAYER HAND
+    ====================================================== -->
+
+    <div
+        id="playerHand"
+        class="hand">
+    </div>
+
+
+    <!-- =====================================================
+         PLAYER INFO
+    ====================================================== -->
+
+    <div class="player-info">
+
+        <div
+            id="playerName"
+            class="player-name">
+            Игрок
+        </div>
+
+        <div class="player-count">
+
+            Карт:
+            <b id="playerCount">
+                0
+            </b>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         CONTROLS
+    ====================================================== -->
+
+    <div class="controls">
+
+        <button
+            id="takeButton"
+            class="danger"
+            style="display:none">
+
+            ВЗЯТЬ
+
+        </button>
+
+
+        <button
+            id="beatButton"
+            class="primary"
+            style="display:none">
+
+            БИТО
+
+        </button>
+
+    </div>
+
+
+    <!-- =====================================================
+         START
+    ====================================================== -->
+
+    <div
+        id="startScreen"
+        class="start">
+
+        <div class="start-box">
+
+            <div class="start-title">
+                HEAVY LUX
+            </div>
+
+            <div class="start-sub">
+                CLASSIC DURAK
+            </div>
+
+            <button
+                id="startButton"
+                class="start-button">
+
+                НАЧАТЬ ИГРУ
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const BACKEND_URL =
+    "https://heavy-lux-card.onrender.com";
+
+
+/* =========================================================
+   TELEGRAM
+========================================================= */
+
+const tg =
+    window.Telegram
+        ? window.Telegram.WebApp
+        : null;
+
+if(tg){
+
+    tg.ready();
+
+    tg.expand();
+
+}
+
+
+/* =========================================================
+   SOCKET.IO
+========================================================= */
+
+let socket = null;
+
+try{
+
+    socket =
+        io(
+            BACKEND_URL,
+            {
+                transports:[
+                    "websocket",
+                    "polling"
+                ],
+
+                reconnection:true,
+
+                reconnectionAttempts:10,
+
+                timeout:10000
+            }
+        );
+
+
+    socket.on(
+        "connect",
+        ()=>{
+
+            console.log(
+                "HEAVY LUX SOCKET CONNECTED:",
+                socket.id
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "disconnect",
+        ()=>{
+
+            console.log(
+                "HEAVY LUX SOCKET DISCONNECTED"
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "connect_error",
+        error=>{
+
+            console.error(
+                "SOCKET ERROR:",
+                error
+            );
+
+        }
+    );
+
+}catch(error){
+
+    console.error(
+        "Socket initialization error:",
+        error
+    );
+
+}
+
+
+/* =========================================================
+   PLAYER PROFILE
+========================================================= */
+
+let currentPlayer = null;
+
+
+function formatNumber(number){
+
+    return Number(number || 0)
+        .toLocaleString("ru-RU");
+
+}
+
+
+function updateProfile(player){
+
+    if(!player){
+        return;
+    }
+
+    currentPlayer =
+        player;
+
+
+    const balance =
+        Number(
+            player.balance || 0
+        );
+
+
+    document.getElementById(
+        "balance"
+    ).innerText =
+        formatNumber(balance);
+
+
+    document.getElementById(
+        "level"
+    ).innerText =
+        player.level || 1;
+
+
+    const name =
+        player.first_name ||
+        player.username ||
+        "Игрок";
+
+
+    document.getElementById(
+        "profileName"
+    ).innerText =
+        name;
+
+
+    document.getElementById(
+        "playerName"
+    ).innerText =
+        name;
+
+
+    const title =
+        player.title ||
+        "Новичок";
+
+
+    document.getElementById(
+        "profileMeta"
+    ).innerText =
+        `LVL ${player.level || 1} • ${title}`;
+
+
+    const avatar =
+        document.getElementById(
+            "profileAvatar"
+        );
+
+
+    avatar.innerText =
+        name
+            .substring(0,2)
+            .toUpperCase();
+
+}
+
+
+/* =========================================================
+   TELEGRAM AUTH
+========================================================= */
+
+async function authenticateTelegram(){
+
+    /*
+        Если игра открыта не внутри Telegram,
+        оставляем локальный режим.
+    */
+
+    if(!tg){
+
+        console.warn(
+            "Telegram WebApp unavailable"
+        );
+
+        updateProfile({
+
+            first_name:"Игрок",
+
+            balance:5000,
+
+            level:1,
+
+            title:null
+
+        });
+
+        return;
+
+    }
+
+
+    const initData =
+        tg.initData;
+
+
+    if(!initData){
+
+        console.warn(
+            "Telegram initData is empty"
+        );
+
+
+        showMessage(
+            "Открой игру через Telegram"
+        );
+
+
+        updateProfile({
+
+            first_name:"Игрок",
+
+            balance:5000,
+
+            level:1,
+
+            title:null
+
+        });
+
+
+        return;
+
+    }
+
+
+    try{
+
+        showMessage(
+            "Авторизация..."
+        );
+
+
+        const response =
+            await fetch(
+                `${BACKEND_URL}/api/auth`,
+                {
+
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:JSON.stringify({
+                        initData
+                    })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if(!response.ok){
+
+            throw new Error(
+                data.error ||
+                "Authentication failed"
+            );
+
+        }
+
+
+        if(
+            data.success &&
+            data.player
+        ){
+
+            updateProfile(
+                data.player
+            );
+
+
+            console.log(
+                "Telegram authorization successful:",
+                data.player
+            );
+
+
+            if(socket){
+
+                socket.emit(
+                    "authenticate",
+                    {
+                        telegram_id:
+                            data.player.telegram_id
+                    }
+                );
+
+            }
+
+        }
+
+
+    }catch(error){
+
+        console.error(
+            "AUTH ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Ошибка авторизации"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SOCKET AUTH
+========================================================= */
+
+if(socket){
+
+    socket.on(
+        "authenticated",
+        data=>{
+
+            console.log(
+                "Socket authenticated:",
+                data
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "server_error",
+        data=>{
+
+            console.error(
+                "Server error:",
+                data
+            );
+
+            showMessage(
+                data.message ||
+                "Ошибка сервера"
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CARD DATA
+========================================================= */
+
+const SUITS = [
+
+    "♠",
+    "♥",
+    "♦",
+    "♣"
+
+];
+
+
+const RANKS = [
+
+    {
+        name:"6",
+        value:6
+    },
+
+    {
+        name:"7",
+        value:7
+    },
+
+    {
+        name:"8",
+        value:8
+    },
+
+    {
+        name:"9",
+        value:9
+    },
+
+    {
+        name:"10",
+        value:10
+    },
+
+    {
+        name:"В",
+        value:11
+    },
+
+    {
+        name:"Д",
+        value:12
+    },
+
+    {
+        name:"К",
+        value:13
+    },
+
+    {
+        name:"Т",
+        value:14
+    }
+
+];
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let deck = [];
+
+let playerHand = [];
+
+let cpuHand = [];
+
+let tableAttacks = [];
+
+let trumpSuit = null;
+
+let attacker = null;
+
+let defender = null;
+
+let phase = "waiting";
+
+let roundLimit = 0;
+
+let selectedCardId = null;
+
+let dragState = null;
+
+let gameStarted = false;
+
+let playerName = "Игрок";
+
+let actionLocked = false;
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const playerHandEl =
+    document.getElementById(
+        "playerHand"
+    );
+
+
+const opponentHandEl =
+    document.getElementById(
+        "opponentHand"
+    );
+
+
+const attackZone =
+    document.getElementById(
+        "attackZone"
+    );
+
+
+const defenseZone =
+    document.getElementById(
+        "defenseZone"
+    );
+
+
+const trumpCardEl =
+    document.getElementById(
+        "trumpCard"
+    );
+
+
+const messageEl =
+    document.getElementById(
+        "message"
+    );
+
+
+const takeButton =
+    document.getElementById(
+        "takeButton"
+    );
+
+
+const beatButton =
+    document.getElementById(
+        "beatButton"
+    );
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function sleep(ms){
+
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                ms
+            )
+    );
+
+}
+
+
+function shuffle(array){
+
+    for(
+        let i=array.length-1;
+        i>0;
+        i--
+    ){
+
+        const j =
+            Math.floor(
+                Math.random() *
+                (i+1)
+            );
+
+
+        [
+            array[i],
+            array[j]
+        ] =
+        [
+            array[j],
+            array[i]
+        ];
+
+    }
+
+
+    return array;
+
+}
+
+
+/* =========================================================
+   CREATE DECK
+========================================================= */
+
+function createDeck(){
+
+    const result = [];
+
+    let id = 0;
+
+
+    for(
+        const suit of SUITS
+    ){
+
+        for(
+            const rank of RANKS
+        ){
+
+            result.push({
+
+                id:
+                    `card_${id++}`,
+
+                suit,
+
+                rank:
+                    rank.name,
+
+                value:
+                    rank.value
+
+            });
+
+        }
+
+    }
+
+
+    return shuffle(
+        result
+    );
+
+}
+
+
+/* =========================================================
+   CARD RULES
+========================================================= */
+
+function isTrump(card){
+
+    return (
+        card &&
+        card.suit === trumpSuit
+    );
+
+}
+
+
+function isRed(card){
+
+    return (
+        card.suit === "♥" ||
+        card.suit === "♦"
+    );
+
+}
+
+
+function canBeat(
+    attack,
+    defense
+){
+
+    if(
+        !attack ||
+        !defense
+    ){
+
+        return false;
+
+    }
+
+
+    if(
+        isTrump(defense) &&
+        !isTrump(attack)
+    ){
+
+        return true;
+
+    }
+
+
+    if(
+        !isTrump(defense) &&
+        isTrump(attack)
+    ){
+
+        return false;
+
+    }
+
+
+    return (
+
+        attack.suit ===
+        defense.suit &&
+
+        defense.value >
+        attack.value
+
+    );
+
+}
+
+
+/* =========================================================
+   TABLE RANKS
+========================================================= */
+
+function getTableRanks(){
+
+    const result = [];
+
+
+    for(
+        const pair of tableAttacks
+    ){
+
+        result.push(
+            pair.attack.rank
+        );
+
+
+        if(pair.defense){
+
+            result.push(
+                pair.defense.rank
+            );
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================================================
+   CAN ADD
+========================================================= */
+
+function canAddCard(card){
+
+    if(!card){
+
+        return false;
+
+    }
+
+
+    if(
+        tableAttacks.length >=
+        roundLimit
+    ){
+
+        return false;
+
+    }
+
+
+    if(
+        tableAttacks.length === 0
+    ){
+
+        return true;
+
+    }
+
+
+    return getTableRanks()
+        .includes(
+            card.rank
+        );
+
+}
+
+
+/* =========================================================
+   UNBEATEN
+========================================================= */
+
+function getFirstUnbeaten(){
+
+    for(
+        let i=0;
+        i<tableAttacks.length;
+        i++
+    ){
+
+        if(
+            !tableAttacks[i].defense
+        ){
+
+            return i;
+
+        }
+
+    }
+
+
+    return -1;
+
+}
+
+
+function allBeaten(){
+
+    return (
+
+        tableAttacks.length > 0 &&
+
+        getFirstUnbeaten() === -1
+
+    );
+
+}
+
+
+/* =========================================================
+   CARD ELEMENT
+========================================================= */
+
+function createCardElement(card){
+
+    const el =
+        document.createElement(
+            "div"
+        );
+
+
+    el.className =
+        "card" +
+        (
+            isRed(card)
+                ? " red"
+                : ""
+        );
+
+
+    el.dataset.id =
+        card.id;
+
+
+    el.innerHTML = `
+
+        <div class="card-value">
+            ${card.rank}
+        </div>
+
+        <div class="card-suit">
+            ${card.suit}
+        </div>
+
+        <div class="card-center">
+            ${card.suit}
+        </div>
+
+        <div class="card-corner">
+            ${card.rank}${card.suit}
+        </div>
+
+    `;
+
+
+    return el;
+
+}
+
+
+function createBackCard(){
+
+    const el =
+        document.createElement(
+            "div"
+        );
+
+
+    el.className =
+        "card back";
+
+
+    return el;
+
+}
+
+
+/* =========================================================
+   TRUMP
+========================================================= */
+
+function setupTrump(){
+
+    const trump =
+        deck[deck.length-1];
+
+
+    if(!trump){
+
+        return;
+
+    }
+
+
+    trumpSuit =
+        trump.suit;
+
+
+    trumpCardEl.className =
+        "card trump" +
+        (
+            isRed(trump)
+                ? " red"
+                : ""
+        );
+
+
+    trumpCardEl.innerHTML = `
+
+        <div class="card-value">
+            ${trump.rank}
+        </div>
+
+        <div class="card-suit">
+            ${trump.suit}
+        </div>
+
+        <div class="card-center">
+            ${trump.suit}
+        </div>
+
+        <div class="card-corner">
+            ${trump.rank}${trump.suit}
+        </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   INITIAL DEAL
+========================================================= */
+
+async function dealInitial(){
+
+    playerHand = [];
+
+    cpuHand = [];
+
+
+    renderAll();
+
+
+    for(
+        let i=0;
+        i<6;
+        i++
+    ){
+
+        if(
+            deck.length <= 1
+        ){
+
+            break;
+
+        }
+
+
+        playerHand.push(
+            deck.shift()
+        );
+
+
+        renderAll();
+
+        animateLastPlayerCard();
+
+
+        await sleep(120);
+
+
+        if(
+            deck.length <= 1
+        ){
+
+            break;
+
+        }
+
+
+        cpuHand.push(
+            deck.shift()
+        );
+
+
+        renderAll();
+
+        animateLastOpponentCard();
+
+
+        await sleep(120);
+
+    }
+
+
+    renderAll();
+
+}
+
+
+/* =========================================================
+   REFILL
+========================================================= */
+
+async function refillHands(){
+
+    const attackerHand =
+        attacker === "player"
+            ? playerHand
+            : cpuHand;
+
+
+    const defenderHand =
+        defender === "player"
+            ? playerHand
+            : cpuHand;
+
+
+    while(
+        attackerHand.length < 6 &&
+        deck.length > 0
+    ){
+
+        attackerHand.push(
+            deck.shift()
+        );
+
+
+        renderAll();
+
+
+        await sleep(100);
+
+    }
+
+
+    while(
+        defenderHand.length < 6 &&
+        deck.length > 0
+    ){
+
+        defenderHand.push(
+            deck.shift()
+        );
+
+
+        renderAll();
+
+
+        await sleep(100);
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER
+========================================================= */
+
+function renderAll(){
+
+    renderPlayerHand();
+
+    renderOpponentHand();
+
+    renderTable();
+
+    updateInfo();
+
+    updateAllowedCards();
+
+    updateButtons();
+
+}
+
+
+/* =========================================================
+   PLAYER HAND
+========================================================= */
+
+function renderPlayerHand(){
+
+    playerHandEl.innerHTML = "";
+
+
+    const count =
+        playerHand.length;
+
+
+    playerHand.forEach(
+        (card,index)=>{
+
+            const el =
+                createCardElement(
+                    card
+                );
+
+
+            const spread =
+                Math.min(
+                    52,
+                    300 /
+                    Math.max(
+                        count,
+                        1
+                    )
+                );
+
+
+            const offset =
+                (
+                    index -
+                    (count-1)/2
+                ) * spread;
+
+
+            el.style.left =
+                `calc(50% + ${offset}px - 33px)`;
+
+
+            el.style.bottom =
+                "2px";
+
+
+            const rotation =
+                (
+                    index -
+                    (count-1)/2
+                ) * 3;
+
+
+            el.style.transform =
+                `rotate(${rotation}deg)`;
+
+
+            if(
+                selectedCardId ===
+                card.id
+            ){
+
+                el.classList.add(
+                    "selected"
+                );
+
+            }
+
+
+            addCardInteraction(
+                el,
+                card
+            );
+
+
+            playerHandEl.appendChild(
+                el
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   OPPONENT HAND
+========================================================= */
+
+function renderOpponentHand(){
+
+    opponentHandEl.innerHTML = "";
+
+
+    const count =
+        cpuHand.length;
+
+
+    cpuHand.forEach(
+        (card,index)=>{
+
+            const el =
+                createBackCard();
+
+
+            const offset =
+                (
+                    index -
+                    (count-1)/2
+                ) * 30;
+
+
+            el.style.left =
+                `calc(50% + ${offset}px - 29px)`;
+
+
+            el.style.top =
+                `${Math.abs(
+                    index -
+                    (count-1)/2
+                ) * .8}px`;
+
+
+            el.style.transform =
+                `rotate(${
+                    (
+                        index -
+                        (count-1)/2
+                    ) * 3
+                }deg)`;
+
+
+            opponentHandEl.appendChild(
+                el
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+function renderTable(){
+
+    attackZone.innerHTML = "";
+
+    defenseZone.innerHTML = "";
+
+
+    tableAttacks.forEach(
+        (pair,index)=>{
+
+            const attack =
+                createCardElement(
+                    pair.attack
+                );
+
+
+            attack.classList.add(
+                "played-card"
+            );
+
+
+            const pos =
+                getAttackPosition(
+                    index
+                );
+
+
+            attack.style.left =
+                `${pos.x}px`;
+
+
+            attack.style.top =
+                `${pos.y}px`;
+
+
+            attackZone.appendChild(
+                attack
+            );
+
+
+            if(pair.defense){
+
+                const defense =
+                    createCardElement(
+                        pair.defense
+                    );
+
+
+                defense.classList.add(
+                    "played-card"
+                );
+
+
+                const dpos =
+                    getDefensePosition(
+                        index
+                    );
+
+
+                defense.style.left =
+                    `${dpos.x}px`;
+
+
+                defense.style.top =
+                    `${dpos.y}px`;
+
+
+                defenseZone.appendChild(
+                    defense
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+function getAttackPosition(index){
+
+    return {
+
+        x:
+            15+
+            (index%4)*80,
+
+        y:
+            25+
+            Math.floor(
+                index/4
+            )*105
+
+    };
+
+}
+
+
+function getDefensePosition(index){
+
+    return {
+
+        x:
+            34+
+            (index%4)*80,
+
+        y:
+            5+
+            Math.floor(
+                index/4
+            )*105
+
+    };
+
+}
+
+
+/* =========================================================
+   CARD INTERACTION
+========================================================= */
+
+function addCardInteraction(
+    el,
+    card
+){
+
+    let moved = false;
+
+    let startX = 0;
+
+    let startY = 0;
+
+
+    el.addEventListener(
+        "pointerdown",
+        event=>{
+
+            if(
+                phase !==
+                    "player_attack" &&
+
+                phase !==
+                    "player_defense"
+            ){
+
+                return;
+
+            }
+
+
+            startX =
+                event.clientX;
+
+
+            startY =
+                event.clientY;
+
+
+            moved = false;
+
+
+            selectedCardId =
+                card.id;
+
+
+            renderPlayerHand();
+
+
+            const fresh =
+                playerHandEl.querySelector(
+                    `[data-id="${card.id}"]`
+                );
+
+
+            if(!fresh){
+
+                return;
+
+            }
+
+
+            fresh.setPointerCapture(
+                event.pointerId
+            );
+
+
+            const rect =
+                fresh.getBoundingClientRect();
+
+
+            dragState = {
+
+                card,
+
+                element:fresh,
+
+                offsetX:
+                    event.clientX -
+                    rect.left,
+
+                offsetY:
+                    event.clientY -
+                    rect.top
+
+            };
+
+
+            fresh.classList.add(
+                "dragging"
+            );
+
+        }
+    );
+
+
+    el.addEventListener(
+        "pointermove",
+        event=>{
+
+            if(
+                !dragState ||
+                dragState.card.id !==
+                card.id
+            ){
+
+                return;
+
+            }
+
+
+            const dx =
+                event.clientX -
+                startX;
+
+
+            const dy =
+                event.clientY -
+                startY;
+
+
+            if(
+                Math.abs(dx)>6 ||
+                Math.abs(dy)>6
+            ){
+
+                moved = true;
+
+            }
+
+
+            dragState.element.style.left =
+                `${
+                    event.clientX -
+                    dragState.offsetX
+                }px`;
+
+
+            dragState.element.style.top =
+                `${
+                    event.clientY -
+                    dragState.offsetY
+                }px`;
+
+
+            dragState.element.style.bottom =
+                "auto";
+
+        }
+    );
+
+
+    el.addEventListener(
+        "pointerup",
+        async event=>{
+
+            if(
+                !dragState ||
+                dragState.card.id !==
+                card.id
+            ){
+
+                return;
+
+            }
+
+
+            const state =
+                dragState;
+
+
+            dragState = null;
+
+
+            state.element.classList.remove(
+                "dragging"
+            );
+
+
+            const table =
+                document
+                    .querySelector(
+                        ".table"
+                    )
+                    .getBoundingClientRect();
+
+
+            const inside =
+                event.clientX >= table.left &&
+                event.clientX <= table.right &&
+                event.clientY >= table.top &&
+                event.clientY <= table.bottom;
+
+
+            if(!moved){
+
+                selectedCardId =
+                    selectedCardId ===
+                    card.id
+                        ? null
+                        : card.id;
+
+
+                renderAll();
+
+
+                return;
+
+            }
+
+
+            if(!inside){
+
+                selectedCardId =
+                    null;
+
+
+                renderAll();
+
+
+                return;
+
+            }
+
+
+            selectedCardId =
+                null;
+
+
+            await playPlayerCard(
+                card
+            );
+
+        }
+    );
+
+
+    el.addEventListener(
+        "pointercancel",
+        ()=>{
+
+            dragState = null;
+
+            selectedCardId = null;
+
+            renderAll();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   PLAY PLAYER CARD
+========================================================= */
+
+async function playPlayerCard(
+    card
+){
+
+    if(actionLocked){
+
+        return;
+
+    }
+
+
+    if(
+        phase !==
+            "player_attack" &&
+
+        phase !==
+            "player_defense"
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        !playerHand.some(
+            c=>c.id===card.id
+        )
+    ){
+
+        return;
+
+    }
+
+
+    /* PLAYER ATTACK */
+
+    if(
+        phase ===
+        "player_attack"
+    ){
+
+        if(
+            !canAddCard(card)
+        ){
+
+            showMessage(
+                tableAttacks.length
+                    ? "Такую карту нельзя подкинуть"
+                    : "Эта карта недоступна"
+            );
+
+
+            renderAll();
+
+
+            return;
+
+        }
+
+
+        removeFromHand(
+            playerHand,
+            card.id
+        );
+
+
+        tableAttacks.push({
+
+            attack:card,
+
+            defense:null
+
+        });
+
+
+        renderAll();
+
+
+        showMessage(
+            "Ты походил"
+        );
+
+
+        await sleep(450);
+
+
+        phase =
+            "cpu_defense";
+
+
+        renderAll();
+
+
+        await cpuDefense();
+
+
+        return;
+
+    }
+
+
+    /* PLAYER DEFENSE */
+
+    if(
+        phase ===
+        "player_defense"
+    ){
+
+        const index =
+            getFirstUnbeaten();
+
+
+        if(index === -1){
+
+            return;
+
+        }
+
+
+        const target =
+            tableAttacks[index].attack;
+
+
+        if(
+            !canBeat(
+                target,
+                card
+            )
+        ){
+
+            showMessage(
+                "Этой картой побить нельзя"
+            );
+
+
+            renderAll();
+
+
+            return;
+
+        }
+
+
+        removeFromHand(
+            playerHand,
+            card.id
+        );
+
+
+        tableAttacks[index].defense =
+            card;
+
+
+        renderAll();
+
+
+        showMessage(
+            "Ты отбился"
+        );
+
+
+        await sleep(450);
+
+
+        if(allBeaten()){
+
+            phase =
+                "cpu_attack";
+
+
+            renderAll();
+
+
+            await cpuContinueAttack();
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   CPU DEFENSE
+========================================================= */
+
+async function cpuDefense(){
+
+    if(
+        phase !==
+        "cpu_defense"
+    ){
+
+        return;
+
+    }
+
+
+    if(actionLocked){
+
+        return;
+
+    }
+
+
+    const index =
+        getFirstUnbeaten();
+
+
+    if(index === -1){
+
+        phase =
+            "player_attack";
+
+
+        renderAll();
+
+
+        return;
+
+    }
+
+
+    const target =
+        tableAttacks[index].attack;
+
+
+    const available =
+        cpuHand.filter(
+            card =>
+                canBeat(
+                    target,
+                    card
+                )
+        );
+
+
+    if(
+        available.length === 0
+    ){
+
+        await cpuTakeCards();
+
+        return;
+
+    }
+
+
+    available.sort(
+        (a,b)=>{
+
+            const at =
+                isTrump(a);
+
+
+            const bt =
+                isTrump(b);
+
+
+            if(at !== bt){
+
+                return at
+                    ? 1
+                    : -1;
+
+            }
+
+
+            return a.value -
+                   b.value;
+
+        }
+    );
+
+
+    const card =
+        available[0];
+
+
+    await sleep(500);
+
+
+    removeFromHand(
+        cpuHand,
+        card.id
+    );
+
+
+    tableAttacks[index].defense =
+        card;
+
+
+    renderAll();
+
+
+    showMessage(
+        "Компьютер отбился"
+    );
+
+
+    await sleep(500);
+
+
+    if(allBeaten()){
+
+        phase =
+            "player_attack";
+
+
+        renderAll();
+
+
+        showMessage(
+            "Твой ход — подкинь или БИТО"
+        );
+
+    }else{
+
+        await cpuDefense();
+
+    }
+
+}
+
+
+/* =========================================================
+   CPU CONTINUE ATTACK
+========================================================= */
+
+async function cpuContinueAttack(){
+
+    if(
+        phase !==
+        "cpu_attack"
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        !allBeaten()
+    ){
+
+        phase =
+            "player_defense";
+
+
+        renderAll();
+
+
+        return;
+
+    }
+
+
+    const candidates =
+        cpuHand.filter(
+            card =>
+                canAddCard(card)
+        );
+
+
+    if(
+        candidates.length === 0
+    ){
+
+        await finishSuccessfulRound();
+
+        return;
+
+    }
+
+
+    candidates.sort(
+        (a,b)=>{
+
+            const at =
+                isTrump(a);
+
+
+            const bt =
+                isTrump(b);
+
+
+            if(at !== bt){
+
+                return at
+                    ? 1
+                    : -1;
+
+            }
+
+
+            return a.value -
+                   b.value;
+
+        }
+    );
+
+
+    const card =
+        candidates[0];
+
+
+    await sleep(600);
+
+
+    removeFromHand(
+        cpuHand,
+        card.id
+    );
+
+
+    tableAttacks.push({
+
+        attack:card,
+
+        defense:null
+
+    });
+
+
+    renderAll();
+
+
+    showMessage(
+        "Компьютер подкинул"
+    );
+
+
+    await sleep(450);
+
+
+    phase =
+        "player_defense";
+
+
+    renderAll();
+
+}
+
+
+/* =========================================================
+   CPU TAKE
+========================================================= */
+
+async function cpuTakeCards(){
+
+    actionLocked = true;
+
+
+    showMessage(
+        "Компьютер забирает карты"
+    );
+
+
+    await sleep(600);
+
+
+    for(
+        const pair of tableAttacks
+    ){
+
+        cpuHand.push(
+            pair.attack
+        );
+
+
+        if(pair.defense){
+
+            cpuHand.push(
+                pair.defense
+            );
+
+        }
+
+    }
+
+
+    tableAttacks = [];
+
+
+    actionLocked = false;
+
+
+    renderAll();
+
+
+    await sleep(350);
+
+
+    await refillHands();
+
+
+    if(
+        checkGameOver()
+    ){
+
+        return;
+
+    }
+
+
+    attacker =
+        "player";
+
+
+    defender =
+        "cpu";
+
+
+    phase =
+        "player_attack";
+
+
+    roundLimit =
+        cpuHand.length;
+
+
+    renderAll();
+
+
+    showMessage(
+        "Твой ход продолжается"
+    );
+
+}
+
+
+/* =========================================================
+   PLAYER TAKE
+========================================================= */
+
+takeButton.addEventListener(
+    "click",
+    async()=>{
+
+        if(
+            phase !==
+            "player_defense"
+        ){
+
+            return;
+
+        }
+
+
+        await playerTakeCards();
+
+    }
+);
+
+
+async function playerTakeCards(){
+
+    if(
+        actionLocked ||
+        phase !==
+        "player_defense"
+    ){
+
+        return;
+
+    }
+
+
+    actionLocked = true;
+
+
+    showMessage(
+        "Ты забираешь карты"
+    );
+
+
+    await sleep(350);
+
+
+    for(
+        const pair of tableAttacks
+    ){
+
+        playerHand.push(
+            pair.attack
+        );
+
+
+        if(pair.defense){
+
+            playerHand.push(
+                pair.defense
+            );
+
+        }
+
+    }
+
+
+    tableAttacks = [];
+
+
+    actionLocked = false;
+
+
+    renderAll();
+
+
+    await sleep(350);
+
+
+    await refillHands();
+
+
+    if(
+        checkGameOver()
+    ){
+
+        return;
+
+    }
+
+
+    attacker =
+        "cpu";
+
+
+    defender =
+        "player";
+
+
+    phase =
+        "cpu_attack";
+
+
+    roundLimit =
+        playerHand.length;
+
+
+    renderAll();
+
+
+    await sleep(500);
+
+
+    await cpuStartAttack();
+
+}
+
+
+/* =========================================================
+   PLAYER FINISH
+========================================================= */
+
+beatButton.addEventListener(
+    "click",
+    async()=>{
+
+        if(
+            phase !==
+            "player_attack"
+        ){
+
+            return;
+
+        }
+
+
+        if(
+            !allBeaten()
+        ){
+
+            showMessage(
+                "Сначала нужно отбить все карты"
+            );
+
+
+            return;
+
+        }
+
+
+        await finishSuccessfulRound();
+
+    }
+);
+
+
+/* =========================================================
+   SUCCESSFUL ROUND
+========================================================= */
+
+async function finishSuccessfulRound(){
+
+    if(actionLocked){
+
+        return;
+
+    }
+
+
+    if(!allBeaten()){
+
+        return;
+
+    }
+
+
+    actionLocked = true;
+
+
+    showMessage(
+        "Бито"
+    );
+
+
+    await sleep(650);
+
+
+    tableAttacks = [];
+
+
+    renderAll();
+
+
+    await sleep(250);
+
+
+    await refillHands();
+
+
+    actionLocked = false;
+
+
+    if(
+        checkGameOver()
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        attacker === "player"
+    ){
+
+        attacker =
+            "cpu";
+
+
+        defender =
+            "player";
+
+
+        phase =
+            "cpu_attack";
+
+
+        roundLimit =
+            playerHand.length;
+
+
+        renderAll();
+
+
+        await sleep(500);
+
+
+        await cpuStartAttack();
+
+    }else{
+
+        attacker =
+            "player";
+
+
+        defender =
+            "cpu";
+
+
+        phase =
+            "player_attack";
+
+
+        roundLimit =
+            cpuHand.length;
+
+
+        renderAll();
+
+
+        showMessage(
+            "Твой ход"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CPU START ATTACK
+========================================================= */
+
+async function cpuStartAttack(){
+
+    if(
+        phase !==
+        "cpu_attack"
+    ){
+
+        return;
+
+    }
+
+
+    if(actionLocked){
+
+        return;
+
+    }
+
+
+    if(cpuHand.length === 0){
+
+        checkGameOver();
+
+        return;
+
+    }
+
+
+    const candidates =
+        cpuHand.slice();
+
+
+    candidates.sort(
+        (a,b)=>{
+
+            const at =
+                isTrump(a);
+
+
+            const bt =
+                isTrump(b);
+
+
+            if(at !== bt){
+
+                return at
+                    ? 1
+                    : -1;
+
+            }
+
+
+            return a.value -
+                   b.value;
+
+        }
+    );
+
+
+    const card =
+        candidates[0];
+
+
+    await sleep(550);
+
+
+    removeFromHand(
+        cpuHand,
+        card.id
+    );
+
+
+    tableAttacks.push({
+
+        attack:card,
+
+        defense:null
+
+    });
+
+
+    renderAll();
+
+
+    showMessage(
+        "Компьютер атакует"
+    );
+
+
+    await sleep(450);
+
+
+    phase =
+        "player_defense";
+
+
+    renderAll();
+
+}
+
+
+/* =========================================================
+   ALLOWED
+========================================================= */
+
+function updateAllowedCards(){
+
+    const elements =
+        playerHandEl.querySelectorAll(
+            ".card"
+        );
+
+
+    elements.forEach(
+        el=>{
+
+            const card =
+                playerHand.find(
+                    c =>
+                        c.id ===
+                        el.dataset.id
+                );
+
+
+            if(!card){
+
+                return;
+
+            }
+
+
+            let allowed = false;
+
+
+            if(
+                phase ===
+                "player_attack"
+            ){
+
+                allowed =
+                    canAddCard(card);
+
+            }else if(
+                phase ===
+                "player_defense"
+            ){
+
+                const index =
+                    getFirstUnbeaten();
+
+
+                if(index !== -1){
+
+                    allowed =
+                        canBeat(
+                            tableAttacks[index].attack,
+                            card
+                        );
+
+                }
+
+            }
+
+
+            if(allowed){
+
+                el.classList.add(
+                    "allowed"
+                );
+
+                el.classList.remove(
+                    "not-allowed"
+                );
+
+            }else{
+
+                el.classList.remove(
+                    "allowed"
+                );
+
+
+                if(
+                    phase ===
+                        "player_attack" ||
+
+                    phase ===
+                        "player_defense"
+                ){
+
+                    el.classList.add(
+                        "not-allowed"
+                    );
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+function updateButtons(){
+
+    takeButton.style.display =
+        phase ===
+        "player_defense"
+            ? "block"
+            : "none";
+
+
+    beatButton.style.display =
+        (
+            phase ===
+            "player_attack" &&
+
+            allBeaten()
+        )
+            ? "block"
+            : "none";
+
+}
+
+
+/* =========================================================
+   INFO
+========================================================= */
+
+function updateInfo(){
+
+    document.getElementById(
+        "deckCount"
+    ).innerText =
+        deck.length;
+
+
+    document.getElementById(
+        "trumpInfo"
+    ).innerText =
+        trumpSuit || "—";
+
+
+    document.getElementById(
+        "playerCount"
+    ).innerText =
+        playerHand.length;
+
+
+    document.getElementById(
+        "opponentCount"
+    ).innerText =
+        cpuHand.length;
+
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+let messageTimer = null;
+
+
+function showMessage(text){
+
+    messageEl.innerText =
+        text;
+
+
+    messageEl.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        messageTimer
+    );
+
+
+    messageTimer =
+        setTimeout(
+            ()=>{
+
+                messageEl.classList.remove(
+                    "show"
+                );
+
+            },
+            1600
+        );
+
+}
+
+
+/* =========================================================
+   REMOVE
+========================================================= */
+
+function removeFromHand(
+    hand,
+    id
+){
+
+    const index =
+        hand.findIndex(
+            card =>
+                card.id === id
+        );
+
+
+    if(index !== -1){
+
+        hand.splice(
+            index,
+            1
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+function animateLastPlayerCard(){
+
+    const cards =
+        playerHandEl.querySelectorAll(
+            ".card"
+        );
+
+
+    const last =
+        cards[cards.length-1];
+
+
+    if(last){
+
+        last.classList.add(
+            "deal-player"
+        );
+
+    }
+
+}
+
+
+function animateLastOpponentCard(){
+
+    const cards =
+        opponentHandEl.querySelectorAll(
+            ".card"
+        );
+
+
+    const last =
+        cards[cards.length-1];
+
+
+    if(last){
+
+        last.classList.add(
+            "deal-opponent"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   GAME OVER
+========================================================= */
+
+function checkGameOver(){
+
+    if(
+        deck.length > 0
+    ){
+
+        return false;
+
+    }
+
+
+    if(
+        playerHand.length === 0 &&
+        cpuHand.length === 0
+    ){
+
+        endGame(
+            "Ничья"
+        );
+
+
+        return true;
+
+    }
+
+
+    if(
+        playerHand.length === 0
+    ){
+
+        endGame(
+            "Ты победил!"
+        );
+
+
+        /*
+            Здесь позже добавим:
+
+            XP
+            HC
+            wins
+            games
+        */
+
+        return true;
+
+    }
+
+
+    if(
+        cpuHand.length === 0
+    ){
+
+        endGame(
+            "Компьютер победил"
+        );
+
+
+        return true;
+
+    }
+
+
+    return false;
+
+}
+
+
+function endGame(text){
+
+    phase =
+        "finished";
+
+
+    renderAll();
+
+
+    showMessage(
+        text
+    );
+
+
+    setTimeout(
+        ()=>{
+
+            if(tg){
+
+                tg.showAlert(
+                    text
+                );
+
+            }else{
+
+                alert(text);
+
+            }
+
+        },
+        500
+    );
+
+}
+
+
+/* =========================================================
+   FIRST ATTACKER
+========================================================= */
+
+function determineFirstAttacker(){
+
+    const playerTrumps =
+        playerHand
+            .filter(
+                c =>
+                    isTrump(c)
+            )
+            .sort(
+                (a,b)=>
+                    a.value -
+                    b.value
+            );
+
+
+    const cpuTrumps =
+        cpuHand
+            .filter(
+                c =>
+                    isTrump(c)
+            )
+            .sort(
+                (a,b)=>
+                    a.value -
+                    b.value
+            );
+
+
+    if(
+        playerTrumps.length &&
+        cpuTrumps.length
+    ){
+
+        return (
+
+            playerTrumps[0].value <=
+            cpuTrumps[0].value
+
+        )
+            ? "player"
+            : "cpu";
+
+    }
+
+
+    if(
+        playerTrumps.length
+    ){
+
+        return "player";
+
+    }
+
+
+    if(
+        cpuTrumps.length
+    ){
+
+        return "cpu";
+
+    }
+
+
+    const playerMin =
+        Math.min(
+            ...playerHand.map(
+                c =>
+                    c.value
+            )
+        );
+
+
+    const cpuMin =
+        Math.min(
+            ...cpuHand.map(
+                c =>
+                    c.value
+            )
+        );
+
+
+    return (
+
+        playerMin <=
+        cpuMin
+
+    )
+        ? "player"
+        : "cpu";
+
+}
+
+
+/* =========================================================
+   START GAME
+========================================================= */
+
+document.getElementById(
+    "startButton"
+).addEventListener(
+    "click",
+    async()=>{
+
+        if(gameStarted){
+
+            return;
+
+        }
+
+
+        gameStarted = true;
+
+
+        document.getElementById(
+            "startScreen"
+        ).style.display =
+            "none";
+
+
+        if(
+            tg &&
+            tg.initDataUnsafe &&
+            tg.initDataUnsafe.user
+        ){
+
+            const user =
+                tg.initDataUnsafe.user;
+
+
+            playerName =
+                user.first_name ||
+                user.username ||
+                "Игрок";
+
+        }
+
+
+        document.getElementById(
+            "playerName"
+        ).innerText =
+            playerName;
+
+
+        deck =
+            createDeck();
+
+
+        setupTrump();
+
+
+        await dealInitial();
+
+
+        attacker =
+            determineFirstAttacker();
+
+
+        defender =
+            attacker === "player"
+                ? "cpu"
+                : "player";
+
+
+        roundLimit =
+            defender === "player"
+                ? playerHand.length
+                : cpuHand.length;
+
+
+        if(
+            attacker === "player"
+        ){
+
+            phase =
+                "player_attack";
+
+
+            showMessage(
+                "Твой ход"
+            );
+
+        }else{
+
+            phase =
+                "cpu_attack";
+
+
+            showMessage(
+                "Компьютер начинает"
+            );
+
+
+            renderAll();
+
+
+            await sleep(700);
+
+
+            await cpuStartAttack();
+
+        }
+
+
+        renderAll();
+
+    }
+);
+
+
+/* =========================================================
+   INITIAL
+========================================================= */
+
+renderAll();
+
+updateInfo();
+
+
+/* =========================================================
+   AUTH ON LOAD
+========================================================= */
+
+authenticateTelegram();
+
+</script>
+
+</body>
+</html>
