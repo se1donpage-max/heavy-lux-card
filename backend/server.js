@@ -31,13 +31,15 @@ const MAX_HAND = 6;
 
 const MAX_CHAT_MESSAGES = 100;
 
-const DATA_FILE =
-    path.join(__dirname, "players.json");
-
-const CARS_FILE =
-    path.join(__dirname, "cars.json");
-
+/*
+ * Стоимость регистрации автомобиля в МРЭО
+ */
 const REGISTRATION_PRICE = 25000;
+
+const DATA_FILE = path.join(
+    __dirname,
+    "players.json"
+);
 
 
 /* =========================================================
@@ -54,15 +56,6 @@ app.use(express.json());
 ========================================================= */
 
 let players = {};
-
-let cars = {};
-
-let usedPlates = new Set();
-
-
-/* =========================================================
-   PLAYERS DATABASE
-========================================================= */
 
 function loadPlayers() {
 
@@ -95,6 +88,9 @@ function loadPlayers() {
 }
 
 
+/*
+ * Сохраняем базу.
+ */
 function savePlayers() {
 
     try {
@@ -121,91 +117,7 @@ function savePlayers() {
 }
 
 
-/* =========================================================
-   CARS DATABASE
-========================================================= */
-
-function loadCars() {
-
-    try {
-
-        if (
-            fs.existsSync(
-                CARS_FILE
-            )
-        ) {
-
-            const data =
-                fs.readFileSync(
-                    CARS_FILE,
-                    "utf8"
-                );
-
-            cars =
-                JSON.parse(data) || {};
-
-        }
-
-        usedPlates =
-            new Set(
-                Object.values(cars)
-                    .filter(
-                        car =>
-                            car.registration &&
-                            car.registration.plate
-                    )
-                    .map(
-                        car =>
-                            car.registration.plate
-                    )
-            );
-
-    } catch (error) {
-
-        console.error(
-            "LOAD CARS ERROR:",
-            error
-        );
-
-        cars = {};
-
-        usedPlates =
-            new Set();
-
-    }
-
-}
-
-
-function saveCars() {
-
-    try {
-
-        fs.writeFileSync(
-            CARS_FILE,
-            JSON.stringify(
-                cars,
-                null,
-                2
-            ),
-            "utf8"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "SAVE CARS ERROR:",
-            error
-        );
-
-    }
-
-}
-
-
 loadPlayers();
-
-loadCars();
 
 
 /* =========================================================
@@ -261,6 +173,7 @@ function validateTelegramInitData(initData) {
             )
             .join("\n");
 
+
     const secretKey =
         crypto
             .createHmac(
@@ -269,6 +182,7 @@ function validateTelegramInitData(initData) {
             )
             .update(BOT_TOKEN)
             .digest();
+
 
     const calculatedHash =
         crypto
@@ -279,6 +193,7 @@ function validateTelegramInitData(initData) {
             .update(dataCheckString)
             .digest("hex");
 
+
     if (
         calculatedHash.length !==
         hash.length
@@ -287,6 +202,7 @@ function validateTelegramInitData(initData) {
         return null;
 
     }
+
 
     if (
         !crypto.timingSafeEqual(
@@ -299,6 +215,7 @@ function validateTelegramInitData(initData) {
 
     }
 
+
     const authDate =
         Number(
             params.get(
@@ -306,15 +223,18 @@ function validateTelegramInitData(initData) {
             ) || 0
         );
 
+
     if (
         !authDate ||
-        Date.now() / 1000 - authDate >
+        Date.now() / 1000 -
+        authDate >
         86400
     ) {
 
         return null;
 
     }
+
 
     let user = null;
 
@@ -333,6 +253,7 @@ function validateTelegramInitData(initData) {
 
     }
 
+
     if (
         !user ||
         !user.id
@@ -341,6 +262,7 @@ function validateTelegramInitData(initData) {
         return null;
 
     }
+
 
     return user;
 
@@ -355,6 +277,7 @@ function createPlayer(user) {
 
     const id =
         String(user.id);
+
 
     if (!players[id]) {
 
@@ -396,6 +319,12 @@ function createPlayer(user) {
             games:
                 0,
 
+            /*
+             * АВТОМОБИЛИ ИГРОКА
+             */
+            cars:
+                [],
+
             created_at:
                 Date.now(),
 
@@ -408,32 +337,60 @@ function createPlayer(user) {
 
     } else {
 
+        /*
+         * Миграция старых игроков.
+         *
+         * Если игрок был создан
+         * до появления машин,
+         * добавляем ему cars.
+         */
+
+        if (
+            !Array.isArray(
+                players[id].cars
+            )
+        ) {
+
+            players[id].cars = [];
+
+        }
+
+
         players[id].first_name =
             user.first_name ||
             players[id].first_name ||
             "Игрок";
+
 
         players[id].last_name =
             user.last_name ||
             players[id].last_name ||
             "";
 
+
         players[id].username =
             user.username ||
             players[id].username ||
             "";
 
+
         players[id].updated_at =
             Date.now();
+
 
         savePlayers();
 
     }
 
+
     return players[id];
 
 }
 
+
+/* =========================================================
+   PUBLIC PLAYER
+========================================================= */
 
 function publicPlayer(player) {
 
@@ -442,6 +399,7 @@ function publicPlayer(player) {
         return null;
 
     }
+
 
     return {
 
@@ -476,7 +434,10 @@ function publicPlayer(player) {
             player.losses,
 
         games:
-            player.games
+            player.games,
+
+        cars:
+            player.cars || []
 
     };
 
@@ -489,25 +450,54 @@ function publicPlayer(player) {
 
 function getTitle(level) {
 
-    if (level >= 100)
+    if (
+        level >= 100
+    ) {
+
         return "Легенда";
 
-    if (level >= 80)
+    }
+
+    if (
+        level >= 80
+    ) {
+
         return "Император";
 
-    if (level >= 60)
+    }
+
+    if (
+        level >= 60
+    ) {
+
         return "Магнат";
 
-    if (level >= 40)
+    }
+
+    if (
+        level >= 40
+    ) {
+
         return "Мастер";
 
-    if (level >= 20)
+    }
+
+    if (
+        level >= 20
+    ) {
+
         return "Ветеран";
+
+    }
 
     return "Новичок";
 
 }
 
+
+/* =========================================================
+   XP
+========================================================= */
 
 function addXP(
     player,
@@ -515,6 +505,7 @@ function addXP(
 ) {
 
     player.xp += amount;
+
 
     while (
         player.level < 100 &&
@@ -529,13 +520,16 @@ function addXP(
 
     }
 
+
     player.title =
         getTitle(
             player.level
         );
 
+
     player.updated_at =
         Date.now();
+
 
     savePlayers();
 
@@ -546,32 +540,24 @@ function addXP(
    CAR CATALOG
 ========================================================= */
 
-const CAR_CATALOG = {
+const CAR_CATALOG = [
 
-    mercedes_g63: {
-
+    {
         id:
             "mercedes_g63",
 
         brand:
-            "Mercedes-AMG",
+            "Mercedes-Benz",
 
         model:
-            "G 63",
-
-        name:
             "Mercedes-AMG G 63",
 
         price:
-            5000000,
-
-        category:
-            "SUV"
-
+            1500000
     },
 
-    bmw_m5: {
 
+    {
         id:
             "bmw_m5",
 
@@ -579,72 +565,126 @@ const CAR_CATALOG = {
             "BMW",
 
         model:
-            "M5",
-
-        name:
-            "BMW M5",
+            "BMW M5 Competition",
 
         price:
-            3500000,
-
-        category:
-            "Sport"
-
+            1200000
     },
 
-    mercedes_s63: {
 
+    {
         id:
-            "mercedes_s63",
+            "porsche_911",
 
         brand:
-            "Mercedes-Benz",
+            "Porsche",
 
         model:
-            "S 63 AMG",
-
-        name:
-            "Mercedes-Benz S 63 AMG",
+            "Porsche 911",
 
         price:
-            4500000,
-
-        category:
-            "Premium"
-
+            1800000
     },
 
-    bmw_x7: {
 
+    {
         id:
-            "bmw_x7",
+            "audi_rs6",
 
         brand:
-            "BMW",
+            "Audi",
 
         model:
-            "X7",
-
-        name:
-            "BMW X7",
+            "Audi RS6 Avant",
 
         price:
-            3000000,
+            1300000
+    },
 
-        category:
-            "SUV"
 
+    {
+        id:
+            "lamborghini_urus",
+
+        brand:
+            "Lamborghini",
+
+        model:
+            "Lamborghini Urus",
+
+        price:
+            3000000
+    },
+
+
+    {
+        id:
+            "rolls_royce_cullinan",
+
+        brand:
+            "Rolls-Royce",
+
+        model:
+            "Rolls-Royce Cullinan",
+
+        price:
+            5000000
     }
 
-};
+];
 
 
 /* =========================================================
-   STATE PLATES
+   CAR HELPERS
 ========================================================= */
 
-const PLATE_LETTERS = [
+function findCatalogCar(
+    carId
+) {
 
+    return CAR_CATALOG.find(
+        car =>
+            car.id === carId
+    );
+
+}
+
+
+function findPlayerCar(
+    player,
+    carId
+) {
+
+    if (
+        !player ||
+        !Array.isArray(
+            player.cars
+        )
+    ) {
+
+        return null;
+
+    }
+
+    return player.cars.find(
+        car =>
+            car.id === carId
+    );
+
+}
+
+
+/* =========================================================
+   RUSSIAN LICENSE PLATES
+========================================================= */
+
+/*
+ * Российские буквы,
+ * которые используются
+ * на государственных номерах.
+ */
+
+const PLATE_LETTERS = [
     "А",
     "В",
     "Е",
@@ -657,31 +697,50 @@ const PLATE_LETTERS = [
     "Т",
     "У",
     "Х"
-
 ];
 
+
+/*
+ * Основные регионы.
+ *
+ * Позже можно расширить
+ * полноценной системой регионов.
+ */
 
 const PLATE_REGIONS = [
 
     "77",
+    "78",
+    "50",
+    "90",
     "97",
     "99",
     "177",
     "197",
-    "199"
+    "199",
+    "777",
+    "799"
 
 ];
 
 
-function generatePlate() {
+/* =========================================================
+   GENERATE LICENSE PLATE
+========================================================= */
 
-    let attempts = 0;
+function generateLicensePlate() {
 
-    while (
-        attempts < 100000
+    /*
+     * Максимальное количество попыток.
+     */
+    const maxAttempts = 100000;
+
+
+    for (
+        let attempt = 0;
+        attempt < maxAttempts;
+        attempt++
     ) {
-
-        attempts++;
 
         const letter1 =
             PLATE_LETTERS[
@@ -691,6 +750,19 @@ function generatePlate() {
                 )
             ];
 
+
+        const digits =
+            String(
+                Math.floor(
+                    Math.random() *
+                    1000
+                )
+            ).padStart(
+                3,
+                "0"
+            );
+
+
         const letter2 =
             PLATE_LETTERS[
                 Math.floor(
@@ -698,6 +770,7 @@ function generatePlate() {
                     PLATE_LETTERS.length
                 )
             ];
+
 
         const letter3 =
             PLATE_LETTERS[
@@ -707,15 +780,6 @@ function generatePlate() {
                 )
             ];
 
-        const numbers =
-            Math.floor(
-                Math.random() * 1000
-            )
-                .toString()
-                .padStart(
-                    3,
-                    "0"
-                );
 
         const region =
             PLATE_REGIONS[
@@ -725,65 +789,281 @@ function generatePlate() {
                 )
             ];
 
-        const plate =
-            `${letter1}${numbers}${letter2}${letter3}${region}`;
+
+        const number =
+            `${letter1}${digits}${letter2}${letter3}${region}`;
+
 
         if (
-            !usedPlates.has(
-                plate
+            !isLicensePlateUsed(
+                number
             )
         ) {
 
-            usedPlates.add(
-                plate
-            );
-
-            return plate;
+            return number;
 
         }
 
     }
 
+
     throw new Error(
-        "Не удалось создать свободный номер"
+        "Не удалось подобрать свободный государственный номер"
     );
 
 }
 
 
 /* =========================================================
-   CAR FUNCTIONS
+   CHECK LICENSE PLATE
 ========================================================= */
 
-function createCar(
-    playerId,
+function isLicensePlateUsed(
+    number
+) {
+
+    for (
+        const playerId in players
+    ) {
+
+        const player =
+            players[playerId];
+
+
+        if (
+            !Array.isArray(
+                player.cars
+            )
+        ) {
+
+            continue;
+
+        }
+
+
+        for (
+            const car of player.cars
+        ) {
+
+            if (
+                car.registration &&
+                car.registration.number ===
+                number
+            ) {
+
+                return true;
+
+            }
+
+        }
+
+    }
+
+
+    return false;
+
+}
+
+
+/* =========================================================
+   REGISTER CAR
+========================================================= */
+
+function registerCar(
+    player,
+    carId
+) {
+
+    const car =
+        findPlayerCar(
+            player,
+            carId
+        );
+
+
+    if (!car) {
+
+        return {
+
+            success:
+                false,
+
+            error:
+                "Автомобиль не найден"
+
+        };
+
+    }
+
+
+    if (
+        car.registration &&
+        car.registration.registered
+    ) {
+
+        return {
+
+            success:
+                false,
+
+            error:
+                "Этот автомобиль уже зарегистрирован"
+
+        };
+
+    }
+
+
+    if (
+        player.balance <
+        REGISTRATION_PRICE
+    ) {
+
+        return {
+
+            success:
+                false,
+
+            error:
+                `Недостаточно средств. Регистрация стоит ${REGISTRATION_PRICE.toLocaleString("ru-RU")} HC`
+
+        };
+
+    }
+
+
+    let number;
+
+
+    try {
+
+        number =
+            generateLicensePlate();
+
+    } catch (error) {
+
+        console.error(
+            "LICENSE PLATE ERROR:",
+            error
+        );
+
+        return {
+
+            success:
+                false,
+
+            error:
+                "Не удалось выдать государственный номер"
+
+        };
+
+    }
+
+
+    player.balance -=
+        REGISTRATION_PRICE;
+
+
+    car.registration = {
+
+        registered:
+            true,
+
+        registered_at:
+            Date.now(),
+
+        number:
+            number,
+
+        registration_price:
+            REGISTRATION_PRICE
+
+    };
+
+
+    player.updated_at =
+        Date.now();
+
+
+    savePlayers();
+
+
+    return {
+
+        success:
+            true,
+
+        car,
+
+        player:
+            publicPlayer(
+                player
+            )
+
+    };
+
+}
+
+
+/* =========================================================
+   BUY CAR
+========================================================= */
+
+function buyCar(
+    player,
     catalogId
 ) {
 
     const catalogCar =
-        CAR_CATALOG[
+        findCatalogCar(
             catalogId
-        ];
+        );
+
 
     if (!catalogCar) {
 
-        return null;
+        return {
+
+            success:
+                false,
+
+            error:
+                "Автомобиль не найден в каталоге"
+
+        };
 
     }
 
-    const carId =
+
+    if (
+        player.balance <
+        catalogCar.price
+    ) {
+
+        return {
+
+            success:
+                false,
+
+            error:
+                `Недостаточно средств. Цена автомобиля ${catalogCar.price.toLocaleString("ru-RU")} HC`
+
+        };
+
+    }
+
+
+    const playerCarId =
         crypto.randomUUID();
 
-    const car = {
+
+    const playerCar = {
 
         id:
-            carId,
+            playerCarId,
 
-        ownerId:
-            String(playerId),
-
-        catalogId:
-            catalogId,
+        catalog_id:
+            catalogCar.id,
 
         brand:
             catalogCar.brand,
@@ -791,113 +1071,72 @@ function createCar(
         model:
             catalogCar.model,
 
-        name:
-            catalogCar.name,
-
         price:
             catalogCar.price,
 
-        category:
-            catalogCar.category,
+        purchased_at:
+            Date.now(),
 
         registration: {
 
             registered:
                 false,
 
-            plate:
+            registered_at:
                 null,
 
-            registeredAt:
+            number:
                 null,
 
-            registrationPrice:
+            registration_price:
                 REGISTRATION_PRICE
 
         },
 
-        beautifulPlate:
-            null,
+        custom_plate: {
 
-        createdAt:
-            Date.now()
+            active:
+                false,
+
+            number:
+                null,
+
+            purchased_at:
+                null
+
+        }
 
     };
 
-    cars[carId] =
-        car;
 
-    saveCars();
-
-    return car;
-
-}
+    player.balance -=
+        catalogCar.price;
 
 
-function getPlayerCars(
-    playerId
-) {
-
-    return Object.values(
-        cars
-    ).filter(
-        car =>
-            car.ownerId ===
-            String(playerId)
+    player.cars.push(
+        playerCar
     );
 
-}
+
+    player.updated_at =
+        Date.now();
 
 
-function publicCar(car) {
+    savePlayers();
 
-    if (!car) {
-
-        return null;
-
-    }
 
     return {
 
-        id:
-            car.id,
+        success:
+            true,
 
-        catalogId:
-            car.catalogId,
+        car:
+            playerCar,
 
-        brand:
-            car.brand,
-
-        model:
-            car.model,
-
-        name:
-            car.name,
-
-        price:
-            car.price,
-
-        category:
-            car.category,
-
-        registration: {
-
-            registered:
-                car.registration.registered,
-
-            plate:
-                car.registration.plate,
-
-            registeredAt:
-                car.registration.registeredAt,
-
-            registrationPrice:
-                car.registration.registrationPrice
-
-        },
-
-        beautifulPlate:
-            car.beautifulPlate || null
+        player:
+            publicPlayer(
+                player
+            )
 
     };
 
@@ -905,7 +1144,99 @@ function publicCar(car) {
 
 
 /* =========================================================
-   BASIC API
+   SELL CAR
+========================================================= */
+
+function sellCar(
+    player,
+    carId
+) {
+
+    const index =
+        player.cars.findIndex(
+            car =>
+                car.id ===
+                carId
+        );
+
+
+    if (
+        index === -1
+    ) {
+
+        return {
+
+            success:
+                false,
+
+            error:
+                "Автомобиль не найден"
+
+        };
+
+    }
+
+
+    const car =
+        player.cars[index];
+
+
+    /*
+     * Пока продаём автомобиль
+     * за 70% от первоначальной цены.
+     */
+
+    const sellPrice =
+        Math.floor(
+            car.price * 0.7
+        );
+
+
+    /*
+     * Государственный номер
+     * освобождается после продажи.
+     */
+
+    player.cars.splice(
+        index,
+        1
+    );
+
+
+    player.balance +=
+        sellPrice;
+
+
+    player.updated_at =
+        Date.now();
+
+
+    savePlayers();
+
+
+    return {
+
+        success:
+            true,
+
+        sold_car:
+            car,
+
+        sell_price:
+            sellPrice,
+
+        player:
+            publicPlayer(
+                player
+            )
+
+    };
+
+}
+
+
+/* =========================================================
+   API
 ========================================================= */
 
 app.get(
@@ -944,11 +1275,6 @@ app.get(
             players:
                 Object.keys(
                     players
-                ).length,
-
-            cars:
-                Object.keys(
-                    cars
                 ).length
 
         });
@@ -971,10 +1297,12 @@ app.post(
                 initData
             } = req.body || {};
 
+
             const user =
                 validateTelegramInitData(
                     initData
                 );
+
 
             if (!user) {
 
@@ -992,10 +1320,12 @@ app.post(
 
             }
 
+
             const player =
                 createPlayer(
                     user
                 );
+
 
             return res.json({
 
@@ -1005,13 +1335,6 @@ app.post(
                 player:
                     publicPlayer(
                         player
-                    ),
-
-                cars:
-                    getPlayerCars(
-                        player.telegram_id
-                    ).map(
-                        publicCar
                     )
 
             });
@@ -1022,6 +1345,7 @@ app.post(
                 "AUTH ERROR:",
                 error
             );
+
 
             return res.status(
                 500
@@ -1045,6 +1369,10 @@ app.post(
    CAR API
 ========================================================= */
 
+/*
+ * Получить каталог автомобилей.
+ */
+
 app.get(
     "/api/cars",
     (req, res) => {
@@ -1055,9 +1383,7 @@ app.get(
                 true,
 
             cars:
-                Object.values(
-                    CAR_CATALOG
-                )
+                CAR_CATALOG
 
         });
 
@@ -1065,9 +1391,9 @@ app.get(
 );
 
 
-/* =========================================================
-   BUY CAR
-========================================================= */
+/*
+ * Покупка автомобиля.
+ */
 
 app.post(
     "/api/cars/buy",
@@ -1078,12 +1404,15 @@ app.post(
             const {
                 initData,
                 carId
-            } = req.body || {};
+            } =
+                req.body || {};
+
 
             const user =
                 validateTelegramInitData(
                     initData
                 );
+
 
             if (!user) {
 
@@ -1101,91 +1430,40 @@ app.post(
 
             }
 
+
             const player =
                 createPlayer(
                     user
                 );
 
-            const catalogCar =
-                CAR_CATALOG[
-                    carId
-                ];
 
-            if (!catalogCar) {
-
-                return res.status(
-                    404
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Автомобиль не найден"
-
-                });
-
-            }
-
-            if (
-                player.balance <
-                catalogCar.price
-            ) {
-
-                return res.status(
-                    400
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Недостаточно HC"
-
-                });
-
-            }
-
-            player.balance -=
-                catalogCar.price;
-
-            const car =
-                createCar(
-                    player.telegram_id,
+            const result =
+                buyCar(
+                    player,
                     carId
                 );
 
-            player.updated_at =
-                Date.now();
 
-            savePlayers();
+            if (!result.success) {
 
-            return res.json({
+                return res.status(
+                    400
+                ).json(result);
 
-                success:
-                    true,
+            }
 
-                message:
-                    "Автомобиль успешно приобретён",
 
-                car:
-                    publicCar(
-                        car
-                    ),
-
-                player:
-                    publicPlayer(
-                        player
-                    )
-
-            });
+            return res.json(
+                result
+            );
 
         } catch (error) {
 
             console.error(
-                "CAR BUY ERROR:",
+                "BUY CAR ERROR:",
                 error
             );
+
 
             return res.status(
                 500
@@ -1205,24 +1483,27 @@ app.post(
 );
 
 
-/* =========================================================
-   GARAGE
-========================================================= */
+/*
+ * Получить гараж.
+ */
 
 app.post(
-    "/api/garage",
+    "/api/cars/my",
     (req, res) => {
 
         try {
 
             const {
                 initData
-            } = req.body || {};
+            } =
+                req.body || {};
+
 
             const user =
                 validateTelegramInitData(
                     initData
                 );
+
 
             if (!user) {
 
@@ -1240,15 +1521,12 @@ app.post(
 
             }
 
+
             const player =
                 createPlayer(
                     user
                 );
 
-            const playerCars =
-                getPlayerCars(
-                    player.telegram_id
-                );
 
             return res.json({
 
@@ -1256,18 +1534,20 @@ app.post(
                     true,
 
                 cars:
-                    playerCars.map(
-                        publicCar
-                    )
+                    player.cars || [],
+
+                balance:
+                    player.balance
 
             });
 
         } catch (error) {
 
             console.error(
-                "GARAGE ERROR:",
+                "GET CARS ERROR:",
                 error
             );
+
 
             return res.status(
                 500
@@ -1287,120 +1567,10 @@ app.post(
 );
 
 
-/* =========================================================
-   GET ONE CAR
-========================================================= */
-
-app.post(
-    "/api/cars/view",
-    (req, res) => {
-
-        try {
-
-            const {
-                initData,
-                carId
-            } = req.body || {};
-
-            const user =
-                validateTelegramInitData(
-                    initData
-                );
-
-            if (!user) {
-
-                return res.status(
-                    401
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Telegram authorization failed"
-
-                });
-
-            }
-
-            const car =
-                cars[carId];
-
-            if (!car) {
-
-                return res.status(
-                    404
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Автомобиль не найден"
-
-                });
-
-            }
-
-            if (
-                car.ownerId !==
-                String(user.id)
-            ) {
-
-                return res.status(
-                    403
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Автомобиль вам не принадлежит"
-
-                });
-
-            }
-
-            return res.json({
-
-                success:
-                    true,
-
-                car:
-                    publicCar(
-                        car
-                    )
-
-            });
-
-        } catch (error) {
-
-            console.error(
-                "CAR VIEW ERROR:",
-                error
-            );
-
-            return res.status(
-                500
-            ).json({
-
-                success:
-                    false,
-
-                error:
-                    "Ошибка получения автомобиля"
-
-            });
-
-        }
-
-    }
-);
-
-
-/* =========================================================
-   MREO
-========================================================= */
+/*
+ * Регистрация автомобиля
+ * в МРЭО.
+ */
 
 app.post(
     "/api/cars/register",
@@ -1411,12 +1581,15 @@ app.post(
             const {
                 initData,
                 carId
-            } = req.body || {};
+            } =
+                req.body || {};
+
 
             const user =
                 validateTelegramInitData(
                     initData
                 );
+
 
             if (!user) {
 
@@ -1434,141 +1607,40 @@ app.post(
 
             }
 
+
             const player =
                 createPlayer(
                     user
                 );
 
-            const car =
-                cars[carId];
 
-            if (!car) {
+            const result =
+                registerCar(
+                    player,
+                    carId
+                );
 
-                return res.status(
-                    404
-                ).json({
 
-                    success:
-                        false,
-
-                    error:
-                        "Автомобиль не найден"
-
-                });
-
-            }
-
-            if (
-                car.ownerId !==
-                String(
-                    player.telegram_id
-                )
-            ) {
-
-                return res.status(
-                    403
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Этот автомобиль вам не принадлежит"
-
-                });
-
-            }
-
-            if (
-                car.registration.registered
-            ) {
+            if (!result.success) {
 
                 return res.status(
                     400
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Автомобиль уже зарегистрирован",
-
-                    car:
-                        publicCar(
-                            car
-                        )
-
-                });
+                ).json(result);
 
             }
 
-            if (
-                player.balance <
-                REGISTRATION_PRICE
-            ) {
 
-                return res.status(
-                    400
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Недостаточно HC для регистрации"
-
-                });
-
-            }
-
-            const plate =
-                generatePlate();
-
-            player.balance -=
-                REGISTRATION_PRICE;
-
-            car.registration.registered =
-                true;
-
-            car.registration.plate =
-                plate;
-
-            car.registration.registeredAt =
-                Date.now();
-
-            player.updated_at =
-                Date.now();
-
-            savePlayers();
-
-            saveCars();
-
-            return res.json({
-
-                success:
-                    true,
-
-                message:
-                    "Т/О зарегистрировано",
-
-                car:
-                    publicCar(
-                        car
-                    ),
-
-                player:
-                    publicPlayer(
-                        player
-                    )
-
-            });
+            return res.json(
+                result
+            );
 
         } catch (error) {
 
             console.error(
-                "MREO ERROR:",
+                "CAR REGISTRATION ERROR:",
                 error
             );
+
 
             return res.status(
                 500
@@ -1588,12 +1660,12 @@ app.post(
 );
 
 
-/* =========================================================
-   PLATE INFO
-========================================================= */
+/*
+ * Продажа автомобиля.
+ */
 
 app.post(
-    "/api/cars/plate",
+    "/api/cars/sell",
     (req, res) => {
 
         try {
@@ -1601,12 +1673,15 @@ app.post(
             const {
                 initData,
                 carId
-            } = req.body || {};
+            } =
+                req.body || {};
+
 
             const user =
                 validateTelegramInitData(
                     initData
                 );
+
 
             if (!user) {
 
@@ -1624,66 +1699,40 @@ app.post(
 
             }
 
-            const car =
-                cars[carId];
 
-            if (!car) {
+            const player =
+                createPlayer(
+                    user
+                );
+
+
+            const result =
+                sellCar(
+                    player,
+                    carId
+                );
+
+
+            if (!result.success) {
 
                 return res.status(
-                    404
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Автомобиль не найден"
-
-                });
+                    400
+                ).json(result);
 
             }
 
-            if (
-                car.ownerId !==
-                String(user.id)
-            ) {
 
-                return res.status(
-                    403
-                ).json({
-
-                    success:
-                        false,
-
-                    error:
-                        "Нет доступа"
-
-                });
-
-            }
-
-            return res.json({
-
-                success:
-                    true,
-
-                registered:
-                    car.registration.registered,
-
-                plate:
-                    car.registration.plate,
-
-                beautifulPlate:
-                    car.beautifulPlate || null
-
-            });
+            return res.json(
+                result
+            );
 
         } catch (error) {
 
             console.error(
-                "PLATE ERROR:",
+                "SELL CAR ERROR:",
                 error
             );
+
 
             return res.status(
                 500
@@ -1693,7 +1742,7 @@ app.post(
                     false,
 
                 error:
-                    "Ошибка"
+                    "Ошибка продажи автомобиля"
 
             });
 
@@ -1708,12 +1757,10 @@ app.post(
 ========================================================= */
 
 const SUITS = [
-
     "♠",
     "♥",
     "♦",
     "♣"
-
 ];
 
 
@@ -1722,6 +1769,7 @@ const RANKS = [
     {
         name:
             "6",
+
         value:
             6
     },
@@ -1729,6 +1777,7 @@ const RANKS = [
     {
         name:
             "7",
+
         value:
             7
     },
@@ -1736,6 +1785,7 @@ const RANKS = [
     {
         name:
             "8",
+
         value:
             8
     },
@@ -1743,6 +1793,7 @@ const RANKS = [
     {
         name:
             "9",
+
         value:
             9
     },
@@ -1750,6 +1801,7 @@ const RANKS = [
     {
         name:
             "10",
+
         value:
             10
     },
@@ -1757,6 +1809,7 @@ const RANKS = [
     {
         name:
             "В",
+
         value:
             11
     },
@@ -1764,6 +1817,7 @@ const RANKS = [
     {
         name:
             "Д",
+
         value:
             12
     },
@@ -1771,6 +1825,7 @@ const RANKS = [
     {
         name:
             "К",
+
         value:
             13
     },
@@ -1778,6 +1833,7 @@ const RANKS = [
     {
         name:
             "Т",
+
         value:
             14
     }
@@ -1795,6 +1851,7 @@ function createDeck() {
 
     let id = 0;
 
+
     for (
         const suit of SUITS
     ) {
@@ -1808,8 +1865,7 @@ function createDeck() {
                 id:
                     `card_${id++}`,
 
-                suit:
-                    suit,
+                suit,
 
                 rank:
                     rank.name,
@@ -1823,6 +1879,7 @@ function createDeck() {
 
     }
 
+
     return shuffle(
         result
     );
@@ -1830,12 +1887,18 @@ function createDeck() {
 }
 
 
+/* =========================================================
+   SHUFFLE
+========================================================= */
+
 function shuffle(array) {
 
     for (
         let i =
             array.length - 1;
+
         i > 0;
+
         i--
     ) {
 
@@ -1844,6 +1907,7 @@ function shuffle(array) {
                 Math.random() *
                 (i + 1)
             );
+
 
         [
             array[i],
@@ -1855,6 +1919,7 @@ function shuffle(array) {
         ];
 
     }
+
 
     return array;
 
@@ -1869,6 +1934,10 @@ const games =
     new Map();
 
 
+/* =========================================================
+   TRUMP
+========================================================= */
+
 function isTrump(
     game,
     card
@@ -1882,6 +1951,10 @@ function isTrump(
 
 }
 
+
+/* =========================================================
+   CAN BEAT
+========================================================= */
 
 function canBeat(
     game,
@@ -1898,6 +1971,7 @@ function canBeat(
 
     }
 
+
     if (
         isTrump(
             game,
@@ -1913,6 +1987,7 @@ function canBeat(
 
     }
 
+
     if (
         !isTrump(
             game,
@@ -1927,6 +2002,7 @@ function canBeat(
         return false;
 
     }
+
 
     return (
 
@@ -1941,9 +2017,14 @@ function canBeat(
 }
 
 
+/* =========================================================
+   TABLE RANKS
+========================================================= */
+
 function tableRanks(game) {
 
     const result = [];
+
 
     for (
         const pair of game.table
@@ -1952,6 +2033,7 @@ function tableRanks(game) {
         result.push(
             pair.attack.rank
         );
+
 
         if (
             pair.defense
@@ -1965,10 +2047,15 @@ function tableRanks(game) {
 
     }
 
+
     return result;
 
 }
 
+
+/* =========================================================
+   CAN ADD CARD
+========================================================= */
 
 function canAddCard(
     game,
@@ -1981,6 +2068,7 @@ function canAddCard(
 
     }
 
+
     if (
         game.table.length >=
         game.roundLimit
@@ -1990,22 +2078,28 @@ function canAddCard(
 
     }
 
+
     if (
-        game.table.length ===
-        0
+        game.table.length === 0
     ) {
 
         return true;
 
     }
 
-    return tableRanks(game)
-        .includes(
-            card.rank
-        );
+
+    return tableRanks(
+        game
+    ).includes(
+        card.rank
+    );
 
 }
 
+
+/* =========================================================
+   FIRST UNBEATEN
+========================================================= */
 
 function firstUnbeaten(game) {
 
@@ -2025,16 +2119,26 @@ function firstUnbeaten(game) {
 
     }
 
+
     return -1;
 
 }
 
 
+/* =========================================================
+   ALL BEATEN
+========================================================= */
+
 function allBeaten(game) {
 
     return (
+
         game.table.length > 0 &&
-        firstUnbeaten(game) === -1
+
+        firstUnbeaten(
+            game
+        ) === -1
+
     );
 
 }
@@ -2062,6 +2166,7 @@ function findGameByPlayer(
         }
 
     }
+
 
     return null;
 
@@ -2091,6 +2196,7 @@ function determineFirstAttacker(
                     b.value
             );
 
+
     const cpuTrumps =
         game.cpuHand
             .filter(
@@ -2106,6 +2212,7 @@ function determineFirstAttacker(
                     b.value
             );
 
+
     if (
         playerTrumps.length &&
         cpuTrumps.length
@@ -2120,6 +2227,7 @@ function determineFirstAttacker(
 
     }
 
+
     if (
         playerTrumps.length
     ) {
@@ -2127,6 +2235,7 @@ function determineFirstAttacker(
         return "player";
 
     }
+
 
     if (
         cpuTrumps.length
@@ -2136,6 +2245,7 @@ function determineFirstAttacker(
 
     }
 
+
     const playerMin =
         Math.min(
             ...game.playerHand.map(
@@ -2144,6 +2254,7 @@ function determineFirstAttacker(
             )
         );
 
+
     const cpuMin =
         Math.min(
             ...game.cpuHand.map(
@@ -2151,6 +2262,7 @@ function determineFirstAttacker(
                     card.value
             )
         );
+
 
     return (
         playerMin <=
@@ -2163,7 +2275,7 @@ function determineFirstAttacker(
 
 
 /* =========================================================
-   GAME STATE
+   PUBLIC GAME STATE
 ========================================================= */
 
 function publicGameState(game) {
@@ -2208,6 +2320,10 @@ function publicGameState(game) {
 }
 
 
+/* =========================================================
+   SEND STATE
+========================================================= */
+
 function sendState(game) {
 
     if (!game.socket) {
@@ -2216,9 +2332,12 @@ function sendState(game) {
 
     }
 
+
     game.socket.emit(
         "game_state",
-        publicGameState(game)
+        publicGameState(
+            game
+        )
     );
 
 }
@@ -2241,16 +2360,20 @@ function finishGame(
 
     }
 
+
     game.finished =
         true;
+
 
     const player =
         players[
             game.playerId
         ];
 
+
     if (
-        winner === "player"
+        winner ===
+        "player"
     ) {
 
         player.wins++;
@@ -2266,7 +2389,8 @@ function finishGame(
         );
 
     } else if (
-        winner === "cpu"
+        winner ===
+        "cpu"
     ) {
 
         player.losses++;
@@ -2289,36 +2413,35 @@ function finishGame(
 
     }
 
+
     savePlayers();
 
-    sendState(game);
 
-    if (
-        game.socket
-    ) {
+    sendState(
+        game
+    );
 
-        game.socket.emit(
-            "game_finished",
-            {
 
-                winner,
+    game.socket.emit(
+        "game_finished",
+        {
 
-                message:
-                    winner === "player"
-                        ? "Ты победил!"
-                        : winner === "cpu"
-                            ? "Компьютер победил"
-                            : "Ничья",
+            winner,
 
-                player:
-                    publicPlayer(
-                        player
-                    )
+            message:
+                winner === "player"
+                    ? "Ты победил!"
+                    : winner === "cpu"
+                        ? "Компьютер победил"
+                        : "Ничья",
 
-            }
-        );
+            player:
+                publicPlayer(
+                    player
+                )
 
-    }
+        }
+    );
 
 }
 
@@ -2337,11 +2460,10 @@ function checkGameOver(game) {
 
     }
 
+
     if (
-        game.playerHand.length ===
-        0 &&
-        game.cpuHand.length ===
-        0
+        game.playerHand.length === 0 &&
+        game.cpuHand.length === 0
     ) {
 
         finishGame(
@@ -2353,9 +2475,9 @@ function checkGameOver(game) {
 
     }
 
+
     if (
-        game.playerHand.length ===
-        0
+        game.playerHand.length === 0
     ) {
 
         finishGame(
@@ -2367,9 +2489,9 @@ function checkGameOver(game) {
 
     }
 
+
     if (
-        game.cpuHand.length ===
-        0
+        game.cpuHand.length === 0
     ) {
 
         finishGame(
@@ -2381,13 +2503,14 @@ function checkGameOver(game) {
 
     }
 
+
     return false;
 
 }
 
 
 /* =========================================================
-   REFILL
+   REFILL HANDS
 ========================================================= */
 
 function refillHands(game) {
@@ -2403,6 +2526,7 @@ function refillHands(game) {
         );
 
     }
+
 
     while (
         game.cpuHand.length <
@@ -2438,6 +2562,7 @@ function cpuBestDefense(
                 )
         );
 
+
     available.sort(
         (a, b) => {
 
@@ -2447,11 +2572,13 @@ function cpuBestDefense(
                     a
                 );
 
+
             const bTrump =
                 isTrump(
                     game,
                     b
                 );
+
 
             if (
                 aTrump !==
@@ -2464,6 +2591,7 @@ function cpuBestDefense(
 
             }
 
+
             return (
                 a.value -
                 b.value
@@ -2471,6 +2599,7 @@ function cpuBestDefense(
 
         }
     );
+
 
     return (
         available[0] ||
@@ -2480,10 +2609,15 @@ function cpuBestDefense(
 }
 
 
+/* =========================================================
+   CPU ATTACK CARD
+========================================================= */
+
 function cpuBestAttack(game) {
 
     const available =
         game.cpuHand.slice();
+
 
     available.sort(
         (a, b) => {
@@ -2494,11 +2628,13 @@ function cpuBestAttack(game) {
                     a
                 );
 
+
             const bTrump =
                 isTrump(
                     game,
                     b
                 );
+
 
             if (
                 aTrump !==
@@ -2511,6 +2647,7 @@ function cpuBestAttack(game) {
 
             }
 
+
             return (
                 a.value -
                 b.value
@@ -2518,6 +2655,7 @@ function cpuBestAttack(game) {
 
         }
     );
+
 
     return (
         available[0] ||
@@ -2541,6 +2679,7 @@ function cpuStartAttack(game) {
 
     }
 
+
     if (
         game.phase !==
         "cpu_attack"
@@ -2550,10 +2689,12 @@ function cpuStartAttack(game) {
 
     }
 
+
     const card =
         cpuBestAttack(
             game
         );
+
 
     if (!card) {
 
@@ -2565,12 +2706,14 @@ function cpuStartAttack(game) {
 
     }
 
+
     const index =
         game.cpuHand.findIndex(
             c =>
                 c.id ===
                 card.id
         );
+
 
     if (
         index === -1
@@ -2580,10 +2723,12 @@ function cpuStartAttack(game) {
 
     }
 
+
     game.cpuHand.splice(
         index,
         1
     );
+
 
     game.table.push({
 
@@ -2595,8 +2740,10 @@ function cpuStartAttack(game) {
 
     });
 
+
     game.phase =
         "player_defense";
+
 
     sendState(
         game
@@ -2619,10 +2766,12 @@ function cpuDefense(game) {
 
     }
 
+
     const index =
         firstUnbeaten(
             game
         );
+
 
     if (
         index === -1
@@ -2639,16 +2788,19 @@ function cpuDefense(game) {
 
     }
 
+
     const target =
         game.table[
             index
         ].attack;
+
 
     const card =
         cpuBestDefense(
             game,
             target
         );
+
 
     if (!card) {
 
@@ -2660,12 +2812,14 @@ function cpuDefense(game) {
 
     }
 
+
     const handIndex =
         game.cpuHand.findIndex(
             c =>
                 c.id ===
                 card.id
         );
+
 
     if (
         handIndex === -1
@@ -2675,19 +2829,23 @@ function cpuDefense(game) {
 
     }
 
+
     game.cpuHand.splice(
         handIndex,
         1
     );
+
 
     game.table[
         index
     ].defense =
         card;
 
+
     sendState(
         game
     );
+
 
     setTimeout(
         () => {
@@ -2700,8 +2858,11 @@ function cpuDefense(game) {
 
             }
 
+
             if (
-                allBeaten(game)
+                allBeaten(
+                    game
+                )
             ) {
 
                 game.phase =
@@ -2740,6 +2901,7 @@ function cpuTake(game) {
             pair.attack
         );
 
+
         if (
             pair.defense
         ) {
@@ -2752,31 +2914,41 @@ function cpuTake(game) {
 
     }
 
+
     game.table = [];
+
 
     refillHands(
         game
     );
 
+
     if (
-        checkGameOver(game)
+        checkGameOver(
+            game
+        )
     ) {
 
         return;
 
     }
 
+
     game.attacker =
         "player";
+
 
     game.defender =
         "cpu";
 
+
     game.phase =
         "player_attack";
 
+
     game.roundLimit =
         game.cpuHand.length;
+
 
     sendState(
         game
@@ -2800,6 +2972,7 @@ function playerTake(game) {
 
     }
 
+
     for (
         const pair of game.table
     ) {
@@ -2807,6 +2980,7 @@ function playerTake(game) {
         game.playerHand.push(
             pair.attack
         );
+
 
         if (
             pair.defense
@@ -2820,35 +2994,46 @@ function playerTake(game) {
 
     }
 
+
     game.table = [];
+
 
     refillHands(
         game
     );
 
+
     if (
-        checkGameOver(game)
+        checkGameOver(
+            game
+        )
     ) {
 
         return;
 
     }
 
+
     game.attacker =
         "cpu";
+
 
     game.defender =
         "player";
 
+
     game.phase =
         "cpu_attack";
+
 
     game.roundLimit =
         game.playerHand.length;
 
+
     sendState(
         game
     );
+
 
     setTimeout(
         () => {
@@ -2873,26 +3058,34 @@ function finishSuccessfulRound(
 ) {
 
     if (
-        !allBeaten(game)
+        !allBeaten(
+            game
+        )
     ) {
 
         return;
 
     }
 
+
     game.table = [];
+
 
     refillHands(
         game
     );
 
+
     if (
-        checkGameOver(game)
+        checkGameOver(
+            game
+        )
     ) {
 
         return;
 
     }
+
 
     if (
         game.attacker ===
@@ -2902,18 +3095,23 @@ function finishSuccessfulRound(
         game.attacker =
             "cpu";
 
+
         game.defender =
             "player";
+
 
         game.phase =
             "cpu_attack";
 
+
         game.roundLimit =
             game.playerHand.length;
+
 
         sendState(
             game
         );
+
 
         setTimeout(
             () => {
@@ -2931,14 +3129,18 @@ function finishSuccessfulRound(
         game.attacker =
             "player";
 
+
         game.defender =
             "cpu";
+
 
         game.phase =
             "player_attack";
 
+
         game.roundLimit =
             game.cpuHand.length;
+
 
         sendState(
             game
@@ -2966,6 +3168,7 @@ function playerPlay(
 
     }
 
+
     if (
         game.phase !==
         "player_attack" &&
@@ -2977,12 +3180,14 @@ function playerPlay(
 
     }
 
+
     const index =
         game.playerHand.findIndex(
             card =>
                 card.id ===
                 cardId
         );
+
 
     if (
         index === -1
@@ -2992,13 +3197,16 @@ function playerPlay(
 
     }
 
+
     const card =
         game.playerHand[
             index
         ];
 
 
-    /* PLAYER ATTACK */
+    /* =====================================================
+       PLAYER ATTACK
+    ===================================================== */
 
     if (
         game.phase ===
@@ -3028,10 +3236,12 @@ function playerPlay(
 
         }
 
+
         game.playerHand.splice(
             index,
             1
         );
+
 
         game.table.push({
 
@@ -3043,12 +3253,15 @@ function playerPlay(
 
         });
 
+
         game.phase =
             "cpu_defense";
+
 
         sendState(
             game
         );
+
 
         setTimeout(
             () => {
@@ -3061,12 +3274,15 @@ function playerPlay(
             500
         );
 
+
         return;
 
     }
 
 
-    /* PLAYER DEFENSE */
+    /* =====================================================
+       PLAYER DEFENSE
+    ===================================================== */
 
     if (
         game.phase ===
@@ -3078,6 +3294,7 @@ function playerPlay(
                 game
             );
 
+
         if (
             attackIndex === -1
         ) {
@@ -3086,10 +3303,12 @@ function playerPlay(
 
         }
 
+
         const attack =
             game.table[
                 attackIndex
             ].attack;
+
 
         if (
             !canBeat(
@@ -3113,19 +3332,28 @@ function playerPlay(
 
         }
 
+
         game.playerHand.splice(
             index,
             1
         );
+
 
         game.table[
             attackIndex
         ].defense =
             card;
 
+
         sendState(
             game
         );
+
+
+        /*
+         * После успешного отбивания
+         * компьютер принимает решение.
+         */
 
         setTimeout(
             () => {
@@ -3139,18 +3367,23 @@ function playerPlay(
                     game.phase =
                         "cpu_attack";
 
+
                     game.attacker =
                         "cpu";
+
 
                     game.defender =
                         "player";
 
+
                     game.roundLimit =
                         game.playerHand.length;
+
 
                     sendState(
                         game
                     );
+
 
                     setTimeout(
                         () => {
@@ -3194,12 +3427,16 @@ function cpuContinueAttack(game) {
 
     }
 
+
     if (
-        !allBeaten(game)
+        !allBeaten(
+            game
+        )
     ) {
 
         game.phase =
             "player_defense";
+
 
         sendState(
             game
@@ -3208,6 +3445,7 @@ function cpuContinueAttack(game) {
         return;
 
     }
+
 
     const candidates =
         game.cpuHand.filter(
@@ -3218,9 +3456,9 @@ function cpuContinueAttack(game) {
                 )
         );
 
+
     if (
-        candidates.length ===
-        0
+        candidates.length === 0
     ) {
 
         finishSuccessfulRound(
@@ -3231,6 +3469,7 @@ function cpuContinueAttack(game) {
 
     }
 
+
     candidates.sort(
         (a, b) => {
 
@@ -3240,11 +3479,13 @@ function cpuContinueAttack(game) {
                     a
                 );
 
+
             const bTrump =
                 isTrump(
                     game,
                     b
                 );
+
 
             if (
                 aTrump !==
@@ -3257,6 +3498,7 @@ function cpuContinueAttack(game) {
 
             }
 
+
             return (
                 a.value -
                 b.value
@@ -3265,8 +3507,10 @@ function cpuContinueAttack(game) {
         }
     );
 
+
     const card =
         candidates[0];
+
 
     const index =
         game.cpuHand.findIndex(
@@ -3274,6 +3518,7 @@ function cpuContinueAttack(game) {
                 c.id ===
                 card.id
         );
+
 
     if (
         index === -1
@@ -3283,10 +3528,12 @@ function cpuContinueAttack(game) {
 
     }
 
+
     game.cpuHand.splice(
         index,
         1
     );
+
 
     game.table.push({
 
@@ -3298,8 +3545,10 @@ function cpuContinueAttack(game) {
 
     });
 
+
     game.phase =
         "player_defense";
+
 
     sendState(
         game
@@ -3322,6 +3571,7 @@ function createGame(
             playerId
         );
 
+
     if (existing) {
 
         existing.socket =
@@ -3331,27 +3581,27 @@ function createGame(
 
     }
 
+
     const deck =
         createDeck();
+
 
     const trump =
         deck[
             deck.length - 1
         ];
 
+
     const game = {
 
         id:
             crypto.randomUUID(),
 
-        playerId:
-            playerId,
+        playerId,
 
-        socket:
-            socket,
+        socket,
 
-        deck:
-            deck,
+        deck,
 
         playerHand:
             [],
@@ -3383,6 +3633,10 @@ function createGame(
     };
 
 
+    /*
+     * Раздаём по 6 карт.
+     */
+
     for (
         let i = 0;
         i < 6;
@@ -3392,6 +3646,7 @@ function createGame(
         game.playerHand.push(
             game.deck.shift()
         );
+
 
         game.cpuHand.push(
             game.deck.shift()
@@ -3404,6 +3659,7 @@ function createGame(
         determineFirstAttacker(
             game
         );
+
 
     game.defender =
         game.attacker ===
@@ -3431,6 +3687,7 @@ function createGame(
         game
     );
 
+
     return game;
 
 }
@@ -3450,7 +3707,9 @@ io.on(
         );
 
 
-        /* AUTHENTICATE */
+        /* =================================================
+           AUTHENTICATE
+        ================================================= */
 
         socket.on(
             "authenticate",
@@ -3462,10 +3721,12 @@ io.on(
                         data &&
                         data.initData;
 
+
                     const user =
                         validateTelegramInitData(
                             initData
                         );
+
 
                     if (!user) {
 
@@ -3483,15 +3744,18 @@ io.on(
 
                     }
 
+
                     const player =
                         createPlayer(
                             user
                         );
 
+
                     socket.playerId =
                         String(
                             player.telegram_id
                         );
+
 
                     socket.emit(
                         "authenticated",
@@ -3500,13 +3764,6 @@ io.on(
                             player:
                                 publicPlayer(
                                     player
-                                ),
-
-                            cars:
-                                getPlayerCars(
-                                    player.telegram_id
-                                ).map(
-                                    publicCar
                                 )
 
                         }
@@ -3518,6 +3775,7 @@ io.on(
                         "SOCKET AUTH ERROR:",
                         error
                     );
+
 
                     socket.emit(
                         "server_error",
@@ -3535,7 +3793,9 @@ io.on(
         );
 
 
-        /* START GAME */
+        /* =================================================
+           START GAME
+        ================================================= */
 
         socket.on(
             "start_game",
@@ -3559,18 +3819,22 @@ io.on(
 
                 }
 
+
                 const game =
                     createGame(
                         socket.playerId,
                         socket
                     );
 
+
                 game.socket =
                     socket;
+
 
                 sendState(
                     game
                 );
+
 
                 if (
                     game.phase ===
@@ -3594,7 +3858,9 @@ io.on(
         );
 
 
-        /* PLAY CARD */
+        /* =================================================
+           PLAY CARD
+        ================================================= */
 
         socket.on(
             "play_card",
@@ -3608,10 +3874,12 @@ io.on(
 
                 }
 
+
                 const game =
                     findGameByPlayer(
                         socket.playerId
                     );
+
 
                 if (!game) {
 
@@ -3619,8 +3887,17 @@ io.on(
 
                 }
 
-                game.socket =
-                    socket;
+
+                if (
+                    game.socket !==
+                    socket
+                ) {
+
+                    game.socket =
+                        socket;
+
+                }
+
 
                 playerPlay(
                     game,
@@ -3632,7 +3909,9 @@ io.on(
         );
 
 
-        /* TAKE CARDS */
+        /* =================================================
+           TAKE CARDS
+        ================================================= */
 
         socket.on(
             "take_cards",
@@ -3646,10 +3925,12 @@ io.on(
 
                 }
 
+
                 const game =
                     findGameByPlayer(
                         socket.playerId
                     );
+
 
                 if (!game) {
 
@@ -3657,8 +3938,10 @@ io.on(
 
                 }
 
+
                 game.socket =
                     socket;
+
 
                 playerTake(
                     game
@@ -3668,7 +3951,9 @@ io.on(
         );
 
 
-        /* FINISH ROUND */
+        /* =================================================
+           FINISH ROUND
+        ================================================= */
 
         socket.on(
             "finish_round",
@@ -3682,10 +3967,12 @@ io.on(
 
                 }
 
+
                 const game =
                     findGameByPlayer(
                         socket.playerId
                     );
+
 
                 if (!game) {
 
@@ -3693,8 +3980,10 @@ io.on(
 
                 }
 
+
                 game.socket =
                     socket;
+
 
                 if (
                     game.phase !==
@@ -3704,6 +3993,7 @@ io.on(
                     return;
 
                 }
+
 
                 if (
                     !allBeaten(
@@ -3725,6 +4015,7 @@ io.on(
 
                 }
 
+
                 finishSuccessfulRound(
                     game
                 );
@@ -3732,6 +4023,10 @@ io.on(
             }
         );
 
+
+        /* =================================================
+           DISCONNECT
+        ================================================= */
 
         socket.on(
             "disconnect",
@@ -3741,6 +4036,13 @@ io.on(
                     "SOCKET DISCONNECT:",
                     socket.id
                 );
+
+                /*
+                 * Игру не удаляем.
+                 *
+                 * При переподключении
+                 * игрок сможет продолжить.
+                 */
 
             }
         );
@@ -3761,6 +4063,7 @@ server.listen(
             `HEAVY LUX SERVER RUNNING ON PORT ${PORT}`
         );
 
+
         console.log(
             `BOT TOKEN: ${
                 BOT_TOKEN
@@ -3769,20 +4072,14 @@ server.listen(
             }`
         );
 
-        console.log(
-            `PLAYERS: ${
-                Object.keys(
-                    players
-                ).length
-            }`
-        );
 
         console.log(
-            `CARS: ${
-                Object.keys(
-                    cars
-                ).length
-            }`
+            `CAR REGISTRATION: ${REGISTRATION_PRICE} HC`
+        );
+
+
+        console.log(
+            `CAR CATALOG: ${CAR_CATALOG.length} vehicles`
         );
 
     }
