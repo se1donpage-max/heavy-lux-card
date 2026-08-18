@@ -1,55 +1,86 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
+const http = require("http");
+const { Server } = require("socket.io");
 const { Pool } = require("pg");
 require("dotenv").config();
 
 const app = express();
+const server = http.createServer(app);
 
 const PORT = process.env.PORT || 3000;
 
-
-// =====================================================
-// MIDDLEWARE
-// =====================================================
-
-app.use(cors({
-    origin: "*"
-}));
-
+app.use(cors());
 app.use(express.json());
 
-
-// =====================================================
-// DATABASE
-// =====================================================
-
-if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL is not configured");
-    process.exit(1);
-}
+/* =========================================================
+   POSTGRESQL
+========================================================= */
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-
     ssl: {
         rejectUnauthorized: false
     }
 });
 
+/* =========================================================
+   SOCKET.IO
+========================================================= */
 
-// =====================================================
-// CONSTANTS
-// =====================================================
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
-const START_BALANCE = 5000;
+/* =========================================================
+   DATABASE
+========================================================= */
 
-const MAX_PLAYERS_PER_ROOM = 2;
+async function initDatabase() {
 
+    try {
 
-// =====================================================
-// TITLES
-// =====================================================
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS players (
+                id SERIAL PRIMARY KEY,
+                telegram_id BIGINT UNIQUE NOT NULL,
+                username TEXT,
+                first_name TEXT,
+
+                balance BIGINT NOT NULL DEFAULT 5000,
+
+                xp INTEGER NOT NULL DEFAULT 0,
+                level INTEGER NOT NULL DEFAULT 1,
+                title TEXT,
+
+                wins INTEGER NOT NULL DEFAULT 0,
+                losses INTEGER NOT NULL DEFAULT 0,
+                games INTEGER NOT NULL DEFAULT 0,
+
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        console.log("Database initialized");
+
+    } catch (error) {
+
+        console.error(
+            "Database initialization error:",
+            error
+        );
+
+        throw error;
+    }
+}
+
+/* =========================================================
+   TITLES
+========================================================= */
 
 function getTitle(level) {
 
@@ -76,10 +107,9 @@ function getTitle(level) {
     return null;
 }
 
-
-// =====================================================
-// TELEGRAM AUTH
-// =====================================================
+/* =========================================================
+   TELEGRAM AUTH
+========================================================= */
 
 function validateTelegramInitData(initData) {
 
@@ -87,15 +117,20 @@ function validateTelegramInitData(initData) {
         return null;
     }
 
-    const botToken = process.env.BOT_TOKEN;
+    const botToken =
+        process.env.BOT_TOKEN;
 
     if (!botToken) {
-        throw new Error("BOT_TOKEN is not configured");
+        throw new Error(
+            "BOT_TOKEN is not configured"
+        );
     }
 
-    const params = new URLSearchParams(initData);
+    const params =
+        new URLSearchParams(initData);
 
-    const receivedHash = params.get("hash");
+    const receivedHash =
+        params.get("hash");
 
     if (!receivedHash) {
         return null;
@@ -103,64 +138,79 @@ function validateTelegramInitData(initData) {
 
     params.delete("hash");
 
-    const dataCheckString = Array
-        .from(params.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([key, value]) => `${key}=${value}`)
-        .join("\n");
+    const dataCheckString =
+        Array.from(params.entries())
+            .sort(([a], [b]) =>
+                a.localeCompare(b)
+            )
+            .map(
+                ([key, value]) =>
+                    `${key}=${value}`
+            )
+            .join("\n");
 
-    const secretKey = crypto
-        .createHmac("sha256", "WebAppData")
-        .update(botToken)
-        .digest();
+    const secretKey =
+        crypto
+            .createHmac(
+                "sha256",
+                "WebAppData"
+            )
+            .update(botToken)
+            .digest();
 
-    const calculatedHash = crypto
-        .createHmac("sha256", secretKey)
-        .update(dataCheckString)
-        .digest("hex");
+    const calculatedHash =
+        crypto
+            .createHmac(
+                "sha256",
+                secretKey
+            )
+            .update(dataCheckString)
+            .digest("hex");
 
     if (
-        calculatedHash.length !== receivedHash.length
+        calculatedHash.length !==
+        receivedHash.length
     ) {
         return null;
     }
 
-    const validHash = crypto.timingSafeEqual(
-        Buffer.from(calculatedHash),
-        Buffer.from(receivedHash)
-    );
-
-    if (!validHash) {
+    if (
+        !crypto.timingSafeEqual(
+            Buffer.from(calculatedHash),
+            Buffer.from(receivedHash)
+        )
+    ) {
         return null;
     }
 
-    const authDate = Number(
-        params.get("auth_date")
-    );
+    const authDate =
+        Number(
+            params.get("auth_date")
+        );
 
     if (!authDate) {
         return null;
     }
 
-    const currentTime = Math.floor(
-        Date.now() / 1000
-    );
+    const currentTime =
+        Math.floor(
+            Date.now() / 1000
+        );
 
-    // Telegram initData старше 24 часов отклоняем
-    if (
-        currentTime - authDate > 86400
-    ) {
-        return null;
-    }
+    /*
+        Не принимаем данные
+        старше 24 часов.
+    */
 
-    // Защита от времени из будущего
     if (
+        currentTime - authDate > 86400 ||
         authDate > currentTime + 60
     ) {
         return null;
     }
 
-    const userString = params.get("user");
+    const userString =
+        params.get("user");
 
     if (!userString) {
         return null;
@@ -168,1478 +218,2073 @@ function validateTelegramInitData(initData) {
 
     try {
 
-        const user = JSON.parse(userString);
-
-        if (!user.id) {
-            return null;
-        }
-
-        return user;
+        return JSON.parse(
+            userString
+        );
 
     } catch {
 
         return null;
-
     }
 }
 
+/* =========================================================
+   PLAYER
+========================================================= */
 
-// =====================================================
-// AUTH MIDDLEWARE
-// =====================================================
+async function getOrCreatePlayer(
+    telegramUser
+) {
 
-async function authenticateTelegram(req, res, next) {
+    const telegramId =
+        telegramUser.id;
 
-    try {
+    const username =
+        telegramUser.username || null;
 
-        const initData =
-            req.headers["x-telegram-init-data"];
+    const firstName =
+        telegramUser.first_name || null;
 
-        if (!initData) {
-
-            return res.status(401).json({
-                success: false,
-                error: "Telegram authorization required"
-            });
-
-        }
-
-        const telegramUser =
-            validateTelegramInitData(initData);
-
-        if (!telegramUser) {
-
-            return res.status(401).json({
-                success: false,
-                error: "Invalid Telegram authorization"
-            });
-
-        }
-
-        req.telegramUser = telegramUser;
-
-        next();
-
-    } catch (error) {
-
-        console.error(
-            "AUTH MIDDLEWARE ERROR:",
-            error
+    const existing =
+        await pool.query(
+            `
+            SELECT *
+            FROM players
+            WHERE telegram_id = $1
+            `,
+            [telegramId]
         );
 
-        return res.status(500).json({
-            success: false,
-            error: "Authorization error"
-        });
+    if (existing.rows.length > 0) {
 
-    }
-}
+        const player =
+            existing.rows[0];
 
-
-// =====================================================
-// DATABASE INITIALIZATION
-// =====================================================
-
-async function initDatabase() {
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS players (
-
-            id SERIAL PRIMARY KEY,
-
-            telegram_id BIGINT UNIQUE NOT NULL,
-
-            username TEXT,
-            first_name TEXT,
-
-            balance BIGINT NOT NULL DEFAULT 5000,
-
-            xp INTEGER NOT NULL DEFAULT 0,
-            level INTEGER NOT NULL DEFAULT 1,
-            title TEXT,
-
-            wins INTEGER NOT NULL DEFAULT 0,
-            losses INTEGER NOT NULL DEFAULT 0,
-            games INTEGER NOT NULL DEFAULT 0,
-
-            created_at TIMESTAMP
-                NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-            updated_at TIMESTAMP
-                NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-    `);
-
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS game_rooms (
-
-            id UUID PRIMARY KEY,
-
-            status TEXT NOT NULL DEFAULT 'waiting',
-
-            host_telegram_id BIGINT NOT NULL,
-
-            max_players INTEGER
-                NOT NULL DEFAULT 2,
-
-            created_at TIMESTAMP
-                NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-            updated_at TIMESTAMP
-                NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-    `);
-
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS game_room_players (
-
-            id SERIAL PRIMARY KEY,
-
-            room_id UUID NOT NULL
-                REFERENCES game_rooms(id)
-                ON DELETE CASCADE,
-
-            telegram_id BIGINT NOT NULL,
-
-            seat INTEGER NOT NULL,
-
-            joined_at TIMESTAMP
-                NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-            UNIQUE(room_id, telegram_id),
-
-            UNIQUE(room_id, seat)
-        );
-    `);
-
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS game_actions (
-
-            id SERIAL PRIMARY KEY,
-
-            room_id UUID NOT NULL
-                REFERENCES game_rooms(id)
-                ON DELETE CASCADE,
-
-            telegram_id BIGINT NOT NULL,
-
-            action TEXT NOT NULL,
-
-            payload JSONB,
-
-            created_at TIMESTAMP
-                NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-    `);
-
-
-    console.log(
-        "Database initialized successfully"
-    );
-}
-
-
-// =====================================================
-// ROOT
-// =====================================================
-
-app.get("/", (req, res) => {
-
-    res.json({
-
-        success: true,
-
-        project: "Heavy Lux Card",
-
-        status: "online",
-
-        version: "1.0.0"
-
-    });
-
-});
-
-
-// =====================================================
-// HEALTH
-// =====================================================
-
-app.get("/api/health", async (req, res) => {
-
-    try {
-
-        const result =
-            await pool.query("SELECT NOW()");
-
-        res.json({
-
-            success: true,
-
-            status: "online",
-
-            database: "connected",
-
-            time: result.rows[0].now
-
-        });
-
-    } catch (error) {
-
-        console.error(error);
-
-        res.status(500).json({
-
-            success: false,
-
-            status: "online",
-
-            database: "error"
-
-        });
-
-    }
-
-});
-
-
-// =====================================================
-// TELEGRAM AUTH
-// =====================================================
-
-app.post("/api/auth", async (req, res) => {
-
-    try {
-
-        const { initData } = req.body;
-
-        const telegramUser =
-            validateTelegramInitData(initData);
-
-        if (!telegramUser) {
-
-            return res.status(401).json({
-
-                success: false,
-
-                error:
-                    "Invalid Telegram authentication"
-
-            });
-
-        }
-
-
-        const telegramId =
-            telegramUser.id;
-
-        const username =
-            telegramUser.username || null;
-
-        const firstName =
-            telegramUser.first_name || null;
-
-
-        const existing =
+        const updated =
             await pool.query(
                 `
-                SELECT *
-                FROM players
-                WHERE telegram_id = $1
-                `,
-                [telegramId]
-            );
+                UPDATE players
 
+                SET username = $1,
+                    first_name = $2,
+                    title = $3
 
-        // =================================================
-        // EXISTING PLAYER
-        // =================================================
-
-        if (existing.rows.length > 0) {
-
-            const player =
-                existing.rows[0];
-
-            const updated =
-                await pool.query(
-                    `
-                    UPDATE players
-
-                    SET
-                        username = $1,
-                        first_name = $2,
-                        title = $3,
-                        updated_at = CURRENT_TIMESTAMP
-
-                    WHERE telegram_id = $4
-
-                    RETURNING *
-                    `,
-                    [
-                        username,
-                        firstName,
-                        getTitle(player.level),
-                        telegramId
-                    ]
-                );
-
-
-            return res.json({
-
-                success: true,
-
-                new_player: false,
-
-                player: updated.rows[0]
-
-            });
-
-        }
-
-
-        // =================================================
-        // NEW PLAYER
-        // =================================================
-
-        const created =
-            await pool.query(
-                `
-                INSERT INTO players
-                (
-                    telegram_id,
-                    username,
-                    first_name,
-                    balance,
-                    xp,
-                    level,
-                    title
-                )
-
-                VALUES
-                (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    0,
-                    1,
-                    NULL
-                )
+                WHERE telegram_id = $4
 
                 RETURNING *
                 `,
                 [
-                    telegramId,
                     username,
                     firstName,
-                    START_BALANCE
-                ]
-            );
-
-
-        res.json({
-
-            success: true,
-
-            new_player: true,
-
-            player: created.rows[0]
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "AUTH ERROR:",
-            error
-        );
-
-        res.status(500).json({
-
-            success: false,
-
-            error:
-                "Authentication server error"
-
-        });
-
-    }
-
-});
-
-
-// =====================================================
-// GET CURRENT PLAYER
-// =====================================================
-
-app.get(
-    "/api/me",
-    authenticateTelegram,
-    async (req, res) => {
-
-        try {
-
-            const telegramId =
-                req.telegramUser.id;
-
-
-            const result =
-                await pool.query(
-                    `
-                    SELECT *
-                    FROM players
-                    WHERE telegram_id = $1
-                    `,
-                    [telegramId]
-                );
-
-
-            if (result.rows.length === 0) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    error:
-                        "Player not found"
-
-                });
-
-            }
-
-
-            const player =
-                result.rows[0];
-
-            player.title =
-                getTitle(player.level);
-
-
-            res.json({
-
-                success: true,
-
-                player
-
-            });
-
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Database error"
-
-            });
-
-        }
-
-    }
-);
-
-
-// =====================================================
-// GET PLAYER BY TELEGRAM ID
-// =====================================================
-
-app.get(
-    "/api/player/:telegram_id",
-    authenticateTelegram,
-    async (req, res) => {
-
-        try {
-
-            const requestedId =
-                req.params.telegram_id;
-
-            const currentId =
-                String(req.telegramUser.id);
-
-
-            // Нельзя смотреть чужие профили
-            // через этот endpoint
-
-            if (
-                requestedId !== currentId
-            ) {
-
-                return res.status(403).json({
-
-                    success: false,
-
-                    error:
-                        "Access denied"
-
-                });
-
-            }
-
-
-            const result =
-                await pool.query(
-                    `
-                    SELECT *
-                    FROM players
-                    WHERE telegram_id = $1
-                    `,
-                    [requestedId]
-                );
-
-
-            if (result.rows.length === 0) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    error:
-                        "Player not found"
-
-                });
-
-            }
-
-
-            const player =
-                result.rows[0];
-
-            player.title =
-                getTitle(player.level);
-
-
-            res.json({
-
-                success: true,
-
-                player
-
-            });
-
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Database error"
-
-            });
-
-        }
-
-    }
-);
-
-
-// =====================================================
-// CREATE GAME ROOM
-// =====================================================
-
-app.post(
-    "/api/game/create",
-    authenticateTelegram,
-    async (req, res) => {
-
-        const client =
-            await pool.connect();
-
-        try {
-
-            const telegramId =
-                req.telegramUser.id;
-
-
-            const roomId =
-                crypto.randomUUID();
-
-
-            await client.query("BEGIN");
-
-
-            // Проверяем, нет ли игрока
-            // уже в активной комнате
-
-            const activeRoom =
-                await client.query(
-                    `
-                    SELECT gr.id
-
-                    FROM game_rooms gr
-
-                    JOIN game_room_players grp
-                        ON grp.room_id = gr.id
-
-                    WHERE grp.telegram_id = $1
-
-                    AND gr.status IN
-                        ('waiting', 'playing')
-
-                    LIMIT 1
-                    `,
-                    [telegramId]
-                );
-
-
-            if (
-                activeRoom.rows.length > 0
-            ) {
-
-                await client.query(
-                    "ROLLBACK"
-                );
-
-                return res.status(409).json({
-
-                    success: false,
-
-                    error:
-                        "Player already has an active game",
-
-                    room_id:
-                        activeRoom.rows[0].id
-
-                });
-
-            }
-
-
-            await client.query(
-                `
-                INSERT INTO game_rooms
-                (
-                    id,
-                    status,
-                    host_telegram_id,
-                    max_players
-                )
-
-                VALUES
-                (
-                    $1,
-                    'waiting',
-                    $2,
-                    $3
-                )
-                `,
-                [
-                    roomId,
-                    telegramId,
-                    MAX_PLAYERS_PER_ROOM
-                ]
-            );
-
-
-            await client.query(
-                `
-                INSERT INTO game_room_players
-                (
-                    room_id,
-                    telegram_id,
-                    seat
-                )
-
-                VALUES
-                (
-                    $1,
-                    $2,
-                    1
-                )
-                `,
-                [
-                    roomId,
+                    getTitle(player.level),
                     telegramId
                 ]
             );
 
-
-            await client.query("COMMIT");
-
-
-            res.json({
-
-                success: true,
-
-                room_id: roomId,
-
-                status: "waiting"
-
-            });
-
-
-        } catch (error) {
-
-            await client.query(
-                "ROLLBACK"
-            );
-
-            console.error(
-                "CREATE GAME ERROR:",
-                error
-            );
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Could not create game"
-
-            });
-
-        } finally {
-
-            client.release();
-
-        }
-
+        return updated.rows[0];
     }
-);
 
-
-// =====================================================
-// JOIN GAME
-// =====================================================
-
-app.post(
-    "/api/game/join",
-    authenticateTelegram,
-    async (req, res) => {
-
-        const client =
-            await pool.connect();
-
-        try {
-
-            const telegramId =
-                req.telegramUser.id;
-
-            const { room_id } =
-                req.body;
-
-
-            if (!room_id) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "room_id is required"
-
-                });
-
-            }
-
-
-            await client.query("BEGIN");
-
-
-            const room =
-                await client.query(
-                    `
-                    SELECT *
-
-                    FROM game_rooms
-
-                    WHERE id = $1
-
-                    FOR UPDATE
-                    `,
-                    [room_id]
-                );
-
-
-            if (room.rows.length === 0) {
-
-                await client.query(
-                    "ROLLBACK"
-                );
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    error:
-                        "Game room not found"
-
-                });
-
-            }
-
-
-            const game =
-                room.rows[0];
-
-
-            if (
-                game.status !== "waiting"
-            ) {
-
-                await client.query(
-                    "ROLLBACK"
-                );
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Game already started"
-
-                });
-
-            }
-
-
-            const players =
-                await client.query(
-                    `
-                    SELECT *
-
-                    FROM game_room_players
-
-                    WHERE room_id = $1
-
-                    ORDER BY seat
-                    `,
-                    [room_id]
-                );
-
-
-            if (
-                players.rows.length >=
-                game.max_players
-            ) {
-
-                await client.query(
-                    "ROLLBACK"
-                );
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Game room is full"
-
-                });
-
-            }
-
-
-            const alreadyJoined =
-                players.rows.find(
-                    p =>
-                        String(
-                            p.telegram_id
-                        ) ===
-                        String(
-                            telegramId
-                        )
-                );
-
-
-            if (alreadyJoined) {
-
-                await client.query(
-                    "COMMIT"
-                );
-
-                return res.json({
-
-                    success: true,
-
-                    room_id,
-
-                    status:
-                        game.status
-
-                });
-
-            }
-
-
-            const usedSeats =
-                players.rows.map(
-                    p => p.seat
-                );
-
-
-            let seat = 1;
-
-            while (
-                usedSeats.includes(seat)
-            ) {
-
-                seat++;
-
-            }
-
-
-            await client.query(
-                `
-                INSERT INTO game_room_players
-                (
-                    room_id,
-                    telegram_id,
-                    seat
-                )
-
-                VALUES
-                (
-                    $1,
-                    $2,
-                    $3
-                )
-                `,
-                [
-                    room_id,
-                    telegramId,
-                    seat
-                ]
-            );
-
-
-            const newPlayerCount =
-                players.rows.length + 1;
-
-
-            let newStatus =
-                "waiting";
-
-
-            if (
-                newPlayerCount >=
-                game.max_players
-            ) {
-
-                newStatus =
-                    "playing";
-
-
-                await client.query(
-                    `
-                    UPDATE game_rooms
-
-                    SET
-                        status = 'playing',
-                        updated_at =
-                            CURRENT_TIMESTAMP
-
-                    WHERE id = $1
-                    `,
-                    [room_id]
-                );
-
-            }
-
-
-            await client.query(
-                "COMMIT"
-            );
-
-
-            res.json({
-
-                success: true,
-
-                room_id,
-
-                status: newStatus,
-
-                seat
-
-            });
-
-
-        } catch (error) {
-
-            await client.query(
-                "ROLLBACK"
-            );
-
-            console.error(
-                "JOIN GAME ERROR:",
-                error
-            );
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Could not join game"
-
-            });
-
-        } finally {
-
-            client.release();
-
-        }
-
-    }
-);
-
-
-// =====================================================
-// GET GAME ROOM
-// =====================================================
-
-app.get(
-    "/api/game/:room_id",
-    authenticateTelegram,
-    async (req, res) => {
-
-        try {
-
-            const roomId =
-                req.params.room_id;
-
-            const telegramId =
-                req.telegramUser.id;
-
-
-            const result =
-                await pool.query(
-                    `
-                    SELECT
-                        gr.id,
-                        gr.status,
-                        gr.host_telegram_id,
-                        gr.max_players,
-                        gr.created_at,
-
-                        json_agg(
-                            json_build_object(
-                                'telegram_id',
-                                p.telegram_id,
-
-                                'username',
-                                p.username,
-
-                                'first_name',
-                                p.first_name,
-
-                                'seat',
-                                grp.seat
-                            )
-                            ORDER BY grp.seat
-                        ) AS players
-
-                    FROM game_rooms gr
-
-                    JOIN game_room_players grp
-                        ON grp.room_id = gr.id
-
-                    JOIN players p
-                        ON p.telegram_id =
-                           grp.telegram_id
-
-                    WHERE gr.id = $1
-
-                    GROUP BY gr.id
-                    `,
-                    [roomId]
-                );
-
-
-            if (result.rows.length === 0) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    error:
-                        "Game room not found"
-
-                });
-
-            }
-
-
-            const game =
-                result.rows[0];
-
-
-            const isPlayer =
-                game.players.some(
-                    player =>
-                        String(
-                            player.telegram_id
-                        ) ===
-                        String(
-                            telegramId
-                        )
-                );
-
-
-            if (!isPlayer) {
-
-                return res.status(403).json({
-
-                    success: false,
-
-                    error:
-                        "You are not in this game"
-
-                });
-
-            }
-
-
-            res.json({
-
-                success: true,
-
-                game
-
-            });
-
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Database error"
-
-            });
-
-        }
-
-    }
-);
-
-
-// =====================================================
-// SEND GAME ACTION
-// =====================================================
-
-app.post(
-    "/api/game/:room_id/action",
-    authenticateTelegram,
-    async (req, res) => {
-
-        try {
-
-            const roomId =
-                req.params.room_id;
-
-            const telegramId =
-                req.telegramUser.id;
-
-            const {
-                action,
-                payload
-            } = req.body;
-
-
-            if (!action) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    error:
-                        "Action is required"
-
-                });
-
-            }
-
-
-            // Проверяем участие
-
-            const player =
-                await pool.query(
-                    `
-                    SELECT 1
-
-                    FROM game_room_players
-
-                    WHERE room_id = $1
-
-                    AND telegram_id = $2
-                    `,
-                    [
-                        roomId,
-                        telegramId
-                    ]
-                );
-
-
-            if (
-                player.rows.length === 0
-            ) {
-
-                return res.status(403).json({
-
-                    success: false,
-
-                    error:
-                        "You are not in this game"
-
-                });
-
-            }
-
-
-            // Пока просто записываем действие.
-            // Здесь позже будет игровая логика
-            // Дурака / Heavy Lux Card.
-
-            await pool.query(
-                `
-                INSERT INTO game_actions
-                (
-                    room_id,
-                    telegram_id,
-                    action,
-                    payload
-                )
-
-                VALUES
-                (
-                    $1,
-                    $2,
-                    $3,
-                    $4
-                )
-                `,
-                [
-                    roomId,
-                    telegramId,
-                    action,
-                    payload || {}
-                ]
-            );
-
-
-            res.json({
-
-                success: true,
-
-                action
-
-            });
-
-
-        } catch (error) {
-
-            console.error(
-                "GAME ACTION ERROR:",
-                error
-            );
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Could not process action"
-
-            });
-
-        }
-
-    }
-);
-
-
-// =====================================================
-// GET GAME ACTIONS
-// =====================================================
-
-app.get(
-    "/api/game/:room_id/actions",
-    authenticateTelegram,
-    async (req, res) => {
-
-        try {
-
-            const roomId =
-                req.params.room_id;
-
-            const telegramId =
-                req.telegramUser.id;
-
-
-            const player =
-                await pool.query(
-                    `
-                    SELECT 1
-
-                    FROM game_room_players
-
-                    WHERE room_id = $1
-
-                    AND telegram_id = $2
-                    `,
-                    [
-                        roomId,
-                        telegramId
-                    ]
-                );
-
-
-            if (
-                player.rows.length === 0
-            ) {
-
-                return res.status(403).json({
-
-                    success: false,
-
-                    error:
-                        "You are not in this game"
-
-                });
-
-            }
-
-
-            const result =
-                await pool.query(
-                    `
-                    SELECT
-                        id,
-                        telegram_id,
-                        action,
-                        payload,
-                        created_at
-
-                    FROM game_actions
-
-                    WHERE room_id = $1
-
-                    ORDER BY id ASC
-                    `,
-                    [roomId]
-                );
-
-
-            res.json({
-
-                success: true,
-
-                actions:
-                    result.rows
-
-            });
-
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-
-                success: false,
-
-                error:
-                    "Database error"
-
-            });
-
-        }
-
-    }
-);
-
-
-// =====================================================
-// 404
-// =====================================================
-
-app.use((req, res) => {
-
-    res.status(404).json({
-
-        success: false,
-
-        error: "Route not found"
-
-    });
-
-});
-
-
-// =====================================================
-// ERROR HANDLER
-// =====================================================
-
-app.use(
-    (error, req, res, next) => {
-
-        console.error(
-            "SERVER ERROR:",
-            error
+    const created =
+        await pool.query(
+            `
+            INSERT INTO players
+            (
+                telegram_id,
+                username,
+                first_name,
+                balance,
+                xp,
+                level,
+                title
+            )
+
+            VALUES
+            (
+                $1,
+                $2,
+                $3,
+                5000,
+                0,
+                1,
+                NULL
+            )
+
+            RETURNING *
+            `,
+            [
+                telegramId,
+                username,
+                firstName
+            ]
         );
 
-        res.status(500).json({
+    return created.rows[0];
+}
 
-            success: false,
+/* =========================================================
+   BASIC ROUTES
+========================================================= */
 
-            error:
-                "Internal server error"
+app.get("/", (req, res) => {
 
-        });
+    res.json({
+        success: true,
+        project: "Heavy Lux Card",
+        status: "online",
+        multiplayer: true
+    });
+});
 
+app.get(
+    "/api/health",
+    async (req, res) => {
+
+        try {
+
+            await pool.query(
+                "SELECT NOW()"
+            );
+
+            res.json({
+                success: true,
+                status: "online",
+                database: "connected"
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+                success: false,
+                database: "error"
+            });
+        }
     }
 );
 
+/* =========================================================
+   TELEGRAM AUTH
+========================================================= */
 
-// =====================================================
-// START SERVER
-// =====================================================
+app.post(
+    "/api/auth",
+    async (req, res) => {
 
-async function startServer() {
+        try {
 
-    try {
+            const {
+                initData
+            } = req.body;
 
-        await initDatabase();
+            const telegramUser =
+                validateTelegramInitData(
+                    initData
+                );
 
+            if (!telegramUser) {
 
-        app.listen(
-            PORT,
+                return res
+                    .status(401)
+                    .json({
+                        success: false,
+                        error:
+                            "Invalid Telegram authentication"
+                    });
+            }
+
+            const player =
+                await getOrCreatePlayer(
+                    telegramUser
+                );
+
+            res.json({
+                success: true,
+                player
+            });
+
+        } catch (error) {
+
+            console.error(
+                "AUTH ERROR:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                error:
+                    "Authentication server error"
+            });
+        }
+    }
+);
+
+/* =========================================================
+   GET PLAYER
+========================================================= */
+
+app.get(
+    "/api/player/:telegram_id",
+    async (req, res) => {
+
+        try {
+
+            const telegramId =
+                req.params.telegram_id;
+
+            const result =
+                await pool.query(
+                    `
+                    SELECT *
+                    FROM players
+                    WHERE telegram_id = $1
+                    `,
+                    [telegramId]
+                );
+
+            if (
+                result.rows.length === 0
+            ) {
+
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Player not found"
+                    });
+            }
+
+            const player =
+                result.rows[0];
+
+            player.title =
+                getTitle(
+                    player.level
+                );
+
+            res.json({
+                success: true,
+                player
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+                success: false,
+                error:
+                    "Database error"
+            });
+        }
+    }
+);
+
+/* =========================================================
+   GAME CONSTANTS
+========================================================= */
+
+const SUITS = [
+    "♠",
+    "♥",
+    "♦",
+    "♣"
+];
+
+const RANKS = [
+    {
+        name: "6",
+        value: 6
+    },
+    {
+        name: "7",
+        value: 7
+    },
+    {
+        name: "8",
+        value: 8
+    },
+    {
+        name: "9",
+        value: 9
+    },
+    {
+        name: "10",
+        value: 10
+    },
+    {
+        name: "В",
+        value: 11
+    },
+    {
+        name: "Д",
+        value: 12
+    },
+    {
+        name: "К",
+        value: 13
+    },
+    {
+        name: "Т",
+        value: 14
+    }
+];
+
+/* =========================================================
+   DECK
+========================================================= */
+
+function createDeck() {
+
+    const deck = [];
+
+    let id = 0;
+
+    for (const suit of SUITS) {
+
+        for (const rank of RANKS) {
+
+            deck.push({
+                id: `card_${id++}`,
+                suit,
+                rank: rank.name,
+                value: rank.value
+            });
+        }
+    }
+
+    return shuffle(deck);
+}
+
+function shuffle(array) {
+
+    for (
+        let i = array.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+                Math.random() * (i + 1)
+            );
+
+        [
+            array[i],
+            array[j]
+        ] = [
+            array[j],
+            array[i]
+        ];
+    }
+
+    return array;
+}
+
+/* =========================================================
+   MULTIPLAYER GAMES
+========================================================= */
+
+/*
+    Пока игры храним в памяти сервера.
+
+    Позже перенесём состояние активных
+    матчей в Redis/PostgreSQL.
+
+    Для первого MVP этого достаточно.
+*/
+
+const games = new Map();
+
+/*
+    Игроки, которые ждут соперника.
+*/
+
+let matchmakingQueue = [];
+
+/*
+    socket.id -> gameId
+*/
+
+const playerGames = new Map();
+
+/* =========================================================
+   GAME ID
+========================================================= */
+
+function createGameId() {
+
+    return crypto
+        .randomBytes(8)
+        .toString("hex");
+}
+
+/* =========================================================
+   GAME PLAYER
+========================================================= */
+
+function createGamePlayer(
+    socket,
+    player
+) {
+
+    return {
+        socketId: socket.id,
+
+        telegramId:
+            String(
+                player.telegram_id
+            ),
+
+        username:
+            player.username,
+
+        firstName:
+            player.first_name,
+
+        hand: []
+    };
+}
+
+/* =========================================================
+   CARD RULES
+========================================================= */
+
+function isTrump(
+    card,
+    trumpSuit
+) {
+
+    return (
+        card &&
+        card.suit === trumpSuit
+    );
+}
+
+function canBeat(
+    attack,
+    defense,
+    trumpSuit
+) {
+
+    if (!attack || !defense) {
+        return false;
+    }
+
+    if (
+        isTrump(
+            defense,
+            trumpSuit
+        ) &&
+        !isTrump(
+            attack,
+            trumpSuit
+        )
+    ) {
+        return true;
+    }
+
+    if (
+        !isTrump(
+            defense,
+            trumpSuit
+        ) &&
+        isTrump(
+            attack,
+            trumpSuit
+        )
+    ) {
+        return false;
+    }
+
+    return (
+        attack.suit === defense.suit &&
+        defense.value > attack.value
+    );
+}
+
+/* =========================================================
+   PUBLIC GAME STATE
+========================================================= */
+
+function getPublicGameState(
+    game,
+    telegramId
+) {
+
+    const me =
+        game.players.find(
+            p =>
+                p.telegramId ===
+                String(telegramId)
+        );
+
+    const opponent =
+        game.players.find(
+            p =>
+                p.telegramId !==
+                String(telegramId)
+        );
+
+    return {
+
+        gameId: game.id,
+
+        status: game.status,
+
+        phase: game.phase,
+
+        trumpSuit:
+            game.trumpSuit,
+
+        deckCount:
+            game.deck.length,
+
+        myHand:
+            me
+                ? me.hand
+                : [],
+
+        opponent: opponent
+            ? {
+                telegramId:
+                    opponent.telegramId,
+
+                username:
+                    opponent.username,
+
+                firstName:
+                    opponent.firstName,
+
+                cardCount:
+                    opponent.hand.length
+            }
+            : null,
+
+        table:
+            game.table,
+
+        attacker:
+            game.attacker,
+
+        defender:
+            game.defender
+    };
+}
+
+/* =========================================================
+   SEND GAME STATE
+========================================================= */
+
+function sendGameState(
+    game
+) {
+
+    for (
+        const player of game.players
+    ) {
+
+        const socket =
+            io.sockets.sockets.get(
+                player.socketId
+            );
+
+        if (!socket) {
+            continue;
+        }
+
+        socket.emit(
+            "game_state",
+            getPublicGameState(
+                game,
+                player.telegramId
+            )
+        );
+    }
+}
+
+/* =========================================================
+   DEAL
+========================================================= */
+
+function dealInitialCards(
+    game
+) {
+
+    for (let i = 0; i < 6; i++) {
+
+        for (
+            const player of game.players
+        ) {
+
+            if (
+                game.deck.length === 0
+            ) {
+                return;
+            }
+
+            player.hand.push(
+                game.deck.shift()
+            );
+        }
+    }
+}
+
+/* =========================================================
+   FIRST ATTACKER
+========================================================= */
+
+function determineFirstAttacker(
+    game
+) {
+
+    const first =
+        game.players[0];
+
+    const second =
+        game.players[1];
+
+    const firstTrumps =
+        first.hand
+            .filter(
+                card =>
+                    isTrump(
+                        card,
+                        game.trumpSuit
+                    )
+            )
+            .sort(
+                (a, b) =>
+                    a.value - b.value
+            );
+
+    const secondTrumps =
+        second.hand
+            .filter(
+                card =>
+                    isTrump(
+                        card,
+                        game.trumpSuit
+                    )
+            )
+            .sort(
+                (a, b) =>
+                    a.value - b.value
+            );
+
+    let attacker;
+
+    if (
+        firstTrumps.length &&
+        secondTrumps.length
+    ) {
+
+        attacker =
+            firstTrumps[0].value <=
+            secondTrumps[0].value
+                ? first
+                : second;
+
+    } else if (
+        firstTrumps.length
+    ) {
+
+        attacker = first;
+
+    } else if (
+        secondTrumps.length
+    ) {
+
+        attacker = second;
+
+    } else {
+
+        const firstMin =
+            Math.min(
+                ...first.hand.map(
+                    c => c.value
+                )
+            );
+
+        const secondMin =
+            Math.min(
+                ...second.hand.map(
+                    c => c.value
+                )
+            );
+
+        attacker =
+            firstMin <= secondMin
+                ? first
+                : second;
+    }
+
+    return attacker.telegramId;
+}
+
+/* =========================================================
+   START GAME
+========================================================= */
+
+function startGame(
+    player1,
+    player2
+) {
+
+    const deck =
+        createDeck();
+
+    const trump =
+        deck[deck.length - 1];
+
+    const game = {
+
+        id:
+            createGameId(),
+
+        status:
+            "playing",
+
+        phase:
+            "attack",
+
+        deck,
+
+        trumpSuit:
+            trump.suit,
+
+        players: [
+            player1,
+            player2
+        ],
+
+        attacker:
+            null,
+
+        defender:
+            null,
+
+        table: []
+    };
+
+    dealInitialCards(game);
+
+    game.attacker =
+        determineFirstAttacker(
+            game
+        );
+
+    game.defender =
+        game.players.find(
+            p =>
+                p.telegramId !==
+                game.attacker
+        ).telegramId;
+
+    games.set(
+        game.id,
+        game
+    );
+
+    playerGames.set(
+        player1.socketId,
+        game.id
+    );
+
+    playerGames.set(
+        player2.socketId,
+        game.id
+    );
+
+    return game;
+}
+
+/* =========================================================
+   FIND PLAYER
+========================================================= */
+
+function findPlayerBySocket(
+    game,
+    socketId
+) {
+
+    return game.players.find(
+        p =>
+            p.socketId ===
+            socketId
+    );
+}
+
+/* =========================================================
+   FIND GAME
+========================================================= */
+
+function getGameBySocket(
+    socketId
+) {
+
+    const gameId =
+        playerGames.get(
+            socketId
+        );
+
+    if (!gameId) {
+        return null;
+    }
+
+    return games.get(
+        gameId
+    ) || null;
+}
+
+/* =========================================================
+   MATCHMAKING
+========================================================= */
+
+async function joinMatchmaking(
+    socket
+) {
+
+    if (
+        playerGames.has(
+            socket.id
+        )
+    ) {
+
+        socket.emit(
+            "matchmaking_error",
+            {
+                error:
+                    "You are already in a game"
+            }
+        );
+
+        return;
+    }
+
+    const existing =
+        matchmakingQueue.find(
+            item =>
+                item.socketId ===
+                socket.id
+        );
+
+    if (existing) {
+
+        socket.emit(
+            "matchmaking_status",
+            {
+                status: "waiting"
+            }
+        );
+
+        return;
+    }
+
+    const player =
+        socket.player;
+
+    /*
+        Удаляем мёртвые сокеты
+        из очереди.
+    */
+
+    matchmakingQueue =
+        matchmakingQueue.filter(
+            item =>
+                io.sockets.sockets.has(
+                    item.socketId
+                )
+        );
+
+    /*
+        Ищем другого игрока.
+    */
+
+    const opponentIndex =
+        matchmakingQueue.findIndex(
+            item =>
+                item.telegramId !==
+                String(
+                    player.telegram_id
+                )
+        );
+
+    if (
+        opponentIndex === -1
+    ) {
+
+        matchmakingQueue.push({
+
+            socketId:
+                socket.id,
+
+            telegramId:
+                String(
+                    player.telegram_id
+                ),
+
+            player
+        });
+
+        socket.emit(
+            "matchmaking_status",
+            {
+                status: "waiting"
+            }
+        );
+
+        return;
+    }
+
+    const opponent =
+        matchmakingQueue.splice(
+            opponentIndex,
+            1
+        )[0];
+
+    const opponentSocket =
+        io.sockets.sockets.get(
+            opponent.socketId
+        );
+
+    if (!opponentSocket) {
+
+        return joinMatchmaking(
+            socket
+        );
+    }
+
+    const player1 =
+        createGamePlayer(
+            opponentSocket,
+            opponent.player
+        );
+
+    const player2 =
+        createGamePlayer(
+            socket,
+            player
+        );
+
+    const game =
+        startGame(
+            player1,
+            player2
+        );
+
+    opponentSocket.emit(
+        "match_found",
+        {
+            gameId:
+                game.id
+        }
+    );
+
+    socket.emit(
+        "match_found",
+        {
+            gameId:
+                game.id
+        }
+    );
+
+    sendGameState(
+        game
+    );
+}
+
+/* =========================================================
+   REMOVE CARD
+========================================================= */
+
+function removeCardFromHand(
+    player,
+    cardId
+) {
+
+    const index =
+        player.hand.findIndex(
+            card =>
+                card.id ===
+                cardId
+        );
+
+    if (index === -1) {
+        return null;
+    }
+
+    return player.hand.splice(
+        index,
+        1
+    )[0];
+}
+
+/* =========================================================
+   TABLE RANKS
+========================================================= */
+
+function getTableRanks(game) {
+
+    const ranks = [];
+
+    for (
+        const pair of game.table
+    ) {
+
+        ranks.push(
+            pair.attack.rank
+        );
+
+        if (pair.defense) {
+
+            ranks.push(
+                pair.defense.rank
+            );
+        }
+    }
+
+    return ranks;
+}
+
+/* =========================================================
+   CAN ATTACK
+========================================================= */
+
+function canAddCard(
+    game,
+    card
+) {
+
+    if (
+        game.table.length === 0
+    ) {
+        return true;
+    }
+
+    return getTableRanks(game)
+        .includes(
+            card.rank
+        );
+}
+
+/* =========================================================
+   FIRST UNBEATEN
+========================================================= */
+
+function getFirstUnbeaten(
+    game
+) {
+
+    for (
+        let i = 0;
+        i < game.table.length;
+        i++
+    ) {
+
+        if (
+            !game.table[i].defense
+        ) {
+
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+/* =========================================================
+   ALL BEATEN
+========================================================= */
+
+function allBeaten(game) {
+
+    return (
+        game.table.length > 0 &&
+        getFirstUnbeaten(game) === -1
+    );
+}
+
+/* =========================================================
+   PLAY CARD
+========================================================= */
+
+function handlePlayCard(
+    socket,
+    cardId
+) {
+
+    const game =
+        getGameBySocket(
+            socket.id
+        );
+
+    if (!game) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "Game not found"
+            }
+        );
+
+        return;
+    }
+
+    const player =
+        findPlayerBySocket(
+            game,
+            socket.id
+        );
+
+    if (!player) {
+        return;
+    }
+
+    /*
+        Только атакующий
+        может атаковать.
+    */
+
+    if (
+        player.telegramId !==
+        game.attacker
+    ) {
+
+        /*
+            Если игрок защищается,
+            это должен быть отбой.
+        */
+
+        if (
+            player.telegramId ===
+            game.defender
+        ) {
+
+            return handleDefense(
+                socket,
+                cardId
+            );
+        }
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "Not your turn"
+            }
+        );
+
+        return;
+    }
+
+    const card =
+        player.hand.find(
+            c =>
+                c.id === cardId
+        );
+
+    if (!card) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "Card not found"
+            }
+        );
+
+        return;
+    }
+
+    if (
+        !canAddCard(
+            game,
+            card
+        )
+    ) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "This card cannot be played"
+            }
+        );
+
+        return;
+    }
+
+    /*
+        Нельзя атаковать
+        больше карт, чем
+        у защищающегося.
+    */
+
+    const defender =
+        game.players.find(
+            p =>
+                p.telegramId ===
+                game.defender
+        );
+
+    if (
+        game.table.length >=
+        defender.hand.length
+    ) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "Attack limit reached"
+            }
+        );
+
+        return;
+    }
+
+    removeCardFromHand(
+        player,
+        cardId
+    );
+
+    game.table.push({
+        attack: card,
+        defense: null
+    });
+
+    game.phase =
+        "defense";
+
+    sendGameState(
+        game
+    );
+}
+
+/* =========================================================
+   DEFENSE
+========================================================= */
+
+function handleDefense(
+    socket,
+    cardId
+) {
+
+    const game =
+        getGameBySocket(
+            socket.id
+        );
+
+    if (!game) {
+        return;
+    }
+
+    const player =
+        findPlayerBySocket(
+            game,
+            socket.id
+        );
+
+    if (!player) {
+        return;
+    }
+
+    if (
+        player.telegramId !==
+        game.defender
+    ) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "You are not defending"
+            }
+        );
+
+        return;
+    }
+
+    const index =
+        getFirstUnbeaten(
+            game
+        );
+
+    if (index === -1) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "Nothing to beat"
+            }
+        );
+
+        return;
+    }
+
+    const card =
+        player.hand.find(
+            c =>
+                c.id === cardId
+        );
+
+    if (!card) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "Card not found"
+            }
+        );
+
+        return;
+    }
+
+    const attack =
+        game.table[index].attack;
+
+    if (
+        !canBeat(
+            attack,
+            card,
+            game.trumpSuit
+        )
+    ) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "This card cannot beat"
+            }
+        );
+
+        return;
+    }
+
+    removeCardFromHand(
+        player,
+        cardId
+    );
+
+    game.table[index].defense =
+        card;
+
+    if (
+        allBeaten(game)
+    ) {
+
+        game.phase =
+            "attack_finished";
+
+    } else {
+
+        game.phase =
+            "defense";
+    }
+
+    sendGameState(
+        game
+    );
+}
+
+/* =========================================================
+   FINISH ROUND
+========================================================= */
+
+function finishRound(
+    socket
+) {
+
+    const game =
+        getGameBySocket(
+            socket.id
+        );
+
+    if (!game) {
+        return;
+    }
+
+    const player =
+        findPlayerBySocket(
+            game,
+            socket.id
+        );
+
+    if (!player) {
+        return;
+    }
+
+    /*
+        Только атакующий может
+        завершить успешную атаку.
+    */
+
+    if (
+        player.telegramId !==
+        game.attacker
+    ) {
+
+        return;
+    }
+
+    if (
+        !allBeaten(game)
+    ) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "Not all cards are beaten"
+            }
+        );
+
+        return;
+    }
+
+    game.table = [];
+
+    refillHands(game);
+
+    /*
+        Меняем атакующего.
+    */
+
+    const oldAttacker =
+        game.attacker;
+
+    game.attacker =
+        game.defender;
+
+    game.defender =
+        oldAttacker;
+
+    game.phase =
+        "attack";
+
+    checkGameEnd(game);
+
+    sendGameState(
+        game
+    );
+}
+
+/* =========================================================
+   TAKE CARDS
+========================================================= */
+
+function takeCards(
+    socket
+) {
+
+    const game =
+        getGameBySocket(
+            socket.id
+        );
+
+    if (!game) {
+        return;
+    }
+
+    const player =
+        findPlayerBySocket(
+            game,
+            socket.id
+        );
+
+    if (!player) {
+        return;
+    }
+
+    if (
+        player.telegramId !==
+        game.defender
+    ) {
+
+        socket.emit(
+            "game_error",
+            {
+                error:
+                    "You are not defending"
+            }
+        );
+
+        return;
+    }
+
+    for (
+        const pair of game.table
+    ) {
+
+        player.hand.push(
+            pair.attack
+        );
+
+        if (
+            pair.defense
+        ) {
+
+            player.hand.push(
+                pair.defense
+            );
+        }
+    }
+
+    game.table = [];
+
+    /*
+        Защищающийся забирает карты.
+
+        Атакующий сохраняет право
+        атаки.
+    */
+
+    refillHands(game);
+
+    game.phase =
+        "attack";
+
+    checkGameEnd(game);
+
+    sendGameState(
+        game
+    );
+}
+
+/* =========================================================
+   REFILL
+========================================================= */
+
+function refillHands(game) {
+
+    const attacker =
+        game.players.find(
+            p =>
+                p.telegramId ===
+                game.attacker
+        );
+
+    const defender =
+        game.players.find(
+            p =>
+                p.telegramId ===
+                game.defender
+        );
+
+    /*
+        Сначала атакующий.
+    */
+
+    while (
+        attacker.hand.length < 6 &&
+        game.deck.length > 0
+    ) {
+
+        attacker.hand.push(
+            game.deck.shift()
+        );
+    }
+
+    /*
+        Затем защищающийся.
+    */
+
+    while (
+        defender.hand.length < 6 &&
+        game.deck.length > 0
+    ) {
+
+        defender.hand.push(
+            game.deck.shift()
+        );
+    }
+}
+
+/* =========================================================
+   GAME END
+========================================================= */
+
+async function checkGameEnd(
+    game
+) {
+
+    if (
+        game.deck.length > 0
+    ) {
+        return false;
+    }
+
+    const p1 =
+        game.players[0];
+
+    const p2 =
+        game.players[1];
+
+    if (
+        p1.hand.length === 0 &&
+        p2.hand.length === 0
+    ) {
+
+        await finishGame(
+            game,
+            null
+        );
+
+        return true;
+    }
+
+    if (
+        p1.hand.length === 0
+    ) {
+
+        await finishGame(
+            game,
+            p1.telegramId
+        );
+
+        return true;
+    }
+
+    if (
+        p2.hand.length === 0
+    ) {
+
+        await finishGame(
+            game,
+            p2.telegramId
+        );
+
+        return true;
+    }
+
+    return false;
+}
+
+/* =========================================================
+   FINISH GAME
+========================================================= */
+
+async function finishGame(
+    game,
+    winnerTelegramId
+) {
+
+    if (
+        game.status ===
+        "finished"
+    ) {
+        return;
+    }
+
+    game.status =
+        "finished";
+
+    for (
+        const player of game.players
+    ) {
+
+        const won =
+            winnerTelegramId !== null &&
+            player.telegramId ===
+            String(
+                winnerTelegramId
+            );
+
+        await pool.query(
+            `
+            UPDATE players
+
+            SET games = games + 1,
+
+                wins =
+                    wins +
+                    $1,
+
+                losses =
+                    losses +
+                    $2,
+
+                xp =
+                    xp +
+                    $3
+
+            WHERE telegram_id = $4
+            `,
+            [
+                won ? 1 : 0,
+                (
+                    winnerTelegramId !== null &&
+                    !won
+                ) ? 1 : 0,
+                won ? 100 : 25,
+                player.telegramId
+            ]
+        );
+    }
+
+    sendGameState(
+        game
+    );
+
+    for (
+        const player of game.players
+    ) {
+
+        const socket =
+            io.sockets.sockets.get(
+                player.socketId
+            );
+
+        if (!socket) {
+            continue;
+        }
+
+        let result =
+            "draw";
+
+        if (
+            winnerTelegramId
+        ) {
+
+            result =
+                String(
+                    winnerTelegramId
+                ) ===
+                player.telegramId
+                    ? "win"
+                    : "loss";
+        }
+
+        socket.emit(
+            "game_finished",
+            {
+                result
+            }
+        );
+    }
+}
+
+/* =========================================================
+   SOCKET AUTH
+========================================================= */
+
+io.use(
+    async (socket, next) => {
+
+        try {
+
+            const initData =
+                socket.handshake.auth
+                    ?.initData;
+
+            const telegramUser =
+                validateTelegramInitData(
+                    initData
+                );
+
+            if (!telegramUser) {
+
+                return next(
+                    new Error(
+                        "Invalid Telegram authentication"
+                    )
+                );
+            }
+
+            const player =
+                await getOrCreatePlayer(
+                    telegramUser
+                );
+
+            socket.telegramUser =
+                telegramUser;
+
+            socket.player =
+                player;
+
+            next();
+
+        } catch (error) {
+
+            console.error(
+                "Socket auth error:",
+                error
+            );
+
+            next(
+                new Error(
+                    "Authentication failed"
+                )
+            );
+        }
+    }
+);
+
+/* =========================================================
+   SOCKET CONNECTION
+========================================================= */
+
+io.on(
+    "connection",
+    socket => {
+
+        console.log(
+            "Player connected:",
+            socket.player.telegram_id
+        );
+
+        socket.emit(
+            "connected",
+            {
+                success: true,
+
+                player: {
+                    telegram_id:
+                        socket.player.telegram_id,
+
+                    username:
+                        socket.player.username,
+
+                    first_name:
+                        socket.player.first_name,
+
+                    balance:
+                        socket.player.balance,
+
+                    level:
+                        socket.player.level,
+
+                    title:
+                        getTitle(
+                            socket.player.level
+                        )
+                }
+            }
+        );
+
+        /*
+            ПОИСК СОПЕРНИКА
+        */
+
+        socket.on(
+            "find_game",
+            async () => {
+
+                try {
+
+                    await joinMatchmaking(
+                        socket
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "Matchmaking error:",
+                        error
+                    );
+
+                    socket.emit(
+                        "matchmaking_error",
+                        {
+                            error:
+                                "Matchmaking error"
+                        }
+                    );
+                }
+            }
+        );
+
+        /*
+            ОТМЕНА ПОИСКА
+        */
+
+        socket.on(
+            "cancel_matchmaking",
+            () => {
+
+                matchmakingQueue =
+                    matchmakingQueue.filter(
+                        item =>
+                            item.socketId !==
+                            socket.id
+                    );
+
+                socket.emit(
+                    "matchmaking_status",
+                    {
+                        status:
+                            "cancelled"
+                    }
+                );
+            }
+        );
+
+        /*
+            ПОЛОЖИТЬ КАРТУ
+        */
+
+        socket.on(
+            "play_card",
+            cardId => {
+
+                try {
+
+                    handlePlayCard(
+                        socket,
+                        cardId
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "PLAY CARD ERROR:",
+                        error
+                    );
+
+                    socket.emit(
+                        "game_error",
+                        {
+                            error:
+                                "Server error"
+                        }
+                    );
+                }
+            }
+        );
+
+        /*
+            БИТО
+        */
+
+        socket.on(
+            "beat",
+            () => {
+
+                try {
+
+                    finishRound(
+                        socket
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "BEAT ERROR:",
+                        error
+                    );
+                }
+            }
+        );
+
+        /*
+            ВЗЯТЬ
+        */
+
+        socket.on(
+            "take",
+            () => {
+
+                try {
+
+                    takeCards(
+                        socket
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "TAKE ERROR:",
+                        error
+                    );
+                }
+            }
+        );
+
+        /*
+            ОТКЛЮЧЕНИЕ
+        */
+
+        socket.on(
+            "disconnect",
             () => {
 
                 console.log(
-                    `Heavy Lux Card backend running on port ${PORT}`
+                    "Player disconnected:",
+                    socket.player.telegram_id
                 );
 
+                matchmakingQueue =
+                    matchmakingQueue.filter(
+                        item =>
+                            item.socketId !==
+                            socket.id
+                    );
+
+                const game =
+                    getGameBySocket(
+                        socket.id
+                    );
+
+                if (!game) {
+                    return;
+                }
+
+                /*
+                    Если игрок вышел,
+                    второй пока получает
+                    победу по disconnect.
+                */
+
+                const opponent =
+                    game.players.find(
+                        p =>
+                            p.socketId !==
+                            socket.id
+                    );
+
+                if (
+                    opponent
+                ) {
+
+                    finishGame(
+                        game,
+                        opponent.telegramId
+                    );
+                }
+
+                playerGames.delete(
+                    socket.id
+                );
             }
         );
-
-    } catch (error) {
-
-        console.error(
-            "SERVER START ERROR:",
-            error
-        );
-
-        process.exit(1);
-
     }
+);
 
+/* =========================================================
+   SERVER
+========================================================= */
+
+async function startServer() {
+
+    await initDatabase();
+
+    server.listen(
+        PORT,
+        "0.0.0.0",
+        () => {
+
+            console.log(
+                `Heavy Lux Card multiplayer backend running on port ${PORT}`
+            );
+
+        }
+    );
 }
-
 
 startServer();
