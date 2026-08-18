@@ -346,21 +346,29 @@ console.log("Telegram initData:", tg.initData);
 
             showPlayer(data.player);
 
-        } catch (error) {
+  } catch (error) {
 
-            console.error(error);
+    console.error("FULL ERROR:", error);
 
-            document.getElementById(
-                "loading"
-            ).style.display = "none";
+    document.getElementById(
+        "loading"
+    ).style.display = "none";
 
-            const errorBox =
-                document.getElementById("error");
+    const errorBox =
+        document.getElementById("error");
 
-            errorBox.innerText = error.message;
+    errorBox.innerText =
+        "Ошибка: " +
+        (error.name || "Unknown") +
+        "\n\n" +
+        (error.message || "Нет сообщения") +
+        "\n\nAPI: " +
+        API_URL +
+        "\n\ninitData: " +
+        (tg.initData ? "получен" : "НЕ ПОЛУЧЕН");
 
-            errorBox.style.display = "block";
-        }
+    errorBox.style.display = "block";
+}
     }
 
 
