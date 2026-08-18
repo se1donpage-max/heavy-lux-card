@@ -10,8 +10,10 @@ const { Server } = require("socket.io");
 =========================================================
 HEAVY LUX CARD
 SERVER.JS
-VERSION 4.0
+VERSION 5.0
 PLAYER VS PLAYER
+NO AI
+NO FACTIONS
 =========================================================
 */
 
@@ -53,6 +55,20 @@ const BUSINESS_MAX_STORAGE_MS =
     1000;
 
 const ROOM_CODE_LENGTH = 6;
+
+/*
+ * Сколько времени игроку даётся
+ * на восстановление соединения.
+ *
+ * 60 секунд.
+ */
+const ROOM_RECONNECT_TIMEOUT = 60 * 1000;
+
+/*
+ * Комната автоматически удаляется
+ * после длительного бездействия.
+ */
+const ROOM_CLEANUP_TIMEOUT = 30 * 60 * 1000;
 
 /*
 =========================================================
@@ -188,12 +204,16 @@ function validateTelegramInitData(initData) {
         return null;
     }
 
-    if (
-        !crypto.timingSafeEqual(
-            Buffer.from(calculatedHash),
-            Buffer.from(hash)
-        )
-    ) {
+    try {
+        if (
+            !crypto.timingSafeEqual(
+                Buffer.from(calculatedHash),
+                Buffer.from(hash)
+            )
+        ) {
+            return null;
+        }
+    } catch {
         return null;
     }
 
@@ -253,31 +273,44 @@ function createPlayer(user) {
                 user.username ||
                 "",
 
-            balance: START_MONEY,
+            balance:
+                START_MONEY,
 
-            level: 1,
+            level:
+                1,
 
-            xp: 0,
+            xp:
+                0,
 
-            title: "Новичок",
+            title:
+                "Новичок",
 
-            wins: 0,
+            wins:
+                0,
 
-            losses: 0,
+            losses:
+                0,
 
-            games: 0,
+            games:
+                0,
 
-            cars: [],
+            cars:
+                [],
 
-            beautifulPlates: [],
+            beautifulPlates:
+                [],
 
-            realEstate: [],
+            realEstate:
+                [],
 
-            businesses: [],
+            businesses:
+                [],
 
-            created_at: Date.now(),
+            created_at:
+                Date.now(),
 
-            updated_at: Date.now()
+            updated_at:
+                Date.now()
         };
 
         savePlayers();
@@ -285,7 +318,8 @@ function createPlayer(user) {
         return players[id];
     }
 
-    const player = players[id];
+    const player =
+        players[id];
 
     player.first_name =
         user.first_name ||
@@ -330,7 +364,33 @@ function createPlayer(user) {
         player.businesses = [];
     }
 
-    player.updated_at = Date.now();
+    if (
+        typeof player.balance !==
+        "number"
+    ) {
+        player.balance =
+            Number(player.balance) || 0;
+    }
+
+    if (
+        typeof player.level !==
+        "number"
+    ) {
+        player.level = 1;
+    }
+
+    if (
+        typeof player.xp !==
+        "number"
+    ) {
+        player.xp = 0;
+    }
+
+    player.title =
+        getTitle(player.level);
+
+    player.updated_at =
+        Date.now();
 
     savePlayers();
 
@@ -397,26 +457,37 @@ LEVELS
 */
 
 function getTitle(level) {
-    if (level >= 100)
+    if (level >= 100) {
         return "Легенда";
+    }
 
-    if (level >= 80)
+    if (level >= 80) {
         return "Император";
+    }
 
-    if (level >= 60)
+    if (level >= 60) {
         return "Магнат";
+    }
 
-    if (level >= 40)
+    if (level >= 40) {
         return "Мастер";
+    }
 
-    if (level >= 20)
+    if (level >= 20) {
         return "Ветеран";
+    }
 
     return "Новичок";
 }
 
 function addXP(player, amount) {
-    player.xp += amount;
+    if (!player) {
+        return;
+    }
+
+    player.xp =
+        Number(player.xp || 0) +
+        Number(amount || 0);
 
     while (
         player.level < MAX_LEVEL &&
@@ -428,10 +499,16 @@ function addXP(player, amount) {
         player.level++;
     }
 
+    if (player.level >= MAX_LEVEL) {
+        player.level = MAX_LEVEL;
+        player.xp = 0;
+    }
+
     player.title =
         getTitle(player.level);
 
-    player.updated_at = Date.now();
+    player.updated_at =
+        Date.now();
 
     savePlayers();
 }
@@ -569,6 +646,12 @@ const CARS = [
         category: "VIP"
     }
 ];
+
+/*
+=========================================================
+EXCLUSIVE / TUNING ATELIER
+=========================================================
+*/
 
 const EXCLUSIVE_CARS = [
     {
@@ -859,7 +942,9 @@ HELPERS
 */
 
 function getPlayerById(id) {
-    if (!id) return null;
+    if (!id) {
+        return null;
+    }
 
     return players[String(id)] || null;
 }
@@ -903,6 +988,12 @@ function normalizePlate(number) {
         .toUpperCase();
 }
 
+/*
+=========================================================
+PLATE REGISTRY
+=========================================================
+*/
+
 function isPlateUsed(number) {
     const normalized =
         normalizePlate(number);
@@ -916,8 +1007,16 @@ function isPlateUsed(number) {
             of player.cars || []
         ) {
             if (
-                car.plate ===
+                normalizePlate(car.plate) ===
                 normalized
+            ) {
+                return true;
+            }
+
+            if (
+                normalizePlate(
+                    car.beautifulPlate
+                ) === normalized
             ) {
                 return true;
             }
@@ -928,8 +1027,9 @@ function isPlateUsed(number) {
             of player.beautifulPlates || []
         ) {
             if (
-                plate.number ===
-                normalized
+                normalizePlate(
+                    plate.number
+                ) === normalized
             ) {
                 return true;
             }
@@ -1005,21 +1105,45 @@ function generatePlate() {
 
 function getCatalogCar(carId) {
     return CARS.find(
-        car => car.id === carId
+        car =>
+            car.id === carId
     );
 }
 
 function getExclusiveCar(carId) {
     return EXCLUSIVE_CARS.find(
-        car => car.id === carId
+        car =>
+            car.id === carId
     );
 }
 
-function findPlayerCar(player, carId) {
+function findPlayerCar(
+    player,
+    carId
+) {
     return (
         player.cars || []
     ).find(
-        car => car.id === carId
+        car =>
+            car.id === carId
+    );
+}
+
+function getCatalogEstate(
+    estateId
+) {
+    return REAL_ESTATE.find(
+        item =>
+            item.id === estateId
+    );
+}
+
+function getCatalogBusiness(
+    businessId
+) {
+    return BUSINESSES.find(
+        item =>
+            item.id === businessId
     );
 }
 
@@ -1034,29 +1158,54 @@ app.get("/", (req, res) => {
         success: true,
         game: "Heavy Lux Card",
         status: "online",
-        version: "4.0.0"
+        version: "5.0.0",
+        ai: false,
+        factions: false,
+        pvp: true
     });
 });
 
-app.get("/api/health", (req, res) => {
-    res.json({
-        success: true,
-        status: "online",
-        version: "4.0.0",
-        players:
-            Object.keys(players).length,
-        rooms: rooms.size,
-        cars: CARS.length,
-        exclusiveCars:
-            EXCLUSIVE_CARS.length,
-        realEstate:
-            REAL_ESTATE.length,
-        businesses:
-            BUSINESSES.length,
-        beautifulPlates:
-            BEAUTIFUL_PLATES.length
-    });
-});
+app.get(
+    "/api/health",
+    (req, res) => {
+        res.json({
+            success: true,
+            status: "online",
+            version: "5.0.0",
+
+            players:
+                Object.keys(players)
+                    .length,
+
+            rooms:
+                rooms.size,
+
+            cars:
+                CARS.length,
+
+            exclusiveCars:
+                EXCLUSIVE_CARS.length,
+
+            realEstate:
+                REAL_ESTATE.length,
+
+            businesses:
+                BUSINESSES.length,
+
+            beautifulPlates:
+                BEAUTIFUL_PLATES.length,
+
+            ai:
+                false,
+
+            factions:
+                false,
+
+            pvp:
+                true
+        });
+    }
+);
 
 /*
 =========================================================
@@ -1064,55 +1213,72 @@ AUTH
 =========================================================
 */
 
-app.post("/api/auth", (req, res) => {
-    try {
-        const user =
-            validateTelegramInitData(
-                req.body?.initData
+app.post(
+    "/api/auth",
+    (req, res) => {
+        try {
+            const user =
+                validateTelegramInitData(
+                    req.body?.initData
+                );
+
+            if (!user) {
+                return res
+                    .status(401)
+                    .json({
+                        success: false,
+                        error:
+                            "Telegram authorization failed"
+                    });
+            }
+
+            const player =
+                createPlayer(user);
+
+            res.json({
+                success: true,
+                player:
+                    publicPlayer(
+                        player
+                    )
+            });
+        } catch (error) {
+            console.error(
+                "AUTH ERROR:",
+                error
             );
 
-        if (!user) {
-            return res.status(401).json({
+            res.status(500).json({
                 success: false,
                 error:
-                    "Telegram authorization failed"
+                    "Internal server error"
             });
         }
+    }
+);
 
+app.get(
+    "/api/player",
+    (req, res) => {
         const player =
-            createPlayer(user);
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) {
+            return;
+        }
 
         res.json({
             success: true,
             player:
-                publicPlayer(player)
-        });
-    } catch (error) {
-        console.error(
-            "AUTH ERROR:",
-            error
-        );
-
-        res.status(500).json({
-            success: false,
-            error:
-                "Internal server error"
+                publicPlayer(
+                    player
+                )
         });
     }
-});
-
-app.get("/api/player", (req, res) => {
-    const player =
-        requirePlayer(req, res);
-
-    if (!player) return;
-
-    res.json({
-        success: true,
-        player:
-            publicPlayer(player)
-    });
-});
+);
 
 /*
 =========================================================
@@ -1120,27 +1286,40 @@ CAR CATALOG
 =========================================================
 */
 
-app.get("/api/car-colors", (req, res) => {
-    res.json({
-        success: true,
-        colors: CAR_COLORS
-    });
-});
+app.get(
+    "/api/car-colors",
+    (req, res) => {
+        res.json({
+            success: true,
+            colors:
+                CAR_COLORS
+        });
+    }
+);
 
-app.get("/api/cars", (req, res) => {
-    res.json({
-        success: true,
-        cars: CARS
-    });
-});
+app.get(
+    "/api/cars",
+    (req, res) => {
+        res.json({
+            success: true,
+            cars:
+                CARS
+        });
+    }
+);
 
-app.get("/api/dealership", (req, res) => {
-    res.json({
-        success: true,
-        cars: CARS,
-        colors: CAR_COLORS
-    });
-});
+app.get(
+    "/api/dealership",
+    (req, res) => {
+        res.json({
+            success: true,
+            cars:
+                CARS,
+            colors:
+                CAR_COLORS
+        });
+    }
+);
 
 app.get(
     "/api/exclusive-cars",
@@ -1149,8 +1328,12 @@ app.get(
             success: true,
             category:
                 "Heavy Exclusive Cars",
-            cars: EXCLUSIVE_CARS,
-            colors: CAR_COLORS
+            atelier:
+                "Tuning Atelier",
+            cars:
+                EXCLUSIVE_CARS,
+            colors:
+                CAR_COLORS
         });
     }
 );
@@ -1166,9 +1349,14 @@ app.post(
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const car =
                 getCatalogCar(
@@ -1176,11 +1364,13 @@ app.post(
                 );
 
             if (!car) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Автомобиль не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Автомобиль не найден"
+                    });
             }
 
             const color =
@@ -1189,26 +1379,30 @@ app.post(
                 );
 
             if (!color) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Выберите цвет автомобиля"
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Выберите цвет автомобиля"
+                    });
             }
 
             if (
                 player.balance <
                 car.price
             ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Недостаточно HC",
-                    required:
-                        car.price,
-                    balance:
-                        player.balance
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Недостаточно HC",
+                        required:
+                            car.price,
+                        balance:
+                            player.balance
+                    });
             }
 
             const playerCar = {
@@ -1233,6 +1427,12 @@ app.post(
                 category:
                     car.category,
 
+                tuning:
+                    null,
+
+                tuningAtelier:
+                    false,
+
                 colorId:
                     color.id,
 
@@ -1252,7 +1452,16 @@ app.post(
                     null,
 
                 beautifulPlate:
-                    null
+                    null,
+
+                registrationDate:
+                    null,
+
+                gibdd:
+                    false,
+
+                technicalInspection:
+                    false
             };
 
             player.balance -=
@@ -1271,9 +1480,12 @@ app.post(
                 success: true,
                 message:
                     "Автомобиль приобретён",
-                car: playerCar,
+                car:
+                    playerCar,
                 player:
-                    publicPlayer(player)
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -1301,9 +1513,14 @@ app.post(
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const car =
                 getExclusiveCar(
@@ -1311,11 +1528,13 @@ app.post(
                 );
 
             if (!car) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Эксклюзивный автомобиль не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Эксклюзивный автомобиль не найден"
+                    });
             }
 
             const color =
@@ -1324,26 +1543,30 @@ app.post(
                 );
 
             if (!color) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Выберите цвет автомобиля"
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Выберите цвет автомобиля"
+                    });
             }
 
             if (
                 player.balance <
                 car.price
             ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Недостаточно HC",
-                    required:
-                        car.price,
-                    balance:
-                        player.balance
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Недостаточно HC",
+                        required:
+                            car.price,
+                        balance:
+                            player.balance
+                    });
             }
 
             const playerCar = {
@@ -1364,6 +1587,9 @@ app.post(
 
                 tuning:
                     car.tuning,
+
+                tuningAtelier:
+                    true,
 
                 price:
                     car.price,
@@ -1390,7 +1616,16 @@ app.post(
                     null,
 
                 beautifulPlate:
-                    null
+                    null,
+
+                registrationDate:
+                    null,
+
+                gibdd:
+                    false,
+
+                technicalInspection:
+                    false
             };
 
             player.balance -=
@@ -1408,10 +1643,13 @@ app.post(
             res.json({
                 success: true,
                 message:
-                    "Эксклюзивный автомобиль приобретён",
-                car: playerCar,
+                    "Эксклюзивный автомобиль приобретён в тюнинг-ателье",
+                car:
+                    playerCar,
                 player:
-                    publicPlayer(player)
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -1434,52 +1672,80 @@ GARAGE
 =========================================================
 */
 
-app.get("/api/garage", (req, res) => {
-    const player =
-        requirePlayer(req, res);
+app.get(
+    "/api/garage",
+    (req, res) => {
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
 
-    if (!player) return;
+        if (!player) {
+            return;
+        }
 
-    res.json({
-        success: true,
-        cars:
-            player.cars || [],
-        player:
-            publicPlayer(player)
-    });
-});
+        res.json({
+            success: true,
+            cars:
+                player.cars || [],
+            player:
+                publicPlayer(
+                    player
+                )
+        });
+    }
+);
 
 /*
 =========================================================
-ГИБДД
+GIBDD
 =========================================================
 */
 
-app.get("/api/gibdd", (req, res) => {
-    const player =
-        requirePlayer(req, res);
+app.get(
+    "/api/gibdd",
+    (req, res) => {
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
 
-    if (!player) return;
+        if (!player) {
+            return;
+        }
 
-    const cars =
-        (player.cars || []).map(car => ({
-            ...car,
-            registrationAvailable:
-                !car.registered,
+        const cars =
+            (player.cars || [])
+                .map(car => ({
+                    ...car,
+
+                    registrationAvailable:
+                        !car.registered,
+
+                    registrationPrice:
+                        GIBDD_REGISTRATION_PRICE
+                }));
+
+        res.json({
+            success: true,
+
+            department:
+                "ГИБДД",
+
             registrationPrice:
-                GIBDD_REGISTRATION_PRICE
-        }));
+                GIBDD_REGISTRATION_PRICE,
 
-    res.json({
-        success: true,
-        department: "ГИБДД",
-        registrationPrice:
-            GIBDD_REGISTRATION_PRICE,
-        cars
-    });
-});
+            cars
+        });
+    }
+);
 
-function registerCar(player, carId) {
+function registerCar(
+    player,
+    carId
+) {
     const car =
         findPlayerCar(
             player,
@@ -1514,7 +1780,9 @@ function registerCar(player, carId) {
             error:
                 "Недостаточно HC",
             required:
-                GIBDD_REGISTRATION_PRICE
+                GIBDD_REGISTRATION_PRICE,
+            balance:
+                player.balance
         };
     }
 
@@ -1524,16 +1792,20 @@ function registerCar(player, carId) {
     player.balance -=
         GIBDD_REGISTRATION_PRICE;
 
-    car.registered = true;
+    car.registered =
+        true;
 
-    car.plate = plate;
+    car.plate =
+        plate;
 
     car.registrationDate =
         Date.now();
 
-    car.gibdd = true;
+    car.gibdd =
+        true;
 
-    car.technicalInspection = true;
+    car.technicalInspection =
+        true;
 
     player.updated_at =
         Date.now();
@@ -1552,9 +1824,14 @@ app.post(
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const result =
                 registerCar(
@@ -1572,16 +1849,23 @@ app.post(
 
             res.json({
                 success: true,
+
                 message:
                     "Автомобиль зарегистрирован в ГИБДД",
+
                 department:
                     "ГИБДД",
+
                 plate:
                     result.plate,
+
                 car:
                     result.car,
+
                 player:
-                    publicPlayer(player)
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -1600,7 +1884,7 @@ app.post(
 
 /*
 =========================================================
-OLD COMPATIBILITY ENDPOINT
+OLD MREO COMPATIBILITY
 =========================================================
 */
 
@@ -1621,13 +1905,16 @@ PLATES
 =========================================================
 */
 
-app.get("/api/plates", (req, res) => {
-    res.json({
-        success: true,
-        plates:
-            BEAUTIFUL_PLATES
-    });
-});
+app.get(
+    "/api/plates",
+    (req, res) => {
+        res.json({
+            success: true,
+            plates:
+                BEAUTIFUL_PLATES
+        });
+    }
+);
 
 app.get(
     "/api/beautiful-plates",
@@ -1644,9 +1931,14 @@ app.get(
     "/api/my-plates",
     (req, res) => {
         const player =
-            requirePlayer(req, res);
+            requirePlayer(
+                req,
+                res
+            );
 
-        if (!player) return;
+        if (!player) {
+            return;
+        }
 
         res.json({
             success: true,
@@ -1659,7 +1951,7 @@ app.get(
 
 /*
 =========================================================
-BUY PLATE
+BUY BEAUTIFUL PLATE
 =========================================================
 */
 
@@ -1668,9 +1960,14 @@ app.post(
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const plate =
                 BEAUTIFUL_PLATES.find(
@@ -1680,22 +1977,26 @@ app.post(
                 );
 
             if (!plate) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Номер не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Номер не найден"
+                    });
             }
 
             if (
                 player.balance <
                 plate.price
             ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Недостаточно HC"
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Недостаточно HC"
+                    });
             }
 
             if (
@@ -1703,11 +2004,13 @@ app.post(
                     plate.number
                 )
             ) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "Этот номер уже занят"
-                });
+                return res
+                    .status(409)
+                    .json({
+                        success: false,
+                        error:
+                            "Этот номер уже занят"
+                    });
             }
 
             player.balance -=
@@ -1743,11 +2046,16 @@ app.post(
 
             res.json({
                 success: true,
+
                 message:
                     "Красивый номер приобретён",
+
                 plate,
+
                 player:
-                    publicPlayer(player)
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -1766,7 +2074,7 @@ app.post(
 
 /*
 =========================================================
-INSTALL PLATE
+INSTALL BEAUTIFUL PLATE
 =========================================================
 */
 
@@ -1775,9 +2083,14 @@ app.post(
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const car =
                 findPlayerCar(
@@ -1786,19 +2099,23 @@ app.post(
                 );
 
             if (!car) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Автомобиль не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Автомобиль не найден"
+                    });
             }
 
             if (!car.registered) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Сначала зарегистрируйте автомобиль в ГИБДД"
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Сначала зарегистрируйте автомобиль в ГИБДД"
+                    });
             }
 
             const plate =
@@ -1809,13 +2126,19 @@ app.post(
                 );
 
             if (!plate) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Номер вам не принадлежит"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Номер вам не принадлежит"
+                    });
             }
 
+            /*
+             * Снимаем этот красивый номер
+             * с любого автомобиля владельца.
+             */
             for (
                 const otherCar
                 of player.cars
@@ -1829,6 +2152,10 @@ app.post(
                 }
             }
 
+            /*
+             * Один автомобиль —
+             * один красивый номер.
+             */
             for (
                 const ownedPlate
                 of player.beautifulPlates
@@ -1858,10 +2185,18 @@ app.post(
 
             res.json({
                 success: true,
+
                 message:
                     "Красивый номер установлен",
+
                 car,
-                plate
+
+                plate,
+
+                player:
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -1880,7 +2215,7 @@ app.post(
 
 /*
 =========================================================
-REMOVE PLATE
+REMOVE BEAUTIFUL PLATE
 =========================================================
 */
 
@@ -1889,9 +2224,14 @@ app.post(
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const car =
                 findPlayerCar(
@@ -1900,25 +2240,30 @@ app.post(
                 );
 
             if (!car) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Автомобиль не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Автомобиль не найден"
+                    });
             }
 
             if (!car.beautifulPlate) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "На автомобиле нет красивого номера"
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "На автомобиле нет красивого номера"
+                    });
             }
 
             const number =
                 car.beautifulPlate;
 
-            car.beautifulPlate = null;
+            car.beautifulPlate =
+                null;
 
             const plate =
                 player.beautifulPlates.find(
@@ -1939,9 +2284,16 @@ app.post(
 
             res.json({
                 success: true,
+
                 message:
                     "Красивый номер снят",
-                car
+
+                car,
+
+                player:
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -1979,14 +2331,20 @@ app.get(
     "/api/my-real-estate",
     (req, res) => {
         const player =
-            requirePlayer(req, res);
+            requirePlayer(
+                req,
+                res
+            );
 
-        if (!player) return;
+        if (!player) {
+            return;
+        }
 
         res.json({
             success: true,
             realEstate:
-                player.realEstate || []
+                player.realEstate ||
+                []
         });
     }
 );
@@ -1996,25 +2354,35 @@ app.post(
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const estate =
-                REAL_ESTATE.find(
-                    item =>
-                        item.id ===
-                        req.body?.estateId
+                getCatalogEstate(
+                    req.body?.estateId
                 );
 
             if (!estate) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Объект недвижимости не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Объект недвижимости не найден"
+                    });
             }
 
+            /*
+             * Пока сохраняем правило:
+             * один объект каждого типа
+             * на игрока.
+             */
             if (
                 player.realEstate.some(
                     item =>
@@ -2022,22 +2390,26 @@ app.post(
                         estate.id
                 )
             ) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "Этот объект уже принадлежит вам"
-                });
+                return res
+                    .status(409)
+                    .json({
+                        success: false,
+                        error:
+                            "Этот объект уже принадлежит вам"
+                    });
             }
 
             if (
                 player.balance <
                 estate.price
             ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Недостаточно HC"
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Недостаточно HC"
+                    });
             }
 
             player.balance -=
@@ -2077,9 +2449,13 @@ app.post(
 
             res.json({
                 success: true,
+
                 property,
+
                 player:
-                    publicPlayer(player)
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -2098,14 +2474,15 @@ app.post(
 
 /*
 =========================================================
-BUSINESS
+BUSINESS HELPERS
 =========================================================
 */
 
 function calculateBusinessIncome(
     business
 ) {
-    const now = Date.now();
+    const now =
+        Date.now();
 
     const last =
         Number(
@@ -2117,8 +2494,9 @@ function calculateBusinessIncome(
     let elapsed =
         now - last;
 
-    if (elapsed < 0)
+    if (elapsed < 0) {
         elapsed = 0;
+    }
 
     elapsed =
         Math.min(
@@ -2132,20 +2510,28 @@ function calculateBusinessIncome(
 
     return Math.floor(
         hours *
-        business.incomePerHour
+        Number(
+            business.incomePerHour ||
+            0
+        )
     );
 }
 
 function updateBusinessIncome(
     business
 ) {
+    if (!business) {
+        return 0;
+    }
+
     const income =
         calculateBusinessIncome(
             business
         );
 
-    if (income <= 0)
-        return;
+    if (income <= 0) {
+        return 0;
+    }
 
     business.storedIncome =
         Number(
@@ -2154,15 +2540,25 @@ function updateBusinessIncome(
 
     business.lastIncomeUpdate =
         Date.now();
+
+    return income;
 }
+
+/*
+=========================================================
+BUSINESS CATALOG
+=========================================================
+*/
 
 app.get(
     "/api/businesses",
     (req, res) => {
         res.json({
             success: true,
+
             maxStorageHours:
                 BUSINESS_MAX_STORAGE_HOURS,
+
             businesses:
                 BUSINESSES
         });
@@ -2173,91 +2569,130 @@ app.get(
     "/api/my-businesses",
     (req, res) => {
         const player =
-            requirePlayer(req, res);
+            requirePlayer(
+                req,
+                res
+            );
 
-        if (!player) return;
+        if (!player) {
+            return;
+        }
+
+        let changed =
+            false;
 
         for (
             const business
             of player.businesses
         ) {
-            updateBusinessIncome(
-                business
-            );
+            const income =
+                updateBusinessIncome(
+                    business
+                );
+
+            if (income > 0) {
+                changed = true;
+            }
         }
 
-        savePlayers();
+        if (changed) {
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+        }
 
         res.json({
             success: true,
+
             maxStorageHours:
                 BUSINESS_MAX_STORAGE_HOURS,
+
             businesses:
                 player.businesses
         });
     }
 );
 
+/*
+=========================================================
+BUY BUSINESS
+=========================================================
+*/
+
 app.post(
     "/api/businesses/buy",
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const catalog =
-                BUSINESSES.find(
-                    item =>
-                        item.id ===
-                        req.body?.businessId
+                getCatalogBusiness(
+                    req.body?.businessId
                 );
 
             if (!catalog) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Бизнес не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Бизнес не найден"
+                    });
             }
 
             const totalOwned =
-                Object.values(players)
-                    .reduce(
-                        (total, p) =>
-                            total +
-                            (
-                                p.businesses ||
-                                []
-                            ).filter(
-                                item =>
-                                    item.catalogId ===
-                                    catalog.id
-                            ).length,
-                        0
-                    );
+                Object.values(
+                    players
+                ).reduce(
+                    (
+                        total,
+                        p
+                    ) =>
+                        total +
+                        (
+                            p.businesses ||
+                            []
+                        ).filter(
+                            item =>
+                                item.catalogId ===
+                                catalog.id
+                        ).length,
+                    0
+                );
 
             if (
                 totalOwned >=
                 catalog.maxCount
             ) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "Все объекты этого типа уже проданы"
-                });
+                return res
+                    .status(409)
+                    .json({
+                        success: false,
+                        error:
+                            "Все объекты этого типа уже проданы"
+                    });
             }
 
             if (
                 player.balance <
                 catalog.price
             ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Недостаточно HC"
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Недостаточно HC"
+                    });
             }
 
             player.balance -=
@@ -2282,7 +2717,8 @@ app.post(
                 incomePerHour:
                     catalog.incomePerHour,
 
-                storedIncome: 0,
+                storedIncome:
+                    0,
 
                 purchasedAt:
                     Date.now(),
@@ -2302,9 +2738,13 @@ app.post(
 
             res.json({
                 success: true,
+
                 business,
+
                 player:
-                    publicPlayer(player)
+                    publicPlayer(
+                        player
+                    )
             });
         } catch (error) {
             console.error(
@@ -2321,14 +2761,25 @@ app.post(
     }
 );
 
+/*
+=========================================================
+COLLECT BUSINESS
+=========================================================
+*/
+
 app.post(
     "/api/businesses/collect",
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
             const business =
                 player.businesses.find(
@@ -2338,11 +2789,13 @@ app.post(
                 );
 
             if (!business) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Бизнес не найден"
-                });
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Бизнес не найден"
+                    });
             }
 
             updateBusinessIncome(
@@ -2356,17 +2809,21 @@ app.post(
                 );
 
             if (amount <= 0) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Доход ещё не накоплен",
-                    amount: 0
-                });
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Доход ещё не накоплен",
+                        amount: 0
+                    });
             }
 
-            player.balance += amount;
+            player.balance +=
+                amount;
 
-            business.storedIncome = 0;
+            business.storedIncome =
+                0;
 
             business.lastIncomeUpdate =
                 Date.now();
@@ -2378,9 +2835,13 @@ app.post(
 
             res.json({
                 success: true,
-                collected: amount,
+
+                collected:
+                    amount,
+
                 balance:
                     player.balance,
+
                 business
             });
         } catch (error) {
@@ -2398,16 +2859,28 @@ app.post(
     }
 );
 
+/*
+=========================================================
+COLLECT ALL BUSINESSES
+=========================================================
+*/
+
 app.post(
     "/api/businesses/collect-all",
     (req, res) => {
         try {
             const player =
-                requirePlayer(req, res);
+                requirePlayer(
+                    req,
+                    res
+                );
 
-            if (!player) return;
+            if (!player) {
+                return;
+            }
 
-            let total = 0;
+            let total =
+                0;
 
             for (
                 const business
@@ -2423,13 +2896,15 @@ app.post(
                         0
                     );
 
-                business.storedIncome = 0;
+                business.storedIncome =
+                    0;
 
                 business.lastIncomeUpdate =
                     Date.now();
             }
 
-            player.balance += total;
+            player.balance +=
+                total;
 
             player.updated_at =
                 Date.now();
@@ -2438,9 +2913,13 @@ app.post(
 
             res.json({
                 success: true,
-                collected: total,
+
+                collected:
+                    total,
+
                 balance:
                     player.balance,
+
                 businesses:
                     player.businesses
             });
@@ -2626,18 +3105,24 @@ function createRoom(
                     false,
 
                 disconnected:
-                    false
+                    false,
+
+                disconnectedAt:
+                    null
             }
         ],
 
-        deck: [],
+        deck:
+            [],
 
         trumpSuit:
             null,
 
-        hands: {},
+        hands:
+            {},
 
-        table: [],
+        table:
+            [],
 
         attacker:
             null,
@@ -2655,6 +3140,9 @@ function createRoom(
             null,
 
         createdAt:
+            Date.now(),
+
+        lastActivity:
             Date.now()
     };
 
@@ -2687,6 +3175,13 @@ function findRoomByPlayer(
     return null;
 }
 
+function touchRoom(room) {
+    if (room) {
+        room.lastActivity =
+            Date.now();
+    }
+}
+
 /*
 =========================================================
 ROOM PUBLIC
@@ -2707,7 +3202,8 @@ function publicRoom(room) {
         playerCount:
             room.players.length,
 
-        maxPlayers: 2,
+        maxPlayers:
+            2,
 
         players:
             room.players.map(
@@ -2724,6 +3220,10 @@ function publicRoom(room) {
                         first_name:
                             p?.first_name ||
                             "Игрок",
+
+                        last_name:
+                            p?.last_name ||
+                            "",
 
                         username:
                             p?.username ||
@@ -2745,7 +3245,8 @@ function publicRoomGame(
     playerId
 ) {
     const ownHand =
-        room.hands[playerId] || [];
+        room.hands[playerId] ||
+        [];
 
     const opponent =
         room.players.find(
@@ -2827,6 +3328,8 @@ function publicRoomGame(
 }
 
 function sendRoomState(room) {
+    touchRoom(room);
+
     for (
         const player
         of room.players
@@ -2836,8 +3339,9 @@ function sendRoomState(room) {
                 player.socketId
             );
 
-        if (!socket)
+        if (!socket) {
             continue;
+        }
 
         socket.emit(
             "room_state",
@@ -2860,7 +3364,10 @@ GAME HELPERS
 =========================================================
 */
 
-function isTrump(room, card) {
+function isTrump(
+    room,
+    card
+) {
     return (
         card &&
         card.suit ===
@@ -2873,8 +3380,12 @@ function canBeat(
     attack,
     defense
 ) {
-    if (!attack || !defense)
+    if (
+        !attack ||
+        !defense
+    ) {
         return false;
+    }
 
     const attackTrump =
         isTrump(
@@ -2917,9 +3428,11 @@ function tableRanks(room) {
         const pair
         of room.table
     ) {
-        ranks.push(
-            pair.attack.rank
-        );
+        if (pair.attack) {
+            ranks.push(
+                pair.attack.rank
+            );
+        }
 
         if (pair.defense) {
             ranks.push(
@@ -2935,8 +3448,9 @@ function canAddCard(
     room,
     card
 ) {
-    if (!card)
+    if (!card) {
         return false;
+    }
 
     if (
         room.table.length >=
@@ -3041,11 +3555,13 @@ function determineFirstAttacker(
             : p2.id;
     }
 
-    if (trumps1.length)
+    if (trumps1.length) {
         return p1.id;
+    }
 
-    if (trumps2.length)
+    if (trumps2.length) {
         return p2.id;
+    }
 
     const min1 =
         Math.min(
@@ -3111,27 +3627,41 @@ function startRoomGame(room) {
         );
     }
 
+    /*
+     * Последняя карта колоды
+     * определяет козырную масть.
+     *
+     * Она остаётся в колоде.
+     */
     const trumpCard =
         room.deck[
             room.deck.length - 1
         ];
 
     room.trumpSuit =
-        trumpCard.suit;
+        trumpCard
+            ? trumpCard.suit
+            : SUITS[0];
 
-    room.table = [];
+    room.table =
+        [];
 
     room.attacker =
         determineFirstAttacker(
             room
         );
 
-    room.defender =
+    const defender =
         room.players.find(
             player =>
                 player.id !==
                 room.attacker
-        ).id;
+        );
+
+    room.defender =
+        defender
+            ? defender.id
+            : null;
 
     room.phase =
         "attack";
@@ -3142,26 +3672,52 @@ function startRoomGame(room) {
     room.status =
         "playing";
 
-    room.finished = false;
+    room.finished =
+        false;
 
-    room.winner = null;
+    room.winner =
+        null;
+
+    touchRoom(room);
 
     return true;
 }
 
 /*
 =========================================================
-REFILL
+REFILL HANDS
 =========================================================
 */
 
 function refillHands(room) {
+    /*
+     * В Дураке сначала карты
+     * добирает атакующий,
+     * затем остальные игроки
+     * по очереди.
+     *
+     * Здесь всегда два игрока.
+     */
+
+    const order = [
+        room.attacker,
+        room.defender
+    ];
+
     for (
-        const player
-        of room.players
+        const playerId
+        of order
     ) {
+        if (!playerId) {
+            continue;
+        }
+
         const hand =
-            room.hands[player.id];
+            room.hands[playerId];
+
+        if (!hand) {
+            continue;
+        }
 
         while (
             hand.length <
@@ -3186,10 +3742,12 @@ function finishRoom(
     room,
     winnerId
 ) {
-    if (room.finished)
+    if (room.finished) {
         return;
+    }
 
-    room.finished = true;
+    room.finished =
+        true;
 
     room.status =
         "finished";
@@ -3198,7 +3756,7 @@ function finishRoom(
         "finished";
 
     room.winner =
-        winnerId;
+        winnerId || null;
 
     if (winnerId) {
         const winner =
@@ -3221,9 +3779,18 @@ function finishRoom(
                 : null;
 
         if (winner) {
-            winner.wins++;
-            winner.games++;
-            winner.balance += 500;
+            winner.wins =
+                Number(
+                    winner.wins || 0
+                ) + 1;
+
+            winner.games =
+                Number(
+                    winner.games || 0
+                ) + 1;
+
+            winner.balance +=
+                500;
 
             addXP(
                 winner,
@@ -3232,8 +3799,15 @@ function finishRoom(
         }
 
         if (loser) {
-            loser.losses++;
-            loser.games++;
+            loser.losses =
+                Number(
+                    loser.losses || 0
+                ) + 1;
+
+            loser.games =
+                Number(
+                    loser.games || 0
+                ) + 1;
 
             addXP(
                 loser,
@@ -3251,7 +3825,11 @@ function finishRoom(
                 );
 
             if (p) {
-                p.games++;
+                p.games =
+                    Number(
+                        p.games || 0
+                    ) + 1;
+
                 addXP(
                     p,
                     20
@@ -3271,14 +3849,15 @@ function finishRoom(
                 player.socketId
             );
 
-        if (!socket)
+        if (!socket) {
             continue;
+        }
 
         socket.emit(
             "game_finished",
             {
                 winner:
-                    winnerId,
+                    winnerId || null,
 
                 message:
                     winnerId ===
@@ -3308,6 +3887,10 @@ GAME OVER CHECK
 */
 
 function checkGameOver(room) {
+    /*
+     * Проверяем окончание только
+     * когда колода полностью пуста.
+     */
     if (
         room.deck.length >
         0
@@ -3321,12 +3904,19 @@ function checkGameOver(room) {
     const p2 =
         room.players[1];
 
+    if (!p1 || !p2) {
+        return false;
+    }
+
     const h1 =
-        room.hands[p1.id];
+        room.hands[p1.id] || [];
 
     const h2 =
-        room.hands[p2.id];
+        room.hands[p2.id] || [];
 
+    /*
+     * Оба закончили одновременно.
+     */
     if (
         h1.length === 0 &&
         h2.length === 0
@@ -3339,6 +3929,9 @@ function checkGameOver(room) {
         return true;
     }
 
+    /*
+     * Первый игрок без карт.
+     */
     if (
         h1.length === 0
     ) {
@@ -3350,6 +3943,9 @@ function checkGameOver(room) {
         return true;
     }
 
+    /*
+     * Второй игрок без карт.
+     */
     if (
         h2.length === 0
     ) {
@@ -3378,25 +3974,32 @@ function playerAttack(
     if (
         room.status !==
         "playing"
-    )
+    ) {
         return;
+    }
 
     if (
         room.phase !==
             "attack" &&
         room.phase !==
             "attack_continue"
-    )
+    ) {
         return;
+    }
 
     if (
         room.attacker !==
         playerId
-    )
+    ) {
         return;
+    }
 
     const hand =
         room.hands[playerId];
+
+    if (!Array.isArray(hand)) {
+        return;
+    }
 
     const index =
         hand.findIndex(
@@ -3405,8 +4008,15 @@ function playerAttack(
                 cardId
         );
 
-    if (index === -1)
+    if (index === -1) {
+        emitActionError(
+            room,
+            playerId,
+            "Карта не найдена"
+        );
+
         return;
+    }
 
     const card =
         hand[index];
@@ -3426,18 +4036,42 @@ function playerAttack(
         return;
     }
 
+    /*
+     * В защите может быть несколько
+     * атакующих карт, но количество
+     * не должно превышать количество
+     * карт у защитника на момент раунда.
+     */
+    if (
+        room.table.length >=
+        room.roundLimit
+    ) {
+        emitActionError(
+            room,
+            playerId,
+            "Больше карт подкинуть нельзя"
+        );
+
+        return;
+    }
+
     hand.splice(
         index,
         1
     );
 
     room.table.push({
-        attack: card,
-        defense: null
+        attack:
+            card,
+
+        defense:
+            null
     });
 
     room.phase =
         "defense";
+
+    touchRoom(room);
 
     sendRoomState(room);
 }
@@ -3456,29 +4090,37 @@ function playerDefense(
     if (
         room.status !==
         "playing"
-    )
+    ) {
         return;
+    }
 
     if (
         room.phase !==
         "defense"
-    )
+    ) {
         return;
+    }
 
     if (
         room.defender !==
         playerId
-    )
+    ) {
         return;
+    }
 
     const index =
         firstUnbeaten(room);
 
-    if (index === -1)
+    if (index === -1) {
         return;
+    }
 
     const hand =
         room.hands[playerId];
+
+    if (!Array.isArray(hand)) {
+        return;
+    }
 
     const cardIndex =
         hand.findIndex(
@@ -3490,8 +4132,15 @@ function playerDefense(
     if (
         cardIndex ===
         -1
-    )
+    ) {
+        emitActionError(
+            room,
+            playerId,
+            "Карта не найдена"
+        );
+
         return;
+    }
 
     const defense =
         hand[cardIndex];
@@ -3527,15 +4176,15 @@ function playerDefense(
 
     /*
      * После успешного отбивания
-     * атакующий получает право
-     * решить: подкинуть ещё
-     * или закончить атаку.
+     * атакующий может продолжить
+     * атаку либо завершить раунд.
      */
-
     if (allBeaten(room)) {
         room.phase =
             "attack_continue";
     }
+
+    touchRoom(room);
 
     sendRoomState(room);
 }
@@ -3553,20 +4202,23 @@ function finishAttackRound(
     if (
         room.status !==
         "playing"
-    )
+    ) {
         return;
+    }
 
     if (
         room.phase !==
         "attack_continue"
-    )
+    ) {
         return;
+    }
 
     if (
         room.attacker !==
         playerId
-    )
+    ) {
         return;
+    }
 
     if (!allBeaten(room)) {
         emitActionError(
@@ -3578,8 +4230,25 @@ function finishAttackRound(
         return;
     }
 
-    room.table = [];
+    /*
+     * Сохраняем текущих игроков.
+     */
+    const oldAttacker =
+        room.attacker;
 
+    const oldDefender =
+        room.defender;
+
+    /*
+     * Карты со стола уходят.
+     */
+    room.table =
+        [];
+
+    /*
+     * После успешного отбивания
+     * оба игрока добирают карты.
+     */
     refillHands(room);
 
     if (
@@ -3588,11 +4257,12 @@ function finishAttackRound(
         return;
     }
 
-    const oldAttacker =
-        room.attacker;
-
+    /*
+     * Право атаки переходит
+     * к бывшему защитнику.
+     */
     room.attacker =
-        room.defender;
+        oldDefender;
 
     room.defender =
         oldAttacker;
@@ -3600,13 +4270,17 @@ function finishAttackRound(
     room.roundLimit =
         Math.min(
             MAX_HAND,
-            room.hands[
-                room.defender
-            ].length
+            (
+                room.hands[
+                    room.defender
+                ] || []
+            ).length
         );
 
     room.phase =
         "attack";
+
+    touchRoom(room);
 
     sendRoomState(room);
 }
@@ -3624,48 +4298,59 @@ function takeCards(
     if (
         room.status !==
         "playing"
-    )
+    ) {
         return;
+    }
 
     if (
         room.phase !==
         "defense"
-    )
+    ) {
         return;
+    }
 
     if (
         room.defender !==
         playerId
-    )
+    ) {
         return;
+    }
 
     const hand =
         room.hands[playerId];
 
+    if (!Array.isArray(hand)) {
+        return;
+    }
+
+    /*
+     * Защитник забирает все карты
+     * со стола.
+     */
     for (
         const pair
         of room.table
     ) {
-        hand.push(
-            pair.attack
-        );
+        if (pair.attack) {
+            hand.push(
+                pair.attack
+            );
+        }
 
-        if (
-            pair.defense
-        ) {
+        if (pair.defense) {
             hand.push(
                 pair.defense
             );
         }
     }
 
-    room.table = [];
+    room.table =
+        [];
 
     /*
      * При взятии карт атакующий
-     * остаётся атакующим.
+     * сохраняет право атаки.
      */
-
     refillHands(room);
 
     if (
@@ -3677,13 +4362,17 @@ function takeCards(
     room.roundLimit =
         Math.min(
             MAX_HAND,
-            room.hands[
-                room.defender
-            ].length
+            (
+                room.hands[
+                    room.defender
+                ] || []
+            ).length
         );
 
     room.phase =
         "attack";
+
+    touchRoom(room);
 
     sendRoomState(room);
 }
@@ -3706,16 +4395,18 @@ function emitActionError(
                 playerId
         );
 
-    if (!player)
+    if (!player) {
         return;
+    }
 
     const socket =
         io.sockets.sockets.get(
             player.socketId
         );
 
-    if (!socket)
+    if (!socket) {
         return;
+    }
 
     socket.emit(
         "action_error",
@@ -3727,7 +4418,7 @@ function emitActionError(
 
 /*
 =========================================================
-REMOVE PLAYER
+ROOM PLAYER REMOVE
 =========================================================
 */
 
@@ -3741,6 +4432,53 @@ function removePlayerFromRoom(
                 player.id !==
                 playerId
         );
+
+    if (
+        room.hands &&
+        room.hands[playerId]
+    ) {
+        delete room.hands[
+            playerId
+        ];
+    }
+
+    touchRoom(room);
+}
+
+/*
+=========================================================
+ROOM RECONNECT
+=========================================================
+*/
+
+function reconnectPlayer(
+    room,
+    playerId,
+    socket
+) {
+    const player =
+        room.players.find(
+            item =>
+                item.id ===
+                playerId
+        );
+
+    if (!player) {
+        return false;
+    }
+
+    player.socketId =
+        socket.id;
+
+    player.disconnected =
+        false;
+
+    player.disconnectedAt =
+        null;
+
+    touchRoom(room);
+
+    return true;
 }
 
 /*
@@ -3793,6 +4531,40 @@ io.on(
                         String(
                             player.telegram_id
                         );
+
+                    /*
+                     * Если игрок уже был
+                     * в комнате, восстанавливаем
+                     * его socket.
+                     */
+                    const existingRoom =
+                        findRoomByPlayer(
+                            socket.playerId
+                        );
+
+                    if (
+                        existingRoom
+                    ) {
+                        reconnectPlayer(
+                            existingRoom,
+                            socket.playerId,
+                            socket
+                        );
+
+                        socket.emit(
+                            "room_reconnected",
+                            {
+                                room:
+                                    publicRoom(
+                                        existingRoom
+                                    )
+                            }
+                        );
+
+                        sendRoomState(
+                            existingRoom
+                        );
+                    }
 
                     socket.emit(
                         "authenticated",
@@ -3849,20 +4621,11 @@ io.on(
                     );
 
                 if (existing) {
-                    const existingPlayer =
-                        existing.players.find(
-                            player =>
-                                player.id ===
-                                socket.playerId
-                        );
-
-                    if (existingPlayer) {
-                        existingPlayer.socketId =
-                            socket.id;
-
-                        existingPlayer.disconnected =
-                            false;
-                    }
+                    reconnectPlayer(
+                        existing,
+                        socket.playerId,
+                        socket
+                    );
 
                     socket.emit(
                         "room_created",
@@ -3897,7 +4660,9 @@ io.on(
                     }
                 );
 
-                sendRoomState(room);
+                sendRoomState(
+                    room
+                );
             }
         );
 
@@ -3947,6 +4712,10 @@ io.on(
                     return;
                 }
 
+                /*
+                 * Если игрок уже находится
+                 * в этой комнате — восстанавливаем.
+                 */
                 if (
                     room.players.some(
                         player =>
@@ -3954,18 +4723,11 @@ io.on(
                             socket.playerId
                     )
                 ) {
-                    const p =
-                        room.players.find(
-                            player =>
-                                player.id ===
-                                socket.playerId
-                        );
-
-                    p.socketId =
-                        socket.id;
-
-                    p.disconnected =
-                        false;
+                    reconnectPlayer(
+                        room,
+                        socket.playerId,
+                        socket
+                    );
 
                     socket.emit(
                         "room_joined",
@@ -3977,7 +4739,9 @@ io.on(
                         }
                     );
 
-                    sendRoomState(room);
+                    sendRoomState(
+                        room
+                    );
 
                     return;
                 }
@@ -4023,8 +4787,13 @@ io.on(
                         false,
 
                     disconnected:
-                        false
+                        false,
+
+                    disconnectedAt:
+                        null
                 });
+
+                touchRoom(room);
 
                 socket.emit(
                     "room_joined",
@@ -4037,10 +4806,10 @@ io.on(
                 );
 
                 /*
-                 * Автоматический старт,
-                 * когда второй игрок вошёл.
+                 * Второй игрок вошёл.
+                 *
+                 * Автоматически запускаем игру.
                  */
-
                 room.players.forEach(
                     player => {
                         player.ready =
@@ -4048,9 +4817,13 @@ io.on(
                     }
                 );
 
-                startRoomGame(room);
+                startRoomGame(
+                    room
+                );
 
-                sendRoomState(room);
+                sendRoomState(
+                    room
+                );
             }
         );
 
@@ -4065,16 +4838,18 @@ io.on(
             () => {
                 if (
                     !socket.playerId
-                )
+                ) {
                     return;
+                }
 
                 const room =
                     findRoomByPlayer(
                         socket.playerId
                     );
 
-                if (!room)
+                if (!room) {
                     return;
+                }
 
                 const player =
                     room.players.find(
@@ -4083,10 +4858,14 @@ io.on(
                             socket.playerId
                     );
 
-                if (!player)
+                if (!player) {
                     return;
+                }
 
-                player.ready = true;
+                player.ready =
+                    true;
+
+                touchRoom(room);
 
                 if (
                     room.players.length ===
@@ -4098,10 +4877,14 @@ io.on(
                     room.status ===
                         "waiting"
                 ) {
-                    startRoomGame(room);
+                    startRoomGame(
+                        room
+                    );
                 }
 
-                sendRoomState(room);
+                sendRoomState(
+                    room
+                );
             }
         );
 
@@ -4116,16 +4899,18 @@ io.on(
             data => {
                 if (
                     !socket.playerId
-                )
+                ) {
                     return;
+                }
 
                 const room =
                     findRoomByPlayer(
                         socket.playerId
                     );
 
-                if (!room)
+                if (!room) {
                     return;
+                }
 
                 if (
                     room.phase ===
@@ -4157,7 +4942,7 @@ io.on(
 
         /*
         ================================================
-        FINISH ATTACK
+        FINISH ROUND
         ================================================
         */
 
@@ -4166,16 +4951,18 @@ io.on(
             () => {
                 if (
                     !socket.playerId
-                )
+                ) {
                     return;
+                }
 
                 const room =
                     findRoomByPlayer(
                         socket.playerId
                     );
 
-                if (!room)
+                if (!room) {
                     return;
+                }
 
                 finishAttackRound(
                     room,
@@ -4186,7 +4973,7 @@ io.on(
 
         /*
         ================================================
-        TAKE
+        TAKE CARDS
         ================================================
         */
 
@@ -4195,16 +4982,18 @@ io.on(
             () => {
                 if (
                     !socket.playerId
-                )
+                ) {
                     return;
+                }
 
                 const room =
                     findRoomByPlayer(
                         socket.playerId
                     );
 
-                if (!room)
+                if (!room) {
                     return;
+                }
 
                 takeCards(
                     room,
@@ -4215,7 +5004,7 @@ io.on(
 
         /*
         ================================================
-        LEAVE
+        LEAVE ROOM
         ================================================
         */
 
@@ -4224,17 +5013,24 @@ io.on(
             () => {
                 if (
                     !socket.playerId
-                )
+                ) {
                     return;
+                }
 
                 const room =
                     findRoomByPlayer(
                         socket.playerId
                     );
 
-                if (!room)
+                if (!room) {
                     return;
+                }
 
+                /*
+                 * Если игрок сознательно
+                 * вышел во время игры —
+                 * это поражение.
+                 */
                 if (
                     room.status ===
                     "playing"
@@ -4271,6 +5067,10 @@ io.on(
                         room.code
                     );
                 } else {
+                    /*
+                     * Второй игрок остаётся
+                     * в комнате ожидания.
+                     */
                     room.status =
                         "waiting";
 
@@ -4280,7 +5080,30 @@ io.on(
                     room.finished =
                         false;
 
-                    sendRoomState(room);
+                    room.winner =
+                        null;
+
+                    room.deck =
+                        [];
+
+                    room.table =
+                        [];
+
+                    room.hands =
+                        {};
+
+                    room.attacker =
+                        null;
+
+                    room.defender =
+                        null;
+
+                    room.trumpSuit =
+                        null;
+
+                    sendRoomState(
+                        room
+                    );
                 }
             }
         );
@@ -4301,16 +5124,18 @@ io.on(
 
                 if (
                     !socket.playerId
-                )
+                ) {
                     return;
+                }
 
                 const room =
                     findRoomByPlayer(
                         socket.playerId
                     );
 
-                if (!room)
+                if (!room) {
                     return;
+                }
 
                 const player =
                     room.players.find(
@@ -4319,54 +5144,134 @@ io.on(
                             socket.playerId
                     );
 
-                if (!player)
+                if (!player) {
                     return;
+                }
 
                 /*
-                 * Не удаляем сразу.
-                 * Помечаем disconnect,
-                 * чтобы Telegram WebApp
-                 * мог восстановить соединение.
+                 * НЕ объявляем поражение сразу.
+                 *
+                 * Telegram WebApp может
+                 * временно потерять соединение.
                  */
-
                 player.disconnected =
                     true;
 
+                player.disconnectedAt =
+                    Date.now();
+
+                touchRoom(room);
+
+                sendRoomState(
+                    room
+                );
+            }
+        );
+    }
+);
+
+/*
+=========================================================
+ROOM CLEANUP / DISCONNECT TIMEOUT
+=========================================================
+*/
+
+setInterval(
+    () => {
+        const now =
+            Date.now();
+
+        for (
+            const [
+                code,
+                room
+            ] of rooms.entries()
+        ) {
+            /*
+             * Проверяем игроков,
+             * которые отключились.
+             */
+            if (
+                room.status ===
+                "playing"
+            ) {
+                const disconnectedPlayer =
+                    room.players.find(
+                        player =>
+                            player.disconnected &&
+                            player.disconnectedAt &&
+                            now -
+                                player.disconnectedAt >=
+                                ROOM_RECONNECT_TIMEOUT
+                    );
+
                 if (
-                    room.status ===
-                    "playing"
+                    disconnectedPlayer
                 ) {
                     const opponent =
                         room.players.find(
-                            item =>
-                                item.id !==
-                                socket.playerId
+                            player =>
+                                player.id !==
+                                disconnectedPlayer.id &&
+                                !player.disconnected
                         );
 
-                    if (
-                        opponent &&
-                        !opponent.disconnected
-                    ) {
+                    if (opponent) {
                         finishRoom(
                             room,
                             opponent.id
                         );
                     }
                 }
-
-                /*
-                 * Если игра не началась,
-                 * оставляем комнату.
-                 */
-
-                if (
-                    room.status ===
-                    "waiting"
-                ) {
-                    sendRoomState(room);
-                }
             }
+
+            /*
+             * Удаляем полностью пустые
+             * или давно неактивные комнаты.
+             */
+            if (
+                room.players.length ===
+                    0 ||
+                now -
+                    room.lastActivity >
+                    ROOM_CLEANUP_TIMEOUT
+            ) {
+                rooms.delete(
+                    code
+                );
+            }
+        }
+    },
+    5000
+);
+
+/*
+=========================================================
+ERROR HANDLER
+=========================================================
+*/
+
+app.use(
+    (
+        err,
+        req,
+        res,
+        next
+    ) => {
+        console.error(
+            "EXPRESS ERROR:",
+            err
         );
+
+        if (res.headersSent) {
+            return next(err);
+        }
+
+        res.status(500).json({
+            success: false,
+            error:
+                "Internal server error"
+        });
     }
 );
 
@@ -4396,7 +5301,7 @@ server.listen(
         );
 
         console.log(
-            `VERSION: 4.0.0`
+            "VERSION: 5.0.0"
         );
 
         console.log(
@@ -4441,6 +5346,18 @@ server.listen(
 
         console.log(
             "AI: DISABLED"
+        );
+
+        console.log(
+            "FACTIONS: DISABLED"
+        );
+
+        console.log(
+            "TUNING ATELIER: ENABLED"
+        );
+
+        console.log(
+            "ROOM RECONNECT: ENABLED"
         );
 
         console.log(
