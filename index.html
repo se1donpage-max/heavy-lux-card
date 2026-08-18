@@ -2,13 +2,18 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+>
 
 <title>Heavy Lux Card</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -16,54 +21,104 @@
 }
 
 body {
-    background: #09090b;
-    color: white;
-    font-family: Arial, sans-serif;
     min-height: 100vh;
+    background: #09090b;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+
+button {
+    font-family: inherit;
 }
 
 .app {
     width: 100%;
-    max-width: 480px;
-    margin: auto;
-    padding: 18px;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 15px;
 }
+
+/* =========================
+   HEADER
+========================= */
 
 .header {
     text-align: center;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 .header h1 {
     font-size: 25px;
     letter-spacing: 4px;
+    font-weight: 800;
 }
 
 .header p {
+    margin-top: 4px;
     color: #777;
     font-size: 10px;
     letter-spacing: 5px;
-    margin-top: 4px;
 }
+
+/* =========================
+   BALANCE
+========================= */
 
 .balance {
     background: #151519;
     border: 1px solid #29292f;
     border-radius: 14px;
-    padding: 12px;
+    padding: 11px;
     text-align: center;
     margin-bottom: 12px;
 }
 
-.balance span {
-    color: #aaa;
-    font-size: 13px;
+.balance-label {
+    color: #888;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
-.balance strong {
+.balance-value {
     font-size: 20px;
-    margin-left: 5px;
+    font-weight: 800;
+    margin-top: 3px;
 }
+
+/* =========================
+   MENU
+========================= */
+
+.start-screen {
+    text-align: center;
+}
+
+.start-button {
+    width: 100%;
+    border: none;
+    border-radius: 15px;
+    background: #ffffff;
+    color: #000000;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.error {
+    display: none;
+    background: #241414;
+    border: 1px solid #522222;
+    color: #ffaaaa;
+    padding: 14px;
+    border-radius: 12px;
+    margin-top: 12px;
+    white-space: pre-wrap;
+}
+
+/* =========================
+   GAME
+========================= */
 
 .game {
     display: none;
@@ -73,186 +128,275 @@ body {
     background: #111116;
     border: 1px solid #29292f;
     border-radius: 20px;
-    padding: 15px;
-    min-height: 570px;
-    position: relative;
-    overflow: hidden;
+    padding: 13px;
 }
 
-.trump {
-    text-align: center;
-    color: #aaa;
+/* =========================
+   TOP INFO
+========================= */
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.deck-info {
+    color: #888;
+    font-size: 12px;
+}
+
+.trump-info {
+    background: #19191e;
+    border: 1px solid #303038;
+    padding: 7px 11px;
+    border-radius: 10px;
     font-size: 13px;
+}
+
+.trump-card {
+    font-weight: 800;
+}
+
+/* =========================
+   PLAYER AREAS
+========================= */
+
+.player-area {
     margin-bottom: 10px;
 }
 
-.trump strong {
-    color: white;
-}
-
-.player-area {
-    margin-top: 15px;
-}
-
-.player-title {
-    font-size: 13px;
+.player-label {
     color: #888;
-    margin-bottom: 8px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 7px;
 }
 
 .cards {
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
-    min-height: 95px;
+    min-height: 78px;
 }
+
+/* =========================
+   CARD
+========================= */
 
 .card {
     width: 48px;
     height: 70px;
-    background: white;
-    color: black;
-    border-radius: 8px;
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #111111;
+
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
+
     font-size: 17px;
-    border: 2px solid #ddd;
-    box-shadow: 0 3px 7px rgba(0,0,0,.4);
+    font-weight: 800;
+
+    border: 2px solid #dddddd;
+
+    box-shadow:
+        0 4px 8px rgba(0,0,0,.35);
+
+    user-select: none;
 }
 
 .card.red {
     color: #d71920;
 }
 
-.card.back {
-    background: #25252b;
-    border: 2px solid #444;
-    color: #777;
-}
-
-.player-card {
+.card.clickable {
     cursor: pointer;
-    transition: transform .15s;
+    transition: transform .12s ease;
 }
 
-.player-card:hover {
-    transform: translateY(-7px);
+.card.clickable:hover {
+    transform: translateY(-5px);
 }
 
-.player-card.selected {
-    transform: translateY(-12px);
-    border: 3px solid #888;
+.card.selected {
+    transform: translateY(-10px);
+    border: 3px solid #888888;
 }
 
-.middle {
-    min-height: 210px;
-    margin: 10px 0;
-    background: #0c0c10;
+.card.back {
+    background:
+        linear-gradient(
+            135deg,
+            #202027,
+            #111116
+        );
+
+    color: #555;
+    border-color: #3a3a42;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.play-area {
+    min-height: 230px;
+
+    background: #0b0b0f;
+
+    border: 1px dashed #303038;
+
     border-radius: 15px;
-    border: 1px dashed #29292f;
-    padding: 15px;
+
+    padding: 12px;
+
+    margin: 10px 0;
 }
 
-.message {
+.table-message {
     text-align: center;
     color: #aaa;
     font-size: 13px;
-    margin-bottom: 12px;
-    min-height: 18px;
+    min-height: 20px;
+    margin-bottom: 10px;
 }
 
-.attack-cards,
-.defense-cards {
+.table-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    min-height: 75px;
+    gap: 10px;
+    justify-content: center;
+    align-items: flex-start;
 }
 
-.played-card {
+.played {
+    position: relative;
+    width: 58px;
+    height: 82px;
+}
+
+.played .attack-card,
+.played .defense-card {
+    position: absolute;
     width: 48px;
     height: 70px;
+    border-radius: 9px;
+
     background: white;
     color: black;
-    border-radius: 8px;
+
     display: flex;
-    align-items: center;
     justify-content: center;
-    font-weight: bold;
+    align-items: center;
+
+    font-size: 17px;
+    font-weight: 800;
+
+    box-shadow:
+        0 4px 8px rgba(0,0,0,.4);
 }
 
-.played-card.red {
+.played .attack-card.red,
+.played .defense-card.red {
     color: #d71920;
 }
 
+.played .attack-card {
+    left: 0;
+    top: 0;
+}
+
+.played .defense-card {
+    left: 10px;
+    top: 12px;
+}
+
+/* =========================
+   CONTROLS
+========================= */
+
 .controls {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
-    margin-top: 12px;
-}
-
-button {
-    flex: 1;
-    border: none;
-    border-radius: 12px;
-    padding: 14px 8px;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.btn-main {
-    background: white;
-    color: black;
-}
-
-.btn-dark {
-    background: #29292f;
-    color: white;
-}
-
-.btn-danger {
-    background: #401919;
-    color: #ffaaaa;
-}
-
-.start {
-    width: 100%;
-    background: white;
-    color: black;
-    border: none;
-    border-radius: 14px;
-    padding: 17px;
-    font-size: 17px;
-    font-weight: bold;
-    margin-bottom: 12px;
-}
-
-.back-button {
-    width: 100%;
-    background: #151519;
-    color: white;
-    border: 1px solid #29292f;
-    border-radius: 14px;
-    padding: 14px;
     margin-top: 10px;
 }
 
+.control-button {
+    border: none;
+    border-radius: 12px;
+    padding: 14px 8px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.beat-button {
+    background: #ffffff;
+    color: #000000;
+}
+
+.take-button {
+    background: #29292f;
+    color: #ffffff;
+}
+
+.finish-button {
+    grid-column: span 2;
+    background: #17171c;
+    border: 1px solid #34343c;
+    color: white;
+}
+
+.control-button:disabled {
+    opacity: .35;
+}
+
+/* =========================
+   RESULT
+========================= */
+
 .result {
     text-align: center;
-    padding: 40px 15px;
+    padding: 45px 10px;
 }
 
 .result h2 {
-    font-size: 27px;
-    margin-bottom: 15px;
+    font-size: 29px;
+    margin-bottom: 12px;
 }
 
 .result p {
-    color: #aaa;
-    margin-bottom: 20px;
+    color: #999;
+    line-height: 1.5;
+    margin-bottom: 22px;
 }
+
+.result button {
+    width: 100%;
+    border: none;
+    background: white;
+    color: black;
+    border-radius: 13px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+/* =========================
+   FOOTER
+========================= */
+
+.footer {
+    text-align: center;
+    color: #444;
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-top: 18px;
+}
+
 </style>
 </head>
 
@@ -261,103 +405,229 @@ button {
 <div class="app">
 
     <div class="header">
+
         <h1>HEAVY LUX</h1>
+
         <p>CARD</p>
+
     </div>
+
 
     <div class="balance">
-        <span>Баланс</span>
-        <strong id="balance">5 000 HC</strong>
+
+        <div class="balance-label">
+            Баланс
+        </div>
+
+        <div
+            class="balance-value"
+            id="balance"
+        >
+            5 000 HC
+        </div>
+
     </div>
 
-    <button class="start" id="startButton" onclick="startGame()">
-        ИГРАТЬ
-    </button>
 
-    <div class="game" id="game">
+    <!-- =========================
+         START
+    ========================== -->
+
+    <div
+        class="start-screen"
+        id="startScreen"
+    >
+
+        <button
+            class="start-button"
+            onclick="startGame()"
+        >
+            ИГРАТЬ
+        </button>
+
+        <div
+            class="error"
+            id="error"
+        ></div>
+
+    </div>
+
+
+    <!-- =========================
+         GAME
+    ========================== -->
+
+    <div
+        class="game"
+        id="game"
+    >
 
         <div class="table">
 
-            <div class="trump">
-                Козырь:
-                <strong id="trump"></strong>
+
+            <div class="game-info">
+
+                <div
+                    class="deck-info"
+                    id="deckInfo"
+                >
+                    Колода: 24
+                </div>
+
+                <div class="trump-info">
+
+                    Козырь:
+
+                    <span
+                        id="trump"
+                        class="trump-card"
+                    >
+                    </span>
+
+                </div>
+
             </div>
+
+
+            <!-- COMPUTER -->
 
             <div class="player-area">
 
-                <div class="player-title">
+                <div class="player-label">
                     КОМПЬЮТЕР
                 </div>
 
-                <div class="cards" id="computerCards"></div>
+                <div
+                    class="cards"
+                    id="computerCards"
+                ></div>
 
             </div>
 
-            <div class="middle">
 
-                <div class="message" id="message">
+            <!-- TABLE -->
+
+            <div class="play-area">
+
+                <div
+                    class="table-message"
+                    id="message"
+                >
                     Подготовка игры...
                 </div>
 
-                <div class="attack-cards" id="attackCards"></div>
-
-                <div class="defense-cards" id="defenseCards"></div>
+                <div
+                    class="table-cards"
+                    id="tableCards"
+                ></div>
 
             </div>
+
+
+            <!-- PLAYER -->
 
             <div class="player-area">
 
-                <div class="player-title">
+                <div class="player-label">
                     ВЫ
                 </div>
 
-                <div class="cards" id="playerCards"></div>
+                <div
+                    class="cards"
+                    id="playerCards"
+                ></div>
 
             </div>
+
+
+            <!-- CONTROLS -->
 
             <div class="controls">
 
-                <button class="btn-main" onclick="finishTurn()">
-                    ЗАКОНЧИТЬ
+                <button
+                    class="control-button beat-button"
+                    id="beatButton"
+                    onclick="confirmDefense()"
+                >
+                    БИТО
                 </button>
 
-                <button class="btn-dark" onclick="takeCards()">
+                <button
+                    class="control-button take-button"
+                    id="takeButton"
+                    onclick="playerTakeCards()"
+                >
                     ВЗЯТЬ
+                </button>
+
+                <button
+                    class="control-button finish-button"
+                    id="finishButton"
+                    onclick="finishAttack()"
+                >
+                    ЗАКОНЧИТЬ АТАКУ
                 </button>
 
             </div>
 
+
         </div>
 
-        <button class="back-button" onclick="backToMenu()">
-            ← В меню
-        </button>
+    </div>
 
+
+    <div class="footer">
+        HEAVY LUX CARD
     </div>
 
 </div>
 
+
 <script>
+
+/* =====================================================
+   TELEGRAM
+===================================================== */
 
 const tg = window.Telegram.WebApp;
 
 tg.ready();
 tg.expand();
 
-let deck = [];
-let playerCards = [];
-let computerCards = [];
 
-let trumpSuit = "";
-let trumpCard = null;
+/* =====================================================
+   API
+===================================================== */
 
-let attackCards = [];
-let defenseCards = [];
+const API_URL =
+    "https://heavy-lux-card-api.onrender.com";
 
-let selectedCard = null;
 
-const suits = ["♠", "♥", "♦", "♣"];
-const ranks = ["6", "7", "8", "9", "10", "J", "Q", "K", "A"];
+let currentPlayer = null;
+
+
+/* =====================================================
+   GAME DATA
+===================================================== */
+
+const suits = [
+    "♠",
+    "♥",
+    "♦",
+    "♣"
+];
+
+const ranks = [
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "В",
+    "Д",
+    "К",
+    "Т"
+];
 
 const suitNames = {
     "♠": "пики",
@@ -365,6 +635,76 @@ const suitNames = {
     "♦": "бубны",
     "♣": "трефы"
 };
+
+
+let deck = [];
+
+let playerCards = [];
+
+let computerCards = [];
+
+let trumpSuit = null;
+
+let trumpCard = null;
+
+let table = [];
+
+let turn = null;
+
+let gameFinished = false;
+
+
+/*
+table item:
+
+{
+    attack: card,
+    defense: card | null
+}
+*/
+
+
+/* =====================================================
+   CARD HELPERS
+===================================================== */
+
+function rankValue(card) {
+
+    return ranks.indexOf(card.rank);
+
+}
+
+
+function isRed(card) {
+
+    return (
+        card.suit === "♥" ||
+        card.suit === "♦"
+    );
+
+}
+
+
+function cardName(card) {
+
+    return card.rank + card.suit;
+
+}
+
+
+function createCard(rank, suit) {
+
+    return {
+        rank: rank,
+        suit: suit
+    };
+
+}
+
+
+/* =====================================================
+   DECK
+===================================================== */
 
 function createDeck() {
 
@@ -374,327 +714,180 @@ function createDeck() {
 
         for (const rank of ranks) {
 
-            deck.push({
-                suit: suit,
-                rank: rank
-            });
+            deck.push(
+                createCard(rank, suit)
+            );
 
         }
 
     }
 
-    deck.sort(() => Math.random() - 0.5);
-}
-
-function cardValue(card) {
-
-    return ranks.indexOf(card.rank);
+    shuffle(deck);
 
 }
 
-function isRed(card) {
 
-    return card.suit === "♥" || card.suit === "♦";
+function shuffle(array) {
 
-}
-
-function cardText(card) {
-
-    return card.rank + card.suit;
-
-}
-
-function canBeat(defender, attacker) {
-
-    if (defender.suit === attacker.suit) {
-
-        return cardValue(defender) > cardValue(attacker);
-
-    }
-
-    if (
-        defender.suit === trumpSuit &&
-        attacker.suit !== trumpSuit
-    ) {
-        return true;
-    }
-
-    return false;
-}
-
-function dealCards() {
-
-    while (
-        playerCards.length < 6 &&
-        deck.length > 0
+    for (
+        let i = array.length - 1;
+        i > 0;
+        i--
     ) {
 
-        playerCards.push(deck.pop());
+        const j =
+            Math.floor(
+                Math.random() * (i + 1)
+            );
+
+        [
+            array[i],
+            array[j]
+        ] =
+        [
+            array[j],
+            array[i]
+        ];
 
     }
 
-    while (
-        computerCards.length < 6 &&
-        deck.length > 0
-    ) {
-
-        computerCards.push(deck.pop());
-
-    }
-
 }
 
-function findTrump() {
 
-    if (deck.length === 0) return;
+/* =====================================================
+   FIRST TRUMP
+===================================================== */
 
-    trumpCard = deck[deck.length - 1];
-    trumpSuit = trumpCard.suit;
+function findFirstPlayer() {
 
-    document.getElementById("trump").innerText =
-        trumpCard.rank + " " + trumpSuit;
-
-}
-
-function renderCards() {
-
-    const playerElement =
-        document.getElementById("playerCards");
-
-    const computerElement =
-        document.getElementById("computerCards");
-
-    playerElement.innerHTML = "";
-    computerElement.innerHTML = "";
-
-    computerCards.forEach(() => {
-
-        const card = document.createElement("div");
-
-        card.className = "card back";
-
-        card.innerText = "★";
-
-        computerElement.appendChild(card);
-
-    });
-
-    playerCards.forEach((card, index) => {
-
-        const element =
-            document.createElement("div");
-
-        element.className =
-            "card player-card" +
-            (isRed(card) ? " red" : "");
-
-        element.innerText =
-            cardText(card);
-
-        element.onclick = () => selectCard(index);
-
-        if (
-            selectedCard === index
-        ) {
-
-            element.classList.add("selected");
-
-        }
-
-        playerElement.appendChild(element);
-
-    });
-
-}
-
-function renderPlayedCards() {
-
-    const attackElement =
-        document.getElementById("attackCards");
-
-    const defenseElement =
-        document.getElementById("defenseCards");
-
-    attackElement.innerHTML = "";
-    defenseElement.innerHTML = "";
-
-    attackCards.forEach(card => {
-
-        const element =
-            document.createElement("div");
-
-        element.className =
-            "played-card" +
-            (isRed(card) ? " red" : "");
-
-        element.innerText =
-            cardText(card);
-
-        attackElement.appendChild(element);
-
-    });
-
-    defenseCards.forEach(card => {
-
-        const element =
-            document.createElement("div");
-
-        element.className =
-            "played-card" +
-            (isRed(card) ? " red" : "");
-
-        element.innerText =
-            cardText(card);
-
-        defenseElement.appendChild(element);
-
-    });
-
-}
-
-function selectCard(index) {
-
-    if (attackCards.length > 0 && defenseCards.length === 0) {
-
-        const card = playerCards[index];
-
-        if (
-            attackCards.length === 0 ||
-            attackCards.some(c => c.rank === card.rank)
-        ) {
-
-            selectedCard = index;
-
-            playAttack();
-
-        }
-
-        return;
-
-    }
-
-    selectedCard = index;
-
-    renderCards();
-
-}
-
-function playAttack() {
-
-    if (selectedCard === null) return;
-
-    const card =
-        playerCards[selectedCard];
-
-    playerCards.splice(
-        selectedCard,
-        1
-    );
-
-    attackCards.push(card);
-
-    selectedCard = null;
-
-    renderCards();
-    renderPlayedCards();
-
-    document.getElementById("message").innerText =
-        "Компьютер отбивается...";
-
-    setTimeout(
-        computerDefend,
-        800
-    );
-
-}
-
-function computerDefend() {
-
-    if (attackCards.length === 0) return;
-
-    const attacker =
-        attackCards[attackCards.length - 1];
-
-    let possible =
-        computerCards.filter(
-            card => canBeat(card, attacker)
+    const playerTrumps =
+        playerCards.filter(
+            card => card.suit === trumpSuit
         );
 
-    if (possible.length === 0) {
+    const computerTrumps =
+        computerCards.filter(
+            card => card.suit === trumpSuit
+        );
 
-        computerTakeCards();
+
+    let playerLowest =
+        playerTrumps.length
+            ? Math.min(
+                ...playerTrumps.map(rankValue)
+            )
+            : Infinity;
+
+
+    let computerLowest =
+        computerTrumps.length
+            ? Math.min(
+                ...computerTrumps.map(rankValue)
+            )
+            : Infinity;
+
+
+    if (
+        playerLowest === Infinity &&
+        computerLowest === Infinity
+    ) {
+
+        /*
+        Если ни у кого нет козыря,
+        используем случайный первый ход.
+        */
+
+        turn =
+            Math.random() < .5
+                ? "player"
+                : "computer";
 
         return;
 
     }
 
-    possible.sort(
-        (a, b) =>
-            cardValue(a) - cardValue(b)
-    );
 
-    const defense =
-        possible[0];
+    if (
+        playerLowest <= computerLowest
+    ) {
 
-    computerCards.splice(
-        computerCards.indexOf(defense),
-        1
-    );
+        turn = "player";
 
-    defenseCards.push(defense);
+    } else {
 
-    renderCards();
-    renderPlayedCards();
+        turn = "computer";
 
-    document.getElementById("message").innerText =
-        "Компьютер отбился. Ваш ход.";
-
-    setTimeout(() => {
-
-        attackCards = [];
-        defenseCards = [];
-
-        renderPlayedCards();
-
-        playerTurn();
-
-    }, 1000);
+    }
 
 }
 
-function computerTakeCards() {
 
-    attackCards.forEach(card => {
+/* =====================================================
+   DEAL
+===================================================== */
 
-        computerCards.push(card);
+function dealInitialCards() {
 
-    });
+    playerCards = [];
+    computerCards = [];
 
-    attackCards = [];
-    defenseCards = [];
+    for (let i = 0; i < 6; i++) {
 
-    renderCards();
-    renderPlayedCards();
+        playerCards.push(
+            deck.pop()
+        );
 
-    document.getElementById("message").innerText =
-        "Компьютер забрал карты. Ваш ход.";
+        computerCards.push(
+            deck.pop()
+        );
 
-    playerTurn();
+    }
+
+
+    if (deck.length > 0) {
+
+        trumpCard =
+            deck[deck.length - 1];
+
+        trumpSuit =
+            trumpCard.suit;
+
+    }
 
 }
 
-function playerTurn() {
 
-    drawCards();
-
-    renderCards();
-
-    document.getElementById("message").innerText =
-        "Ваш ход. Выберите карту.";
-
-}
+/* =====================================================
+   DRAW
+===================================================== */
 
 function drawCards() {
+
+    /*
+    По классическим правилам
+    сначала добирает атакующий.
+    Для нашей игры из двух игроков
+    порядок определяется текущей атакой.
+    */
+
+    if (turn === "player") {
+
+        drawPlayer();
+
+        drawComputer();
+
+    } else {
+
+        drawComputer();
+
+        drawPlayer();
+
+    }
+
+}
+
+
+function drawPlayer() {
 
     while (
         playerCards.length < 6 &&
@@ -707,6 +900,11 @@ function drawCards() {
 
     }
 
+}
+
+
+function drawComputer() {
+
     while (
         computerCards.length < 6 &&
         deck.length > 0
@@ -718,146 +916,1070 @@ function drawCards() {
 
     }
 
-    checkWinner();
-
 }
 
-function finishTurn() {
+
+/* =====================================================
+   CAN BEAT
+===================================================== */
+
+function canBeat(
+    defender,
+    attacker
+) {
+
+    /*
+    Одна масть:
+    старшая карта бьёт младшую.
+    */
 
     if (
-        attackCards.length === 0
+        defender.suit === attacker.suit
     ) {
 
-        document.getElementById("message").innerText =
-            "Сначала положите карту.";
-
-        return;
+        return (
+            rankValue(defender) >
+            rankValue(attacker)
+        );
 
     }
 
+
+    /*
+    Козырь бьёт любую некозырную карту.
+    */
+
     if (
-        defenseCards.length !== attackCards.length
+        defender.suit === trumpSuit &&
+        attacker.suit !== trumpSuit
     ) {
 
-        document.getElementById("message").innerText =
-            "Сначала нужно отбиться.";
-
-        return;
+        return true;
 
     }
 
-    attackCards = [];
-    defenseCards = [];
 
-    renderPlayedCards();
+    /*
+    Обычная карта не может
+    побить козырь.
+    */
 
-    drawCards();
-
-    document.getElementById("message").innerText =
-        "Ваш ход.";
+    return false;
 
 }
 
-function takeCards() {
 
-    if (
-        attackCards.length === 0
-    ) return;
+/* =====================================================
+   VALID ATTACK
+===================================================== */
 
-    attackCards.forEach(card => {
+function canAttack(card) {
 
-        playerCards.push(card);
+    /*
+    Если стол пуст,
+    можно положить любую карту.
+    */
 
-    });
+    if (table.length === 0) {
 
-    attackCards = [];
-    defenseCards = [];
+        return true;
 
-    renderCards();
-    renderPlayedCards();
+    }
 
-    document.getElementById("message").innerText =
-        "Вы взяли карты. Ход компьютера.";
 
-    setTimeout(
-        computerAttack,
-        800
+    /*
+    Можно подкинуть только
+    достоинство уже находящееся
+    на столе.
+    */
+
+    const values =
+        table.flatMap(pair => {
+
+            const result = [
+                pair.attack.rank
+            ];
+
+            if (pair.defense) {
+
+                result.push(
+                    pair.defense.rank
+                );
+
+            }
+
+            return result;
+
+        });
+
+
+    return values.includes(card.rank);
+
+}
+
+
+/* =====================================================
+   MAX ATTACK CARDS
+===================================================== */
+
+function maxAttackCards() {
+
+    /*
+    Нельзя подкинуть больше карт,
+    чем было у защищающегося
+    в начале отбивания.
+    */
+
+    return Math.min(
+        6,
+        defenseStartCount
     );
 
 }
 
-function computerAttack() {
 
-    if (computerCards.length === 0) {
+let defenseStartCount = 0;
 
-        checkWinner();
+
+/* =====================================================
+   RENDER COMPUTER
+===================================================== */
+
+function renderComputerCards() {
+
+    const element =
+        document.getElementById(
+            "computerCards"
+        );
+
+    element.innerHTML = "";
+
+
+    computerCards.forEach(() => {
+
+        const card =
+            document.createElement("div");
+
+        card.className =
+            "card back";
+
+        card.innerText = "★";
+
+        element.appendChild(card);
+
+    });
+
+}
+
+
+/* =====================================================
+   RENDER PLAYER
+===================================================== */
+
+function renderPlayerCards() {
+
+    const element =
+        document.getElementById(
+            "playerCards"
+        );
+
+    element.innerHTML = "";
+
+
+    playerCards.forEach(
+        (card, index) => {
+
+            const element =
+                document.createElement(
+                    "div"
+                );
+
+            element.className =
+                "card clickable" +
+                (
+                    isRed(card)
+                        ? " red"
+                        : ""
+                );
+
+
+            element.innerText =
+                cardName(card);
+
+
+            element.onclick = () => {
+
+                playerCardClicked(index);
+
+            };
+
+
+            element.appendChild(
+                document.createTextNode("")
+            );
+
+
+            element.setAttribute(
+                "data-index",
+                index
+            );
+
+
+            document
+                .getElementById(
+                    "playerCards"
+                )
+                .appendChild(element);
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   RENDER TABLE
+===================================================== */
+
+function renderTable() {
+
+    const element =
+        document.getElementById(
+            "tableCards"
+        );
+
+    element.innerHTML = "";
+
+
+    table.forEach(pair => {
+
+        const wrapper =
+            document.createElement("div");
+
+        wrapper.className = "played";
+
+
+        const attack =
+            document.createElement("div");
+
+        attack.className =
+            "attack-card" +
+            (
+                isRed(pair.attack)
+                    ? " red"
+                    : ""
+            );
+
+        attack.innerText =
+            cardName(pair.attack);
+
+
+        wrapper.appendChild(
+            attack
+        );
+
+
+        if (pair.defense) {
+
+            const defense =
+                document.createElement("div");
+
+            defense.className =
+                "defense-card" +
+                (
+                    isRed(pair.defense)
+                        ? " red"
+                        : ""
+                );
+
+            defense.innerText =
+                cardName(pair.defense);
+
+
+            wrapper.appendChild(
+                defense
+            );
+
+        }
+
+
+        element.appendChild(
+            wrapper
+        );
+
+    });
+
+}
+
+
+/* =====================================================
+   RENDER
+===================================================== */
+
+function render() {
+
+    renderPlayerCards();
+
+    renderComputerCards();
+
+    renderTable();
+
+
+    document.getElementById(
+        "trump"
+    ).innerText =
+        trumpCard
+            ? cardName(trumpCard)
+            : trumpSuit;
+
+
+    document.getElementById(
+        "deckInfo"
+    ).innerText =
+        "Колода: " + deck.length;
+
+
+    updateButtons();
+
+}
+
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+function updateButtons() {
+
+    const beat =
+        document.getElementById(
+            "beatButton"
+        );
+
+    const take =
+        document.getElementById(
+            "takeButton"
+        );
+
+    const finish =
+        document.getElementById(
+            "finishButton"
+        );
+
+
+    /*
+    БИТО доступно,
+    когда все карты побиты.
+    */
+
+    beat.disabled = !(
+        turn === "player" &&
+        table.length > 0 &&
+        table.every(
+            pair => pair.defense !== null
+        )
+    );
+
+
+    /*
+    ВЗЯТЬ доступно,
+    когда игрок защищается.
+    */
+
+    take.disabled = !(
+        turn === "player" &&
+        table.some(
+            pair => pair.defense === null
+        )
+    );
+
+
+    /*
+    ЗАКОНЧИТЬ АТАКУ
+    используется когда компьютер
+    защищается от твоих карт.
+    */
+
+    finish.disabled = !(
+        turn === "player" &&
+        table.length > 0 &&
+        table.every(
+            pair => pair.defense !== null
+        )
+    );
+
+}
+
+
+/* =====================================================
+   PLAYER CARD CLICK
+===================================================== */
+
+function playerCardClicked(index) {
+
+    if (gameFinished) {
+        return;
+    }
+
+
+    if (turn !== "player") {
 
         return;
 
     }
 
+
     const card =
-        computerCards.shift();
+        playerCards[index];
 
-    attackCards.push(card);
 
-    renderCards();
-    renderPlayedCards();
+    /*
+    Если компьютер атакует,
+    игрок должен отбиваться.
+    */
 
-    document.getElementById("message").innerText =
-        "Компьютер ходит. Выберите карту для отбоя.";
+    if (
+        table.length > 0 &&
+        table.some(
+            pair => pair.defense === null
+        )
+    ) {
+
+        defendWithCard(
+            index
+        );
+
+        return;
+
+    }
+
+
+    /*
+    Иначе это наша атака.
+    */
+
+    if (
+        table.length >=
+        maxAttackCards()
+    ) {
+
+        setMessage(
+            "Больше подкинуть нельзя."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !canAttack(card)
+    ) {
+
+        setMessage(
+            "Можно подкинуть только карту такого же достоинства."
+        );
+
+        return;
+
+    }
+
+
+    playerCards.splice(
+        index,
+        1
+    );
+
+
+    table.push({
+        attack: card,
+        defense: null
+    });
+
+
+    defenseStartCount =
+        computerCards.length;
+
+
+    render();
+
+
+    setMessage(
+        "Компьютер отбивается..."
+    );
+
+
+    setTimeout(
+        computerDefend,
+        700
+    );
 
 }
 
-function checkWinner() {
+
+/* =====================================================
+   PLAYER DEFENSE
+===================================================== */
+
+function defendWithCard(index) {
+
+    const card =
+        playerCards[index];
+
+
+    const pair =
+        table.find(
+            pair => pair.defense === null
+        );
+
+
+    if (!pair) {
+
+        return;
+
+    }
+
 
     if (
-        playerCards.length === 0 &&
-        deck.length === 0
+        !canBeat(
+            card,
+            pair.attack
+        )
+    ) {
+
+        setMessage(
+            "Этой картой нельзя побить."
+        );
+
+        return;
+
+    }
+
+
+    playerCards.splice(
+        index,
+        1
+    );
+
+
+    pair.defense =
+        card;
+
+
+    render();
+
+
+    /*
+    Если все карты побиты,
+    можно нажать БИТО.
+    */
+
+    if (
+        table.every(
+            pair => pair.defense !== null
+        )
+    ) {
+
+        setMessage(
+            "Все карты побиты. Нажмите «БИТО»."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   COMPUTER DEFENSE
+===================================================== */
+
+function computerDefend() {
+
+    const pair =
+        table.find(
+            pair => pair.defense === null
+        );
+
+
+    if (!pair) {
+
+        return;
+
+    }
+
+
+    const possible =
+        computerCards.filter(
+            card =>
+                canBeat(
+                    card,
+                    pair.attack
+                )
+        );
+
+
+    /*
+    Компьютер не может отбиться.
+    */
+
+    if (
+        possible.length === 0
+    ) {
+
+        setMessage(
+            "Компьютер не может отбиться и берёт карты."
+        );
+
+
+        setTimeout(
+            computerTake,
+            900
+        );
+
+        return;
+
+    }
+
+
+    /*
+    Компьютер использует
+    самую младшую подходящую карту.
+    */
+
+    possible.sort(
+        (a, b) =>
+            rankValue(a) -
+            rankValue(b)
+    );
+
+
+    const defense =
+        possible[0];
+
+
+    computerCards.splice(
+        computerCards.indexOf(
+            defense
+        ),
+        1
+    );
+
+
+    pair.defense =
+        defense;
+
+
+    render();
+
+
+    /*
+    После каждой защиты
+    компьютер проверяет,
+    может ли атакующий подкинуть.
+    */
+
+    setMessage(
+        "Компьютер отбился. Вы можете подкинуть карту или нажать «ЗАКОНЧИТЬ АТАКУ»."
+    );
+
+
+    turn = "player";
+
+    updateButtons();
+
+}
+
+
+/* =====================================================
+   COMPUTER TAKE
+===================================================== */
+
+function computerTake() {
+
+    table.forEach(pair => {
+
+        computerCards.push(
+            pair.attack
+        );
+
+        if (pair.defense) {
+
+            computerCards.push(
+                pair.defense
+            );
+
+        }
+
+    });
+
+
+    table = [];
+
+
+    render();
+
+
+    setMessage(
+        "Компьютер забрал карты. Вы начинаете новый ход."
+    );
+
+
+    turn = "player";
+
+
+    drawCards();
+
+    render();
+
+
+    checkGameOver();
+
+}
+
+
+/* =====================================================
+   PLAYER TAKE
+===================================================== */
+
+function playerTakeCards() {
+
+    if (
+        turn !== "player"
+    ) {
+
+        return;
+
+    }
+
+
+    const hasUndealt =
+        table.some(
+            pair =>
+                pair.defense === null
+        );
+
+
+    if (!hasUndealt) {
+
+        return;
+
+    }
+
+
+    table.forEach(pair => {
+
+        playerCards.push(
+            pair.attack
+        );
+
+        if (pair.defense) {
+
+            playerCards.push(
+                pair.defense
+            );
+
+        }
+
+    });
+
+
+    table = [];
+
+
+    turn = "computer";
+
+
+    drawCards();
+
+    render();
+
+
+    setMessage(
+        "Вы забрали карты. Компьютер ходит."
+    );
+
+
+    setTimeout(
+        computerAttack,
+        1000
+    );
+
+}
+
+
+/* =====================================================
+   FINISH ATTACK
+===================================================== */
+
+function finishAttack() {
+
+    if (
+        turn !== "player"
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        table.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !table.every(
+            pair =>
+                pair.defense !== null
+        )
+    ) {
+
+        setMessage(
+            "Не все карты побиты."
+        );
+
+        return;
+
+    }
+
+
+    /*
+    Все карты уходят в отбой.
+    */
+
+    table = [];
+
+
+    turn = "computer";
+
+
+    drawCards();
+
+    render();
+
+
+    checkGameOver();
+
+
+    if (!gameFinished) {
+
+        setMessage(
+            "Вы отбились. Теперь ход компьютера."
+        );
+
+
+        setTimeout(
+            computerAttack,
+            1000
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   COMPUTER ATTACK
+===================================================== */
+
+function computerAttack() {
+
+    if (
+        gameFinished
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        computerCards.length === 0
+    ) {
+
+        checkGameOver();
+
+        return;
+
+    }
+
+
+    /*
+    Компьютер выбирает
+    самую младшую карту.
+    */
+
+    const sorted =
+        [...computerCards].sort(
+            (a, b) =>
+                rankValue(a) -
+                rankValue(b)
+        );
+
+
+    const card =
+        sorted[0];
+
+
+    computerCards.splice(
+        computerCards.indexOf(
+            card
+        ),
+        1
+    );
+
+
+    table = [
+        {
+            attack: card,
+            defense: null
+        }
+    ];
+
+
+    defenseStartCount =
+        playerCards.length;
+
+
+    turn = "player";
+
+
+    render();
+
+
+    setMessage(
+        "Компьютер атакует. Выберите карту для отбоя."
+    );
+
+}
+
+
+/* =====================================================
+   PLAYER START ATTACK
+===================================================== */
+
+function startPlayerAttack() {
+
+    turn = "player";
+
+    table = [];
+
+    render();
+
+    setMessage(
+        "Ваш ход. Выберите карту."
+    );
+
+}
+
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+function setMessage(text) {
+
+    document.getElementById(
+        "message"
+    ).innerText =
+        text;
+
+}
+
+
+/* =====================================================
+   GAME OVER
+===================================================== */
+
+function checkGameOver() {
+
+    if (
+        deck.length > 0
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+    Если у игрока нет карт —
+    победитель игрок.
+    */
+
+    if (
+        playerCards.length === 0
     ) {
 
         showResult(
             "ПОБЕДА",
-            "Вы закончили игру первым."
+            "Вы первым избавились от всех карт."
         );
 
         return;
 
     }
 
+
+    /*
+    Если у компьютера нет карт —
+    победитель компьютер.
+    */
+
     if (
-        computerCards.length === 0 &&
-        deck.length === 0
+        computerCards.length === 0
     ) {
 
         showResult(
             "ПОРАЖЕНИЕ",
-            "Компьютер закончил игру первым."
+            "Компьютер первым избавился от всех карт."
         );
+
+        return;
 
     }
 
 }
 
-function showResult(title, text) {
 
-    const table =
-        document.querySelector(".table");
+/* =====================================================
+   RESULT
+===================================================== */
 
-    table.innerHTML = `
+function showResult(
+    title,
+    text
+) {
 
-        <div class="result">
+    gameFinished = true;
 
-            <h2>${title}</h2>
 
-            <p>${text}</p>
+    document.getElementById(
+        "game"
+    ).innerHTML = `
 
-            <button
-                class="start"
-                onclick="startGame()"
-            >
-                ИГРАТЬ ЕЩЁ
-            </button>
+        <div class="table">
+
+            <div class="result">
+
+                <h2>
+                    ${title}
+                </h2>
+
+                <p>
+                    ${text}
+                </p>
+
+                <button
+                    onclick="startGame()"
+                >
+                    ИГРАТЬ ЕЩЁ
+                </button>
+
+            </div>
 
         </div>
 
@@ -865,45 +1987,326 @@ function showResult(title, text) {
 
 }
 
+
+/* =====================================================
+   START GAME
+===================================================== */
+
 function startGame() {
 
+    gameFinished = false;
+
+    deck = [];
+
+    playerCards = [];
+
+    computerCards = [];
+
+    table = [];
+
+    trumpSuit = null;
+
+    trumpCard = null;
+
+    turn = null;
+
+
     document.getElementById(
-        "startButton"
+        "startScreen"
     ).style.display = "none";
+
 
     document.getElementById(
         "game"
     ).style.display = "block";
 
-    deck = [];
-    playerCards = [];
-    computerCards = [];
 
-    attackCards = [];
-    defenseCards = [];
+    /*
+    Возвращаем игровую таблицу,
+    если это повторная игра.
+    */
 
-    selectedCard = null;
+    const game =
+        document.getElementById(
+            "game"
+        );
+
+
+    game.innerHTML = `
+
+        <div class="table">
+
+            <div class="game-info">
+
+                <div
+                    class="deck-info"
+                    id="deckInfo"
+                >
+                    Колода: 24
+                </div>
+
+                <div class="trump-info">
+
+                    Козырь:
+
+                    <span
+                        id="trump"
+                        class="trump-card"
+                    >
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="player-area">
+
+                <div class="player-label">
+                    КОМПЬЮТЕР
+                </div>
+
+                <div
+                    class="cards"
+                    id="computerCards"
+                ></div>
+
+            </div>
+
+            <div class="play-area">
+
+                <div
+                    class="table-message"
+                    id="message"
+                >
+                    Подготовка игры...
+                </div>
+
+                <div
+                    class="table-cards"
+                    id="tableCards"
+                ></div>
+
+            </div>
+
+            <div class="player-area">
+
+                <div class="player-label">
+                    ВЫ
+                </div>
+
+                <div
+                    class="cards"
+                    id="playerCards"
+                ></div>
+
+            </div>
+
+            <div class="controls">
+
+                <button
+                    class="control-button beat-button"
+                    id="beatButton"
+                    onclick="confirmDefense()"
+                >
+                    БИТО
+                </button>
+
+                <button
+                    class="control-button take-button"
+                    id="takeButton"
+                    onclick="playerTakeCards()"
+                >
+                    ВЗЯТЬ
+                </button>
+
+                <button
+                    class="control-button finish-button"
+                    id="finishButton"
+                    onclick="finishAttack()"
+                >
+                    ЗАКОНЧИТЬ АТАКУ
+                </button>
+
+            </div>
+
+        </div>
+    `;
+
 
     createDeck();
 
-    dealCards();
+    dealInitialCards();
 
-    findTrump();
+    findFirstPlayer();
 
-    renderCards();
+    drawCards();
 
-    renderPlayedCards();
+    render();
 
-    document.getElementById("message").innerText =
-        "Ваш ход. Выберите карту.";
+
+    if (
+        turn === "player"
+    ) {
+
+        setMessage(
+            "У вас самый младший козырь. Ваш первый ход."
+        );
+
+    } else {
+
+        setMessage(
+            "У компьютера самый младший козырь. Он начинает."
+        );
+
+
+        setTimeout(
+            computerAttack,
+            1000
+        );
+
+    }
 
 }
 
-function backToMenu() {
 
-    location.reload();
+/* =====================================================
+   BITO
+===================================================== */
+
+function confirmDefense() {
+
+    if (
+        turn !== "player"
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        table.length === 0
+    ) {
+
+        return;
+
+    }
+
+
+    const allBeaten =
+        table.every(
+            pair =>
+                pair.defense !== null
+        );
+
+
+    if (!allBeaten) {
+
+        setMessage(
+            "Сначала нужно отбить все карты."
+        );
+
+        return;
+
+    }
+
+
+    finishAttack();
 
 }
+
+
+/* =====================================================
+   AUTH
+===================================================== */
+
+async function authenticate() {
+
+    try {
+
+        const initData =
+            tg.initData;
+
+
+        /*
+        Если игра открыта
+        не внутри Telegram,
+        просто используем
+        стартовый баланс.
+        */
+
+        if (!initData) {
+
+            console.log(
+                "Telegram initData отсутствует"
+            );
+
+            return;
+
+        }
+
+
+        const response =
+            await fetch(
+                `${API_URL}/api/auth`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            initData:
+                                initData
+                        })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            response.ok &&
+            data.success
+        ) {
+
+            currentPlayer =
+                data.player;
+
+
+            document.getElementById(
+                "balance"
+            ).innerText =
+                Number(
+                    currentPlayer.balance
+                ).toLocaleString(
+                    "ru-RU"
+                ) + " HC";
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "AUTH ERROR:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+authenticate();
 
 </script>
 
