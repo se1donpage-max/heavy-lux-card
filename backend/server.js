@@ -31,7 +31,13 @@ const MAX_HAND = 6;
 
 const MAX_CHAT_MESSAGES = 100;
 
-const DATA_FILE = path.join(__dirname, "players.json");
+const DATA_FILE =
+    path.join(__dirname, "players.json");
+
+const CARS_FILE =
+    path.join(__dirname, "cars.json");
+
+const REGISTRATION_PRICE = 25000;
 
 
 /* =========================================================
@@ -48,6 +54,15 @@ app.use(express.json());
 ========================================================= */
 
 let players = {};
+
+let cars = {};
+
+let usedPlates = new Set();
+
+
+/* =========================================================
+   PLAYERS DATABASE
+========================================================= */
 
 function loadPlayers() {
 
@@ -79,6 +94,7 @@ function loadPlayers() {
 
 }
 
+
 function savePlayers() {
 
     try {
@@ -104,7 +120,92 @@ function savePlayers() {
 
 }
 
+
+/* =========================================================
+   CARS DATABASE
+========================================================= */
+
+function loadCars() {
+
+    try {
+
+        if (
+            fs.existsSync(
+                CARS_FILE
+            )
+        ) {
+
+            const data =
+                fs.readFileSync(
+                    CARS_FILE,
+                    "utf8"
+                );
+
+            cars =
+                JSON.parse(data) || {};
+
+        }
+
+        usedPlates =
+            new Set(
+                Object.values(cars)
+                    .filter(
+                        car =>
+                            car.registration &&
+                            car.registration.plate
+                    )
+                    .map(
+                        car =>
+                            car.registration.plate
+                    )
+            );
+
+    } catch (error) {
+
+        console.error(
+            "LOAD CARS ERROR:",
+            error
+        );
+
+        cars = {};
+
+        usedPlates =
+            new Set();
+
+    }
+
+}
+
+
+function saveCars() {
+
+    try {
+
+        fs.writeFileSync(
+            CARS_FILE,
+            JSON.stringify(
+                cars,
+                null,
+                2
+            ),
+            "utf8"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "SAVE CARS ERROR:",
+            error
+        );
+
+    }
+
+}
+
+
 loadPlayers();
+
+loadCars();
 
 
 /* =========================================================
@@ -200,13 +301,10 @@ function validateTelegramInitData(initData) {
 
     const authDate =
         Number(
-            params.get("auth_date") || 0
+            params.get(
+                "auth_date"
+            ) || 0
         );
-
-    /*
-     * Не принимаем слишком старые
-     * Telegram initData.
-     */
 
     if (
         !authDate ||
@@ -224,7 +322,9 @@ function validateTelegramInitData(initData) {
 
         user =
             JSON.parse(
-                params.get("user") || "{}"
+                params.get(
+                    "user"
+                ) || "{}"
             );
 
     } catch {
@@ -233,7 +333,10 @@ function validateTelegramInitData(initData) {
 
     }
 
-    if (!user || !user.id) {
+    if (
+        !user ||
+        !user.id
+    ) {
 
         return null;
 
@@ -257,7 +360,8 @@ function createPlayer(user) {
 
         players[id] = {
 
-            telegram_id: id,
+            telegram_id:
+                id,
 
             first_name:
                 user.first_name ||
@@ -274,18 +378,23 @@ function createPlayer(user) {
             balance:
                 START_MONEY,
 
-            level: 1,
+            level:
+                1,
 
-            xp: 0,
+            xp:
+                0,
 
             title:
                 "Новичок",
 
-            wins: 0,
+            wins:
+                0,
 
-            losses: 0,
+            losses:
+                0,
 
-            games: 0,
+            games:
+                0,
 
             created_at:
                 Date.now(),
@@ -380,30 +489,32 @@ function publicPlayer(player) {
 
 function getTitle(level) {
 
-    if (level >= 100) return "Легенда";
+    if (level >= 100)
+        return "Легенда";
 
-    if (level >= 80) return "Император";
+    if (level >= 80)
+        return "Император";
 
-    if (level >= 60) return "Магнат";
+    if (level >= 60)
+        return "Магнат";
 
-    if (level >= 40) return "Мастер";
+    if (level >= 40)
+        return "Мастер";
 
-    if (level >= 20) return "Ветеран";
+    if (level >= 20)
+        return "Ветеран";
 
     return "Новичок";
 
 }
 
 
-function addXP(player, amount) {
+function addXP(
+    player,
+    amount
+) {
 
     player.xp += amount;
-
-    /*
-     * Простая система:
-     * каждый следующий уровень
-     * требует 100 XP.
-     */
 
     while (
         player.level < 100 &&
@@ -432,7 +543,369 @@ function addXP(player, amount) {
 
 
 /* =========================================================
-   API
+   CAR CATALOG
+========================================================= */
+
+const CAR_CATALOG = {
+
+    mercedes_g63: {
+
+        id:
+            "mercedes_g63",
+
+        brand:
+            "Mercedes-AMG",
+
+        model:
+            "G 63",
+
+        name:
+            "Mercedes-AMG G 63",
+
+        price:
+            5000000,
+
+        category:
+            "SUV"
+
+    },
+
+    bmw_m5: {
+
+        id:
+            "bmw_m5",
+
+        brand:
+            "BMW",
+
+        model:
+            "M5",
+
+        name:
+            "BMW M5",
+
+        price:
+            3500000,
+
+        category:
+            "Sport"
+
+    },
+
+    mercedes_s63: {
+
+        id:
+            "mercedes_s63",
+
+        brand:
+            "Mercedes-Benz",
+
+        model:
+            "S 63 AMG",
+
+        name:
+            "Mercedes-Benz S 63 AMG",
+
+        price:
+            4500000,
+
+        category:
+            "Premium"
+
+    },
+
+    bmw_x7: {
+
+        id:
+            "bmw_x7",
+
+        brand:
+            "BMW",
+
+        model:
+            "X7",
+
+        name:
+            "BMW X7",
+
+        price:
+            3000000,
+
+        category:
+            "SUV"
+
+    }
+
+};
+
+
+/* =========================================================
+   STATE PLATES
+========================================================= */
+
+const PLATE_LETTERS = [
+
+    "А",
+    "В",
+    "Е",
+    "К",
+    "М",
+    "Н",
+    "О",
+    "Р",
+    "С",
+    "Т",
+    "У",
+    "Х"
+
+];
+
+
+const PLATE_REGIONS = [
+
+    "77",
+    "97",
+    "99",
+    "177",
+    "197",
+    "199"
+
+];
+
+
+function generatePlate() {
+
+    let attempts = 0;
+
+    while (
+        attempts < 100000
+    ) {
+
+        attempts++;
+
+        const letter1 =
+            PLATE_LETTERS[
+                Math.floor(
+                    Math.random() *
+                    PLATE_LETTERS.length
+                )
+            ];
+
+        const letter2 =
+            PLATE_LETTERS[
+                Math.floor(
+                    Math.random() *
+                    PLATE_LETTERS.length
+                )
+            ];
+
+        const letter3 =
+            PLATE_LETTERS[
+                Math.floor(
+                    Math.random() *
+                    PLATE_LETTERS.length
+                )
+            ];
+
+        const numbers =
+            Math.floor(
+                Math.random() * 1000
+            )
+                .toString()
+                .padStart(
+                    3,
+                    "0"
+                );
+
+        const region =
+            PLATE_REGIONS[
+                Math.floor(
+                    Math.random() *
+                    PLATE_REGIONS.length
+                )
+            ];
+
+        const plate =
+            `${letter1}${numbers}${letter2}${letter3}${region}`;
+
+        if (
+            !usedPlates.has(
+                plate
+            )
+        ) {
+
+            usedPlates.add(
+                plate
+            );
+
+            return plate;
+
+        }
+
+    }
+
+    throw new Error(
+        "Не удалось создать свободный номер"
+    );
+
+}
+
+
+/* =========================================================
+   CAR FUNCTIONS
+========================================================= */
+
+function createCar(
+    playerId,
+    catalogId
+) {
+
+    const catalogCar =
+        CAR_CATALOG[
+            catalogId
+        ];
+
+    if (!catalogCar) {
+
+        return null;
+
+    }
+
+    const carId =
+        crypto.randomUUID();
+
+    const car = {
+
+        id:
+            carId,
+
+        ownerId:
+            String(playerId),
+
+        catalogId:
+            catalogId,
+
+        brand:
+            catalogCar.brand,
+
+        model:
+            catalogCar.model,
+
+        name:
+            catalogCar.name,
+
+        price:
+            catalogCar.price,
+
+        category:
+            catalogCar.category,
+
+        registration: {
+
+            registered:
+                false,
+
+            plate:
+                null,
+
+            registeredAt:
+                null,
+
+            registrationPrice:
+                REGISTRATION_PRICE
+
+        },
+
+        beautifulPlate:
+            null,
+
+        createdAt:
+            Date.now()
+
+    };
+
+    cars[carId] =
+        car;
+
+    saveCars();
+
+    return car;
+
+}
+
+
+function getPlayerCars(
+    playerId
+) {
+
+    return Object.values(
+        cars
+    ).filter(
+        car =>
+            car.ownerId ===
+            String(playerId)
+    );
+
+}
+
+
+function publicCar(car) {
+
+    if (!car) {
+
+        return null;
+
+    }
+
+    return {
+
+        id:
+            car.id,
+
+        catalogId:
+            car.catalogId,
+
+        brand:
+            car.brand,
+
+        model:
+            car.model,
+
+        name:
+            car.name,
+
+        price:
+            car.price,
+
+        category:
+            car.category,
+
+        registration: {
+
+            registered:
+                car.registration.registered,
+
+            plate:
+                car.registration.plate,
+
+            registeredAt:
+                car.registration.registeredAt,
+
+            registrationPrice:
+                car.registration.registrationPrice
+
+        },
+
+        beautifulPlate:
+            car.beautifulPlate || null
+
+    };
+
+}
+
+
+/* =========================================================
+   BASIC API
 ========================================================= */
 
 app.get(
@@ -441,7 +914,8 @@ app.get(
 
         res.json({
 
-            success: true,
+            success:
+                true,
 
             game:
                 "Heavy Lux Card",
@@ -461,12 +935,21 @@ app.get(
 
         res.json({
 
-            success: true,
+            success:
+                true,
 
-            status: "online",
+            status:
+                "online",
 
             players:
-                Object.keys(players).length
+                Object.keys(
+                    players
+                ).length,
+
+            cars:
+                Object.keys(
+                    cars
+                ).length
 
         });
 
@@ -495,9 +978,12 @@ app.post(
 
             if (!user) {
 
-                return res.status(401).json({
+                return res.status(
+                    401
+                ).json({
 
-                    success: false,
+                    success:
+                        false,
 
                     error:
                         "Telegram authorization failed"
@@ -507,14 +993,26 @@ app.post(
             }
 
             const player =
-                createPlayer(user);
+                createPlayer(
+                    user
+                );
 
             return res.json({
 
-                success: true,
+                success:
+                    true,
 
                 player:
-                    publicPlayer(player)
+                    publicPlayer(
+                        player
+                    ),
+
+                cars:
+                    getPlayerCars(
+                        player.telegram_id
+                    ).map(
+                        publicCar
+                    )
 
             });
 
@@ -525,12 +1023,677 @@ app.post(
                 error
             );
 
-            return res.status(500).json({
+            return res.status(
+                500
+            ).json({
 
-                success: false,
+                success:
+                    false,
 
                 error:
                     "Internal server error"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   CAR API
+========================================================= */
+
+app.get(
+    "/api/cars",
+    (req, res) => {
+
+        res.json({
+
+            success:
+                true,
+
+            cars:
+                Object.values(
+                    CAR_CATALOG
+                )
+
+        });
+
+    }
+);
+
+
+/* =========================================================
+   BUY CAR
+========================================================= */
+
+app.post(
+    "/api/cars/buy",
+    (req, res) => {
+
+        try {
+
+            const {
+                initData,
+                carId
+            } = req.body || {};
+
+            const user =
+                validateTelegramInitData(
+                    initData
+                );
+
+            if (!user) {
+
+                return res.status(
+                    401
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Telegram authorization failed"
+
+                });
+
+            }
+
+            const player =
+                createPlayer(
+                    user
+                );
+
+            const catalogCar =
+                CAR_CATALOG[
+                    carId
+                ];
+
+            if (!catalogCar) {
+
+                return res.status(
+                    404
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Автомобиль не найден"
+
+                });
+
+            }
+
+            if (
+                player.balance <
+                catalogCar.price
+            ) {
+
+                return res.status(
+                    400
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Недостаточно HC"
+
+                });
+
+            }
+
+            player.balance -=
+                catalogCar.price;
+
+            const car =
+                createCar(
+                    player.telegram_id,
+                    carId
+                );
+
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+
+            return res.json({
+
+                success:
+                    true,
+
+                message:
+                    "Автомобиль успешно приобретён",
+
+                car:
+                    publicCar(
+                        car
+                    ),
+
+                player:
+                    publicPlayer(
+                        player
+                    )
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "CAR BUY ERROR:",
+                error
+            );
+
+            return res.status(
+                500
+            ).json({
+
+                success:
+                    false,
+
+                error:
+                    "Ошибка покупки автомобиля"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   GARAGE
+========================================================= */
+
+app.post(
+    "/api/garage",
+    (req, res) => {
+
+        try {
+
+            const {
+                initData
+            } = req.body || {};
+
+            const user =
+                validateTelegramInitData(
+                    initData
+                );
+
+            if (!user) {
+
+                return res.status(
+                    401
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Telegram authorization failed"
+
+                });
+
+            }
+
+            const player =
+                createPlayer(
+                    user
+                );
+
+            const playerCars =
+                getPlayerCars(
+                    player.telegram_id
+                );
+
+            return res.json({
+
+                success:
+                    true,
+
+                cars:
+                    playerCars.map(
+                        publicCar
+                    )
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "GARAGE ERROR:",
+                error
+            );
+
+            return res.status(
+                500
+            ).json({
+
+                success:
+                    false,
+
+                error:
+                    "Ошибка получения гаража"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   GET ONE CAR
+========================================================= */
+
+app.post(
+    "/api/cars/view",
+    (req, res) => {
+
+        try {
+
+            const {
+                initData,
+                carId
+            } = req.body || {};
+
+            const user =
+                validateTelegramInitData(
+                    initData
+                );
+
+            if (!user) {
+
+                return res.status(
+                    401
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Telegram authorization failed"
+
+                });
+
+            }
+
+            const car =
+                cars[carId];
+
+            if (!car) {
+
+                return res.status(
+                    404
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Автомобиль не найден"
+
+                });
+
+            }
+
+            if (
+                car.ownerId !==
+                String(user.id)
+            ) {
+
+                return res.status(
+                    403
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Автомобиль вам не принадлежит"
+
+                });
+
+            }
+
+            return res.json({
+
+                success:
+                    true,
+
+                car:
+                    publicCar(
+                        car
+                    )
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "CAR VIEW ERROR:",
+                error
+            );
+
+            return res.status(
+                500
+            ).json({
+
+                success:
+                    false,
+
+                error:
+                    "Ошибка получения автомобиля"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   MREO
+========================================================= */
+
+app.post(
+    "/api/cars/register",
+    (req, res) => {
+
+        try {
+
+            const {
+                initData,
+                carId
+            } = req.body || {};
+
+            const user =
+                validateTelegramInitData(
+                    initData
+                );
+
+            if (!user) {
+
+                return res.status(
+                    401
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Telegram authorization failed"
+
+                });
+
+            }
+
+            const player =
+                createPlayer(
+                    user
+                );
+
+            const car =
+                cars[carId];
+
+            if (!car) {
+
+                return res.status(
+                    404
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Автомобиль не найден"
+
+                });
+
+            }
+
+            if (
+                car.ownerId !==
+                String(
+                    player.telegram_id
+                )
+            ) {
+
+                return res.status(
+                    403
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Этот автомобиль вам не принадлежит"
+
+                });
+
+            }
+
+            if (
+                car.registration.registered
+            ) {
+
+                return res.status(
+                    400
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Автомобиль уже зарегистрирован",
+
+                    car:
+                        publicCar(
+                            car
+                        )
+
+                });
+
+            }
+
+            if (
+                player.balance <
+                REGISTRATION_PRICE
+            ) {
+
+                return res.status(
+                    400
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Недостаточно HC для регистрации"
+
+                });
+
+            }
+
+            const plate =
+                generatePlate();
+
+            player.balance -=
+                REGISTRATION_PRICE;
+
+            car.registration.registered =
+                true;
+
+            car.registration.plate =
+                plate;
+
+            car.registration.registeredAt =
+                Date.now();
+
+            player.updated_at =
+                Date.now();
+
+            savePlayers();
+
+            saveCars();
+
+            return res.json({
+
+                success:
+                    true,
+
+                message:
+                    "Т/О зарегистрировано",
+
+                car:
+                    publicCar(
+                        car
+                    ),
+
+                player:
+                    publicPlayer(
+                        player
+                    )
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "MREO ERROR:",
+                error
+            );
+
+            return res.status(
+                500
+            ).json({
+
+                success:
+                    false,
+
+                error:
+                    "Ошибка регистрации автомобиля"
+
+            });
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   PLATE INFO
+========================================================= */
+
+app.post(
+    "/api/cars/plate",
+    (req, res) => {
+
+        try {
+
+            const {
+                initData,
+                carId
+            } = req.body || {};
+
+            const user =
+                validateTelegramInitData(
+                    initData
+                );
+
+            if (!user) {
+
+                return res.status(
+                    401
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Telegram authorization failed"
+
+                });
+
+            }
+
+            const car =
+                cars[carId];
+
+            if (!car) {
+
+                return res.status(
+                    404
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Автомобиль не найден"
+
+                });
+
+            }
+
+            if (
+                car.ownerId !==
+                String(user.id)
+            ) {
+
+                return res.status(
+                    403
+                ).json({
+
+                    success:
+                        false,
+
+                    error:
+                        "Нет доступа"
+
+                });
+
+            }
+
+            return res.json({
+
+                success:
+                    true,
+
+                registered:
+                    car.registration.registered,
+
+                plate:
+                    car.registration.plate,
+
+                beautifulPlate:
+                    car.beautifulPlate || null
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "PLATE ERROR:",
+                error
+            );
+
+            return res.status(
+                500
+            ).json({
+
+                success:
+                    false,
+
+                error:
+                    "Ошибка"
 
             });
 
@@ -545,58 +1708,78 @@ app.post(
 ========================================================= */
 
 const SUITS = [
+
     "♠",
     "♥",
     "♦",
     "♣"
+
 ];
 
 
 const RANKS = [
 
     {
-        name: "6",
-        value: 6
+        name:
+            "6",
+        value:
+            6
     },
 
     {
-        name: "7",
-        value: 7
+        name:
+            "7",
+        value:
+            7
     },
 
     {
-        name: "8",
-        value: 8
+        name:
+            "8",
+        value:
+            8
     },
 
     {
-        name: "9",
-        value: 9
+        name:
+            "9",
+        value:
+            9
     },
 
     {
-        name: "10",
-        value: 10
+        name:
+            "10",
+        value:
+            10
     },
 
     {
-        name: "В",
-        value: 11
+        name:
+            "В",
+        value:
+            11
     },
 
     {
-        name: "Д",
-        value: 12
+        name:
+            "Д",
+        value:
+            12
     },
 
     {
-        name: "К",
-        value: 13
+        name:
+            "К",
+        value:
+            13
     },
 
     {
-        name: "Т",
-        value: 14
+        name:
+            "Т",
+        value:
+            14
     }
 
 ];
@@ -612,16 +1795,21 @@ function createDeck() {
 
     let id = 0;
 
-    for (const suit of SUITS) {
+    for (
+        const suit of SUITS
+    ) {
 
-        for (const rank of RANKS) {
+        for (
+            const rank of RANKS
+        ) {
 
             result.push({
 
                 id:
                     `card_${id++}`,
 
-                suit,
+                suit:
+                    suit,
 
                 rank:
                     rank.name,
@@ -635,7 +1823,9 @@ function createDeck() {
 
     }
 
-    return shuffle(result);
+    return shuffle(
+        result
+    );
 
 }
 
@@ -643,7 +1833,8 @@ function createDeck() {
 function shuffle(array) {
 
     for (
-        let i = array.length - 1;
+        let i =
+            array.length - 1;
         i > 0;
         i--
     ) {
@@ -674,7 +1865,8 @@ function shuffle(array) {
    GAME
 ========================================================= */
 
-const games = new Map();
+const games =
+    new Map();
 
 
 function isTrump(
@@ -684,7 +1876,8 @@ function isTrump(
 
     return (
         card &&
-        card.suit === game.trumpSuit
+        card.suit ===
+        game.trumpSuit
     );
 
 }
@@ -706,8 +1899,14 @@ function canBeat(
     }
 
     if (
-        isTrump(game, defense) &&
-        !isTrump(game, attack)
+        isTrump(
+            game,
+            defense
+        ) &&
+        !isTrump(
+            game,
+            attack
+        )
     ) {
 
         return true;
@@ -715,8 +1914,14 @@ function canBeat(
     }
 
     if (
-        !isTrump(game, defense) &&
-        isTrump(game, attack)
+        !isTrump(
+            game,
+            defense
+        ) &&
+        isTrump(
+            game,
+            attack
+        )
     ) {
 
         return false;
@@ -748,7 +1953,9 @@ function tableRanks(game) {
             pair.attack.rank
         );
 
-        if (pair.defense) {
+        if (
+            pair.defense
+        ) {
 
             result.push(
                 pair.defense.rank
@@ -784,7 +1991,8 @@ function canAddCard(
     }
 
     if (
-        game.table.length === 0
+        game.table.length ===
+        0
     ) {
 
         return true;
@@ -833,7 +2041,7 @@ function allBeaten(game) {
 
 
 /* =========================================================
-   FIND PLAYER
+   FIND GAME
 ========================================================= */
 
 function findGameByPlayer(
@@ -1033,18 +2241,24 @@ function finishGame(
 
     }
 
-    game.finished = true;
+    game.finished =
+        true;
 
     const player =
-        players[game.playerId];
+        players[
+            game.playerId
+        ];
 
-    if (winner === "player") {
+    if (
+        winner === "player"
+    ) {
 
         player.wins++;
 
         player.games++;
 
-        player.balance += 500;
+        player.balance +=
+            500;
 
         addXP(
             player,
@@ -1079,24 +2293,32 @@ function finishGame(
 
     sendState(game);
 
-    game.socket.emit(
-        "game_finished",
-        {
+    if (
+        game.socket
+    ) {
 
-            winner,
+        game.socket.emit(
+            "game_finished",
+            {
 
-            message:
-                winner === "player"
-                    ? "Ты победил!"
-                    : winner === "cpu"
-                        ? "Компьютер победил"
-                        : "Ничья",
+                winner,
 
-            player:
-                publicPlayer(player)
+                message:
+                    winner === "player"
+                        ? "Ты победил!"
+                        : winner === "cpu"
+                            ? "Компьютер победил"
+                            : "Ничья",
 
-        }
-    );
+                player:
+                    publicPlayer(
+                        player
+                    )
+
+            }
+        );
+
+    }
 
 }
 
@@ -1116,8 +2338,10 @@ function checkGameOver(game) {
     }
 
     if (
-        game.playerHand.length === 0 &&
-        game.cpuHand.length === 0
+        game.playerHand.length ===
+        0 &&
+        game.cpuHand.length ===
+        0
     ) {
 
         finishGame(
@@ -1130,7 +2354,8 @@ function checkGameOver(game) {
     }
 
     if (
-        game.playerHand.length === 0
+        game.playerHand.length ===
+        0
     ) {
 
         finishGame(
@@ -1143,7 +2368,8 @@ function checkGameOver(game) {
     }
 
     if (
-        game.cpuHand.length === 0
+        game.cpuHand.length ===
+        0
     ) {
 
         finishGame(
@@ -1167,7 +2393,8 @@ function checkGameOver(game) {
 function refillHands(game) {
 
     while (
-        game.playerHand.length < MAX_HAND &&
+        game.playerHand.length <
+        MAX_HAND &&
         game.deck.length > 0
     ) {
 
@@ -1178,7 +2405,8 @@ function refillHands(game) {
     }
 
     while (
-        game.cpuHand.length < MAX_HAND &&
+        game.cpuHand.length <
+        MAX_HAND &&
         game.deck.length > 0
     ) {
 
@@ -1192,7 +2420,7 @@ function refillHands(game) {
 
 
 /* =========================================================
-   CPU CARD
+   CPU DEFENSE
 ========================================================= */
 
 function cpuBestDefense(
@@ -1323,11 +2551,15 @@ function cpuStartAttack(game) {
     }
 
     const card =
-        cpuBestAttack(game);
+        cpuBestAttack(
+            game
+        );
 
     if (!card) {
 
-        checkGameOver(game);
+        checkGameOver(
+            game
+        );
 
         return;
 
@@ -1340,7 +2572,9 @@ function cpuStartAttack(game) {
                 card.id
         );
 
-    if (index === -1) {
+    if (
+        index === -1
+    ) {
 
         return;
 
@@ -1353,16 +2587,20 @@ function cpuStartAttack(game) {
 
     game.table.push({
 
-        attack: card,
+        attack:
+            card,
 
-        defense: null
+        defense:
+            null
 
     });
 
     game.phase =
         "player_defense";
 
-    sendState(game);
+    sendState(
+        game
+    );
 
 }
 
@@ -1382,21 +2620,29 @@ function cpuDefense(game) {
     }
 
     const index =
-        firstUnbeaten(game);
+        firstUnbeaten(
+            game
+        );
 
-    if (index === -1) {
+    if (
+        index === -1
+    ) {
 
         game.phase =
             "player_attack";
 
-        sendState(game);
+        sendState(
+            game
+        );
 
         return;
 
     }
 
     const target =
-        game.table[index].attack;
+        game.table[
+            index
+        ].attack;
 
     const card =
         cpuBestDefense(
@@ -1406,7 +2652,9 @@ function cpuDefense(game) {
 
     if (!card) {
 
-        cpuTake(game);
+        cpuTake(
+            game
+        );
 
         return;
 
@@ -1419,7 +2667,9 @@ function cpuDefense(game) {
                 card.id
         );
 
-    if (handIndex === -1) {
+    if (
+        handIndex === -1
+    ) {
 
         return;
 
@@ -1430,10 +2680,14 @@ function cpuDefense(game) {
         1
     );
 
-    game.table[index].defense =
+    game.table[
+        index
+    ].defense =
         card;
 
-    sendState(game);
+    sendState(
+        game
+    );
 
     setTimeout(
         () => {
@@ -1453,11 +2707,15 @@ function cpuDefense(game) {
                 game.phase =
                     "player_attack";
 
-                sendState(game);
+                sendState(
+                    game
+                );
 
             } else {
 
-                cpuDefense(game);
+                cpuDefense(
+                    game
+                );
 
             }
 
@@ -1496,7 +2754,9 @@ function cpuTake(game) {
 
     game.table = [];
 
-    refillHands(game);
+    refillHands(
+        game
+    );
 
     if (
         checkGameOver(game)
@@ -1518,7 +2778,9 @@ function cpuTake(game) {
     game.roundLimit =
         game.cpuHand.length;
 
-    sendState(game);
+    sendState(
+        game
+    );
 
 }
 
@@ -1560,7 +2822,9 @@ function playerTake(game) {
 
     game.table = [];
 
-    refillHands(game);
+    refillHands(
+        game
+    );
 
     if (
         checkGameOver(game)
@@ -1582,12 +2846,16 @@ function playerTake(game) {
     game.roundLimit =
         game.playerHand.length;
 
-    sendState(game);
+    sendState(
+        game
+    );
 
     setTimeout(
         () => {
 
-            cpuStartAttack(game);
+            cpuStartAttack(
+                game
+            );
 
         },
         500
@@ -1600,7 +2868,9 @@ function playerTake(game) {
    SUCCESSFUL ROUND
 ========================================================= */
 
-function finishSuccessfulRound(game) {
+function finishSuccessfulRound(
+    game
+) {
 
     if (
         !allBeaten(game)
@@ -1612,7 +2882,9 @@ function finishSuccessfulRound(game) {
 
     game.table = [];
 
-    refillHands(game);
+    refillHands(
+        game
+    );
 
     if (
         checkGameOver(game)
@@ -1639,12 +2911,16 @@ function finishSuccessfulRound(game) {
         game.roundLimit =
             game.playerHand.length;
 
-        sendState(game);
+        sendState(
+            game
+        );
 
         setTimeout(
             () => {
 
-                cpuStartAttack(game);
+                cpuStartAttack(
+                    game
+                );
 
             },
             500
@@ -1664,7 +2940,9 @@ function finishSuccessfulRound(game) {
         game.roundLimit =
             game.cpuHand.length;
 
-        sendState(game);
+        sendState(
+            game
+        );
 
     }
 
@@ -1706,14 +2984,18 @@ function playerPlay(
                 cardId
         );
 
-    if (index === -1) {
+    if (
+        index === -1
+    ) {
 
         return;
 
     }
 
     const card =
-        game.playerHand[index];
+        game.playerHand[
+            index
+        ];
 
 
     /* PLAYER ATTACK */
@@ -1733,10 +3015,12 @@ function playerPlay(
             game.socket.emit(
                 "action_error",
                 {
+
                     message:
                         game.table.length
                             ? "Такую карту нельзя подкинуть"
                             : "Эту карту нельзя положить"
+
                 }
             );
 
@@ -1751,21 +3035,27 @@ function playerPlay(
 
         game.table.push({
 
-            attack: card,
+            attack:
+                card,
 
-            defense: null
+            defense:
+                null
 
         });
 
         game.phase =
             "cpu_defense";
 
-        sendState(game);
+        sendState(
+            game
+        );
 
         setTimeout(
             () => {
 
-                cpuDefense(game);
+                cpuDefense(
+                    game
+                );
 
             },
             500
@@ -1784,7 +3074,9 @@ function playerPlay(
     ) {
 
         const attackIndex =
-            firstUnbeaten(game);
+            firstUnbeaten(
+                game
+            );
 
         if (
             attackIndex === -1
@@ -1810,8 +3102,10 @@ function playerPlay(
             game.socket.emit(
                 "action_error",
                 {
+
                     message:
                         "Этой картой побить нельзя"
+
                 }
             );
 
@@ -1829,22 +3123,17 @@ function playerPlay(
         ].defense =
             card;
 
-        sendState(game);
-
-        /*
-         * Важное правило:
-         * после успешного отбивания
-         * игроку не переходит право
-         * подкидывания.
-         *
-         * Компьютер принимает решение.
-         */
+        sendState(
+            game
+        );
 
         setTimeout(
             () => {
 
                 if (
-                    allBeaten(game)
+                    allBeaten(
+                        game
+                    )
                 ) {
 
                     game.phase =
@@ -1859,7 +3148,9 @@ function playerPlay(
                     game.roundLimit =
                         game.playerHand.length;
 
-                    sendState(game);
+                    sendState(
+                        game
+                    );
 
                     setTimeout(
                         () => {
@@ -1874,7 +3165,9 @@ function playerPlay(
 
                 } else {
 
-                    sendState(game);
+                    sendState(
+                        game
+                    );
 
                 }
 
@@ -1908,7 +3201,9 @@ function cpuContinueAttack(game) {
         game.phase =
             "player_defense";
 
-        sendState(game);
+        sendState(
+            game
+        );
 
         return;
 
@@ -1924,7 +3219,8 @@ function cpuContinueAttack(game) {
         );
 
     if (
-        candidates.length === 0
+        candidates.length ===
+        0
     ) {
 
         finishSuccessfulRound(
@@ -1979,7 +3275,9 @@ function cpuContinueAttack(game) {
                 card.id
         );
 
-    if (index === -1) {
+    if (
+        index === -1
+    ) {
 
         return;
 
@@ -1992,16 +3290,20 @@ function cpuContinueAttack(game) {
 
     game.table.push({
 
-        attack: card,
+        attack:
+            card,
 
-        defense: null
+        defense:
+            null
 
     });
 
     game.phase =
         "player_defense";
 
-    sendState(game);
+    sendState(
+        game
+    );
 
 }
 
@@ -2033,31 +3335,41 @@ function createGame(
         createDeck();
 
     const trump =
-        deck[deck.length - 1];
+        deck[
+            deck.length - 1
+        ];
 
     const game = {
 
         id:
             crypto.randomUUID(),
 
-        playerId,
+        playerId:
+            playerId,
 
-        socket,
+        socket:
+            socket,
 
-        deck,
+        deck:
+            deck,
 
-        playerHand: [],
+        playerHand:
+            [],
 
-        cpuHand: [],
+        cpuHand:
+            [],
 
-        table: [],
+        table:
+            [],
 
         trumpSuit:
             trump.suit,
 
-        attacker: null,
+        attacker:
+            null,
 
-        defender: null,
+        defender:
+            null,
 
         phase:
             "dealing",
@@ -2070,13 +3382,6 @@ function createGame(
 
     };
 
-
-    /*
-     * Козырная карта остаётся
-     * последней картой колоды.
-     *
-     * Она не раздаётся.
-     */
 
     for (
         let i = 0;
@@ -2101,19 +3406,22 @@ function createGame(
         );
 
     game.defender =
-        game.attacker === "player"
+        game.attacker ===
+        "player"
             ? "cpu"
             : "player";
 
 
     game.roundLimit =
-        game.defender === "player"
+        game.defender ===
+        "player"
             ? game.playerHand.length
             : game.cpuHand.length;
 
 
     game.phase =
-        game.attacker === "player"
+        game.attacker ===
+        "player"
             ? "player_attack"
             : "cpu_attack";
 
@@ -2122,7 +3430,6 @@ function createGame(
         game.id,
         game
     );
-
 
     return game;
 
@@ -2142,6 +3449,8 @@ io.on(
             socket.id
         );
 
+
+        /* AUTHENTICATE */
 
         socket.on(
             "authenticate",
@@ -2163,8 +3472,10 @@ io.on(
                         socket.emit(
                             "server_error",
                             {
+
                                 message:
                                     "Ошибка Telegram авторизации"
+
                             }
                         );
 
@@ -2173,7 +3484,9 @@ io.on(
                     }
 
                     const player =
-                        createPlayer(user);
+                        createPlayer(
+                            user
+                        );
 
                     socket.playerId =
                         String(
@@ -2187,6 +3500,13 @@ io.on(
                             player:
                                 publicPlayer(
                                     player
+                                ),
+
+                            cars:
+                                getPlayerCars(
+                                    player.telegram_id
+                                ).map(
+                                    publicCar
                                 )
 
                         }
@@ -2202,8 +3522,10 @@ io.on(
                     socket.emit(
                         "server_error",
                         {
+
                             message:
                                 "Ошибка авторизации"
+
                         }
                     );
 
@@ -2212,6 +3534,8 @@ io.on(
             }
         );
 
+
+        /* START GAME */
 
         socket.on(
             "start_game",
@@ -2224,8 +3548,10 @@ io.on(
                     socket.emit(
                         "server_error",
                         {
+
                             message:
                                 "Сначала авторизуйтесь"
+
                         }
                     );
 
@@ -2242,7 +3568,9 @@ io.on(
                 game.socket =
                     socket;
 
-                sendState(game);
+                sendState(
+                    game
+                );
 
                 if (
                     game.phase ===
@@ -2265,6 +3593,8 @@ io.on(
             }
         );
 
+
+        /* PLAY CARD */
 
         socket.on(
             "play_card",
@@ -2289,15 +3619,8 @@ io.on(
 
                 }
 
-                if (
-                    game.socket !==
-                    socket
-                ) {
-
-                    game.socket =
-                        socket;
-
-                }
+                game.socket =
+                    socket;
 
                 playerPlay(
                     game,
@@ -2308,6 +3631,8 @@ io.on(
             }
         );
 
+
+        /* TAKE CARDS */
 
         socket.on(
             "take_cards",
@@ -2335,11 +3660,15 @@ io.on(
                 game.socket =
                     socket;
 
-                playerTake(game);
+                playerTake(
+                    game
+                );
 
             }
         );
 
+
+        /* FINISH ROUND */
 
         socket.on(
             "finish_round",
@@ -2377,14 +3706,18 @@ io.on(
                 }
 
                 if (
-                    !allBeaten(game)
+                    !allBeaten(
+                        game
+                    )
                 ) {
 
                     socket.emit(
                         "action_error",
                         {
+
                             message:
                                 "Сначала нужно отбить все карты"
+
                         }
                     );
 
@@ -2408,13 +3741,6 @@ io.on(
                     "SOCKET DISCONNECT:",
                     socket.id
                 );
-
-                /*
-                 * Игру не удаляем.
-                 *
-                 * При переподключении
-                 * игрок сможет продолжить.
-                 */
 
             }
         );
@@ -2440,6 +3766,22 @@ server.listen(
                 BOT_TOKEN
                     ? "configured"
                     : "NOT CONFIGURED"
+            }`
+        );
+
+        console.log(
+            `PLAYERS: ${
+                Object.keys(
+                    players
+                ).length
+            }`
+        );
+
+        console.log(
+            `CARS: ${
+                Object.keys(
+                    cars
+                ).length
             }`
         );
 
