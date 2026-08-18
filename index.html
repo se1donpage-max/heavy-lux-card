@@ -2,777 +2,699 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
->
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no,
+               viewport-fit=cover">
 
 <title>Heavy Lux Card</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none;
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 
 html,
-body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    touch-action:none;
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #050505;
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    touch-action: none;
+}
+
+body {
+    min-height: 100vh;
+}
+
+button {
+    font-family: inherit;
+}
+
+/* =====================================================
+   APP
+===================================================== */
+
+#app {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
     background:
         radial-gradient(
-            circle at 50% 40%,
-            #28472d 0%,
-            #17291a 42%,
-            #091009 100%
+            circle at 50% 48%,
+            #151515 0%,
+            #090909 48%,
+            #030303 100%
         );
-    color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
 }
-
-#app{
-    position:relative;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-}
-
 
 /* =====================================================
    TOP
 ===================================================== */
 
-.topbar{
-    position:absolute;
-    top:env(safe-area-inset-top,8px);
-    left:0;
-    right:0;
-    height:54px;
-    padding:8px 12px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    z-index:500;
+.topbar {
+    position: absolute;
+    top: env(safe-area-inset-top, 0);
+    left: 0;
+    right: 0;
+    height: 62px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 300;
 }
 
-.logo-small{
-    font-size:12px;
-    font-weight:900;
-    letter-spacing:2px;
+.logo {
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 3px;
 }
 
-.game-info{
-    display:flex;
-    gap:6px;
+.info {
+    display: flex;
+    gap: 7px;
 }
 
-.info-pill{
-    padding:6px 8px;
-    border-radius:10px;
-    background:rgba(0,0,0,.4);
-    border:1px solid rgba(255,255,255,.1);
-    font-size:9px;
-    color:#aaa;
+.info-item {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 10px;
+    padding: 6px 9px;
+    font-size: 10px;
+    color: #8c8c8c;
 }
 
-.info-pill b{
-    color:#fff;
+.info-item b {
+    color: #fff;
 }
-
 
 /* =====================================================
    TABLE
 ===================================================== */
 
-.table{
-    position:absolute;
-    left:50%;
-    top:51%;
-    transform:translate(-50%,-50%);
+.table {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 94vw;
+    height: 68vh;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+}
 
-    width:min(96vw,700px);
-    height:min(76vh,620px);
+/*
+   Никакой границы стола.
+   Только лёгкое затемнение центра.
+*/
 
-    border-radius:50%;
-
+.table::after {
+    content: "";
+    position: absolute;
+    inset: 8%;
+    border-radius: 50%;
     background:
         radial-gradient(
             ellipse at center,
-            #28512e 0%,
-            #1b3820 45%,
-            #102214 73%,
-            #091009 100%
+            rgba(255,255,255,.035),
+            rgba(0,0,0,0) 70%
         );
-
-    border:9px solid #111;
-
-    box-shadow:
-        inset 0 0 80px rgba(0,0,0,.75),
-        0 20px 60px rgba(0,0,0,.65);
-
-    overflow:hidden;
+    pointer-events: none;
 }
-
-.table::before{
-    content:"";
-    position:absolute;
-    inset:20px;
-    border-radius:50%;
-    border:1px solid rgba(255,255,255,.06);
-}
-
-
-/* =====================================================
-   OPPONENT
-===================================================== */
-
-.opponent{
-    position:absolute;
-    top:58px;
-    left:50%;
-    transform:translateX(-50%);
-    text-align:center;
-    z-index:400;
-}
-
-.opponent-avatar{
-    width:48px;
-    height:48px;
-    margin:auto;
-
-    border-radius:50%;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background:
-        linear-gradient(145deg,#303030,#101010);
-
-    border:2px solid #555;
-
-    font-size:22px;
-
-    box-shadow:
-        0 8px 22px rgba(0,0,0,.5);
-}
-
-.opponent-name{
-    margin-top:4px;
-    font-size:11px;
-    font-weight:800;
-}
-
-.opponent-count{
-    margin-top:2px;
-    font-size:10px;
-    color:#aaa;
-}
-
-
-/* =====================================================
-   PLAYER
-===================================================== */
-
-.player-info{
-    position:absolute;
-    bottom:96px;
-    left:50%;
-    transform:translateX(-50%);
-    text-align:center;
-    z-index:400;
-}
-
-.player-name{
-    font-size:12px;
-    font-weight:800;
-}
-
-.player-count{
-    margin-top:3px;
-    font-size:10px;
-    color:#aaa;
-}
-
 
 /* =====================================================
    DECK
 ===================================================== */
 
-.deck-area{
-    position:absolute;
-
-    left:26%;
-    top:50%;
-
-    width:135px;
-    height:125px;
-
-    transform:translate(-50%,-50%);
-
-    z-index:20;
+.deck-area {
+    position: absolute;
+    left: 3%;
+    top: 50%;
+    width: 115px;
+    height: 125px;
+    transform: translateY(-50%);
+    z-index: 40;
 }
 
-.deck{
-    position:absolute;
-
-    left:5px;
-    top:15px;
-
-    width:64px;
-    height:90px;
-
-    transform:rotate(-8deg);
-
-    z-index:10;
+.deck {
+    position: absolute;
+    left: 0;
+    top: 18px;
+    width: 68px;
+    height: 96px;
+    transform: rotate(-5deg);
+    z-index: 5;
 }
 
-.deck-card{
-    position:absolute;
-    inset:0;
-
-    border-radius:8px;
-
-    border:2px solid #aaa;
-
+.deck-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 9px;
     background:
         repeating-linear-gradient(
             45deg,
-            #161616 0px,
-            #161616 4px,
-            #303030 4px,
-            #303030 8px
+            #080808 0,
+            #080808 5px,
+            #252525 5px,
+            #252525 10px
         );
-
-    box-shadow:
-        0 6px 14px rgba(0,0,0,.55);
+    border: 1px solid #777;
+    box-shadow: 0 8px 20px rgba(0,0,0,.55);
 }
 
-.deck-card:nth-child(1){
-    transform:translate(-5px,-5px);
+.deck-layer:nth-child(1) {
+    transform: translate(-6px,-5px);
 }
 
-.deck-card:nth-child(2){
-    transform:translate(-2px,-2px);
+.deck-layer:nth-child(2) {
+    transform: translate(-3px,-2px);
 }
 
-.deck-card:nth-child(3){
-    transform:translate(0,0);
+.deck-layer:nth-child(3) {
+    transform: translate(0,0);
 }
-
-.trump-card{
-    position:absolute;
-
-    left:62px;
-    top:30px;
-
-    width:64px;
-    height:90px;
-
-    transform:rotate(76deg);
-
-    z-index:5;
-}
-
 
 /* =====================================================
-   CARDS
+   TRUMP UNDER DECK
 ===================================================== */
 
-.card{
-    position:absolute;
+.trump-under {
+    position: absolute;
+    left: 38px;
+    top: 26px;
+    width: 68px;
+    height: 96px;
+    transform: rotate(73deg);
+    z-index: 1;
+}
 
-    width:62px;
-    height:88px;
+.trump-under .card-face {
+    width: 100%;
+    height: 100%;
+}
 
-    border-radius:8px;
+/* =====================================================
+   CARD
+===================================================== */
 
-    background:#f7f7f7;
-    color:#111;
-
-    border:1px solid #ddd;
-
+.card {
+    width: 68px;
+    height: 96px;
+    border-radius: 9px;
+    position: absolute;
+    background: #f5f5f5;
+    color: #050505;
+    border: 1px solid #bcbcbc;
     box-shadow:
-        0 5px 14px rgba(0,0,0,.45),
+        0 8px 18px rgba(0,0,0,.5),
         inset 0 0 0 1px rgba(0,0,0,.08);
-
-    overflow:hidden;
-
-    font-weight:800;
-
-    transition:
-        transform .22s ease,
-        box-shadow .22s ease;
+    overflow: hidden;
+    font-weight: 900;
 }
 
-.card.red{
-    color:#d71919;
+.card.red {
+    color: #111;
 }
 
-.card.back{
-    background:
-        repeating-linear-gradient(
-            45deg,
-            #181818 0px,
-            #181818 4px,
-            #303030 4px,
-            #303030 8px
-        );
-
-    border:2px solid #aaa;
+.card-face {
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
-.card.back::after{
-    content:"HLC";
-
-    position:absolute;
-    inset:8px;
-
-    border:1px solid rgba(255,255,255,.3);
-    border-radius:5px;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    color:rgba(255,255,255,.6);
-    font-size:10px;
-    letter-spacing:1px;
+.rank {
+    position: absolute;
+    left: 7px;
+    top: 5px;
+    font-size: 17px;
 }
 
-.card-value{
-    position:absolute;
-    left:6px;
-    top:4px;
-    font-size:15px;
+.suit {
+    position: absolute;
+    left: 8px;
+    top: 27px;
+    font-size: 15px;
 }
 
-.card-suit{
-    position:absolute;
-    left:7px;
-    top:22px;
-    font-size:15px;
+.center-suit {
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%,-50%);
+    font-size: 31px;
 }
 
-.card-center{
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform:translate(-50%,-50%);
-    font-size:27px;
+.corner {
+    position: absolute;
+    right: 6px;
+    bottom: 5px;
+    transform: rotate(180deg);
+    font-size: 12px;
 }
-
-.card-corner{
-    position:absolute;
-    right:5px;
-    bottom:3px;
-    font-size:11px;
-    transform:rotate(180deg);
-}
-
 
 /* =====================================================
-   PLAYER HAND
+   CARD BACK
 ===================================================== */
 
-.hand{
-    position:absolute;
-
-    left:50%;
-    bottom:-5px;
-
-    width:96%;
-    height:120px;
-
-    transform:translateX(-50%);
-
-    z-index:800;
+.card-back {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 9px;
+    overflow: hidden;
+    background:
+        linear-gradient(
+            45deg,
+            transparent 45%,
+            #777 46%,
+            #777 49%,
+            transparent 50%
+        ),
+        linear-gradient(
+            -45deg,
+            transparent 45%,
+            #777 46%,
+            #777 49%,
+            transparent 50%
+        ),
+        #080808;
+    border: 1px solid #aaa;
 }
 
-.hand .card{
-    transform-origin:center bottom;
-    transition:
-        left .25s ease,
-        transform .25s ease,
-        box-shadow .2s ease;
+.card-back::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px solid #aaa;
+    transform: rotate(45deg);
 }
 
-.hand .card:hover{
-    z-index:1000;
+.card-back::after {
+    content: "HL";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    font-size: 19px;
+    letter-spacing: 2px;
+    color: #fff;
+    background: #080808;
+    padding: 4px;
 }
 
-.hand .card.selected{
-    box-shadow:
-        0 0 0 3px rgba(255,255,255,.85),
-        0 12px 28px rgba(0,0,0,.7);
+/* =====================================================
+   OPPONENT
+===================================================== */
+
+.opponent {
+    position: absolute;
+    top: 74px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 200;
 }
 
+.opponent-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #111;
+    border: 1px solid #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+}
+
+.opponent-name {
+    margin-top: 5px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.opponent-count {
+    margin-top: 3px;
+    font-size: 10px;
+    color: #888;
+}
 
 /* =====================================================
    OPPONENT HAND
 ===================================================== */
 
-.opponent-hand{
-    position:absolute;
-
-    left:50%;
-    top:5px;
-
-    width:230px;
-    height:95px;
-
-    transform:translateX(-50%);
-
-    z-index:15;
+.opponent-hand {
+    position: absolute;
+    top: 132px;
+    left: 50%;
+    width: 350px;
+    height: 105px;
+    transform: translateX(-50%);
+    z-index: 120;
 }
-
 
 /* =====================================================
-   TABLE PLAY AREA
+   CENTER PLAY AREA
 ===================================================== */
 
-.play-area{
-    position:absolute;
-
-    left:50%;
-    top:50%;
-
-    width:330px;
-    height:250px;
-
-    transform:translate(-50%,-50%);
-
-    z-index:100;
+.play-area {
+    position: absolute;
+    left: 50%;
+    top: 51%;
+    width: min(75vw, 430px);
+    height: 230px;
+    transform: translate(-50%,-50%);
+    z-index: 100;
 }
+
+/* =====================================================
+   ATTACK / DEFENSE
+===================================================== */
 
 .attack-zone,
-.defense-zone{
-    position:absolute;
-
-    left:0;
-    top:0;
-
-    width:100%;
-    height:100%;
+.defense-zone {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%,-50%);
 }
 
+.played-card {
+    position: absolute;
+    width: 68px;
+    height: 96px;
+    transition:
+        left .34s cubic-bezier(.2,.8,.2,1),
+        top .34s cubic-bezier(.2,.8,.2,1),
+        transform .34s cubic-bezier(.2,.8,.2,1),
+        opacity .25s ease;
+}
 
 /* =====================================================
-   PLAYED CARD
+   PLAYER
 ===================================================== */
 
-.played-card{
-    position:absolute;
+.player-info {
+    position: absolute;
+    bottom: 118px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 300;
+}
 
-    width:62px;
-    height:88px;
+.player-name {
+    font-size: 13px;
+    font-weight: 900;
+}
 
+.player-count {
+    margin-top: 3px;
+    font-size: 10px;
+    color: #888;
+}
+
+/* =====================================================
+   PLAYER HAND
+===================================================== */
+
+.hand {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    width: 100%;
+    height: 135px;
+    transform: translateX(-50%);
+    z-index: 500;
+    pointer-events: none;
+}
+
+.hand .card {
+    pointer-events: auto;
+    transform-origin: center bottom;
     transition:
-        left .35s cubic-bezier(.2,.8,.2,1),
-        top .35s cubic-bezier(.2,.8,.2,1),
-        transform .35s cubic-bezier(.2,.8,.2,1),
-        opacity .25s ease;
-
-    animation:cardEnter .32s ease both;
+        left .25s ease,
+        transform .25s ease,
+        bottom .25s ease;
 }
-
-@keyframes cardEnter{
-
-    from{
-        opacity:0;
-        transform:
-            translateY(30px)
-            scale(.55)
-            rotate(-20deg);
-    }
-
-    to{
-        opacity:1;
-        transform:
-            translateY(0)
-            scale(1)
-            rotate(0deg);
-    }
-}
-
 
 /* =====================================================
    DRAGGING
 ===================================================== */
 
-.card.dragging{
-    position:fixed !important;
-
-    z-index:2000 !important;
-
-    transition:none !important;
-
-    pointer-events:none;
-
+.card.dragging {
+    position: fixed !important;
+    z-index: 2000 !important;
+    transition: none !important;
     transform:
+        translate(-50%,-50%)
         scale(1.08)
         rotate(0deg) !important;
-
     box-shadow:
-        0 20px 40px rgba(0,0,0,.75);
+        0 25px 45px rgba(0,0,0,.8);
+    pointer-events: none;
 }
-
 
 /* =====================================================
    CONTROLS
 ===================================================== */
 
-.controls{
-    position:absolute;
-
-    left:50%;
-    bottom:145px;
-
-    transform:translateX(-50%);
-
-    z-index:1000;
-
-    display:flex;
-    justify-content:center;
-
-    gap:8px;
-
-    width:100%;
+.controls {
+    position: absolute;
+    left: 50%;
+    bottom: 73px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 700;
 }
 
-.control-btn{
-    border:1px solid rgba(255,255,255,.15);
-
-    background:rgba(10,10,10,.9);
-
-    color:#fff;
-
-    border-radius:12px;
-
-    padding:11px 18px;
-
-    font-size:11px;
-    font-weight:900;
-
-    box-shadow:
-        0 7px 18px rgba(0,0,0,.35);
+.control {
+    min-width: 95px;
+    border-radius: 12px;
+    padding: 11px 15px;
+    border: 1px solid #444;
+    background: #111;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
 }
 
-.control-btn:active{
-    transform:scale(.95);
+.control.primary {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
 }
 
-.control-btn.primary{
-    background:#fff;
-    color:#000;
+.control.danger {
+    background: #191919;
 }
 
-.control-btn.danger{
-    background:#3b1515;
-    border-color:#632424;
+.control:active {
+    transform: scale(.96);
 }
-
 
 /* =====================================================
    MESSAGE
 ===================================================== */
 
-.message{
-    position:absolute;
-
-    top:126px;
-    left:50%;
-
-    transform:translateX(-50%);
-
-    z-index:1500;
-
-    padding:8px 14px;
-
-    border-radius:12px;
-
-    background:rgba(0,0,0,.75);
-
-    border:1px solid rgba(255,255,255,.12);
-
-    color:#ddd;
-
-    font-size:11px;
-
-    white-space:nowrap;
-
-    opacity:0;
-
-    transition:opacity .25s ease;
+.message {
+    position: absolute;
+    top: 122px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 13px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.82);
+    border: 1px solid #292929;
+    color: #ccc;
+    font-size: 10px;
+    opacity: 0;
+    transition: opacity .25s ease;
+    z-index: 800;
+    white-space: nowrap;
 }
 
-.message.show{
-    opacity:1;
+.message.show {
+    opacity: 1;
 }
-
 
 /* =====================================================
    START
 ===================================================== */
 
-.start-screen{
-    position:absolute;
-    inset:0;
-
-    z-index:5000;
-
-    background:rgba(4,6,4,.96);
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.start-screen {
+    position: absolute;
+    inset: 0;
+    z-index: 1000;
+    background: #050505;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.start-box{
-    width:85%;
-    max-width:350px;
-    text-align:center;
+.start-box {
+    width: 82%;
+    max-width: 340px;
+    text-align: center;
 }
 
-.start-logo{
-    font-size:29px;
-    font-weight:900;
-    letter-spacing:5px;
+.start-logo {
+    font-size: 29px;
+    font-weight: 900;
+    letter-spacing: 6px;
 }
 
-.start-sub{
-    margin-top:7px;
-    color:#888;
-    font-size:10px;
-    letter-spacing:3px;
+.start-sub {
+    margin-top: 8px;
+    color: #777;
+    font-size: 10px;
+    letter-spacing: 4px;
 }
 
-.start-button{
-    width:100%;
-
-    margin-top:30px;
-
-    border:0;
-    border-radius:15px;
-
-    background:#fff;
-    color:#000;
-
-    padding:17px;
-
-    font-size:15px;
-    font-weight:900;
+.start-button {
+    width: 100%;
+    margin-top: 30px;
+    padding: 17px;
+    border: 0;
+    border-radius: 13px;
+    background: #fff;
+    color: #000;
+    font-weight: 900;
+    font-size: 14px;
 }
-
 
 /* =====================================================
    DEAL ANIMATION
 ===================================================== */
 
-.dealing{
-    animation:dealFlash .22s ease;
+.deal-animation {
+    animation:
+        dealCard .22s cubic-bezier(.2,.8,.2,1);
 }
 
-@keyframes dealFlash{
-
-    0%{
-        transform:scale(.8) rotate(-8deg);
-        opacity:.2;
+@keyframes dealCard {
+    0% {
+        opacity: 0;
+        transform:
+            translateY(70px)
+            scale(.65)
+            rotate(-10deg);
     }
 
-    100%{
-        transform:scale(1) rotate(0);
-        opacity:1;
+    100% {
+        opacity: 1;
+        transform:
+            translateY(0)
+            scale(1)
+            rotate(0);
     }
 }
-
 
 /* =====================================================
-   WINNER
+   PLAY ANIMATION
 ===================================================== */
 
-.winner{
-    animation:winnerPulse .7s ease infinite alternate;
+.play-animation {
+    animation:
+        playCard .3s cubic-bezier(.2,.8,.2,1);
 }
 
-@keyframes winnerPulse{
-
-    from{
-        box-shadow:0 0 0 rgba(255,255,255,0);
+@keyframes playCard {
+    0% {
+        opacity: 0;
+        transform:
+            scale(.55)
+            rotate(-12deg);
     }
 
-    to{
-        box-shadow:0 0 35px rgba(255,255,255,.25);
+    100% {
+        opacity: 1;
+        transform:
+            scale(1)
+            rotate(0);
     }
 }
-
 
 /* =====================================================
    MOBILE
 ===================================================== */
 
-@media(max-width:380px){
+@media (max-width: 390px) {
 
     .card,
-    .played-card{
-        width:56px;
-        height:80px;
+    .played-card {
+        width: 62px;
+        height: 88px;
     }
 
-    .play-area{
-        width:300px;
+    .opponent-hand {
+        width: 320px;
     }
 
-    .controls{
-        bottom:138px;
+    .play-area {
+        width: 78vw;
+        height: 210px;
     }
 
-    .player-info{
-        bottom:85px;
+    .deck-area {
+        left: 1%;
     }
 
+    .player-info {
+        bottom: 112px;
+    }
+
+    .controls {
+        bottom: 66px;
+    }
 }
-
 </style>
 </head>
-
 
 <body>
 
 <div id="app">
 
+    <!-- TOP -->
 
     <div class="topbar">
 
-        <div class="logo-small">
+        <div class="logo">
             HEAVY LUX CARD
         </div>
 
-        <div class="game-info">
+        <div class="info">
 
-            <div class="info-pill">
+            <div class="info-item">
                 Козырь:
                 <b id="trumpInfo">—</b>
             </div>
 
-            <div class="info-pill">
+            <div class="info-item">
                 Колода:
-                <b id="deckCount">24</b>
+                <b id="deckCount">0</b>
             </div>
 
         </div>
 
     </div>
 
+
+    <!-- MESSAGE -->
 
     <div id="message" class="message">
         Подготовка...
@@ -784,7 +706,7 @@ body{
     <div class="opponent">
 
         <div class="opponent-avatar">
-            🤖
+            HL
         </div>
 
         <div class="opponent-name">
@@ -793,59 +715,56 @@ body{
 
         <div class="opponent-count">
             Карт:
-            <b id="opponentCount">6</b>
+            <b id="opponentCount">0</b>
         </div>
 
     </div>
 
-
     <div
         id="opponentHand"
-        class="opponent-hand"
-    ></div>
+        class="opponent-hand">
+    </div>
 
 
     <!-- TABLE -->
 
     <div class="table">
 
-
         <!-- DECK -->
 
         <div class="deck-area">
 
             <div
-                class="deck"
-                id="deck"
-            >
-
-                <div class="deck-card"></div>
-                <div class="deck-card"></div>
-                <div class="deck-card"></div>
-
+                id="trumpCard"
+                class="trump-under">
             </div>
 
             <div
-                id="trumpCard"
-                class="card trump-card"
-            ></div>
+                id="deck"
+                class="deck">
+
+                <div class="deck-layer"></div>
+                <div class="deck-layer"></div>
+                <div class="deck-layer"></div>
+
+            </div>
 
         </div>
 
 
-        <!-- PLAY AREA -->
+        <!-- CENTER -->
 
         <div class="play-area">
 
             <div
                 id="attackZone"
-                class="attack-zone"
-            ></div>
+                class="attack-zone">
+            </div>
 
             <div
                 id="defenseZone"
-                class="defense-zone"
-            ></div>
+                class="defense-zone">
+            </div>
 
         </div>
 
@@ -858,44 +777,45 @@ body{
 
         <div
             id="playerName"
-            class="player-name"
-        >
+            class="player-name">
             Игрок
         </div>
 
         <div class="player-count">
-
             Карт:
-            <b id="playerCount">6</b>
-
+            <b id="playerCount">0</b>
         </div>
 
     </div>
 
-
     <div
         id="playerHand"
-        class="hand"
-    ></div>
+        class="hand">
+    </div>
 
 
-    <!-- BUTTONS -->
+    <!-- CONTROLS -->
 
     <div class="controls">
 
         <button
             id="takeButton"
-            class="control-btn danger"
-            style="display:none"
-        >
+            class="control danger"
+            style="display:none">
             ВЗЯТЬ
         </button>
 
         <button
-            id="endAttackButton"
-            class="control-btn primary"
-            style="display:none"
-        >
+            id="beatButton"
+            class="control primary"
+            style="display:none">
+            БИТО
+        </button>
+
+        <button
+            id="finishButton"
+            class="control"
+            style="display:none">
             ЗАКОНЧИТЬ
         </button>
 
@@ -906,8 +826,7 @@ body{
 
     <div
         id="startScreen"
-        class="start-screen"
-    >
+        class="start-screen">
 
         <div class="start-box">
 
@@ -921,15 +840,13 @@ body{
 
             <button
                 id="startButton"
-                class="start-button"
-            >
+                class="start-button">
                 НАЧАТЬ ИГРУ
             </button>
 
         </div>
 
     </div>
-
 
 </div>
 
@@ -945,16 +862,14 @@ const tg =
         ? window.Telegram.WebApp
         : null;
 
-if(tg){
-
+if (tg) {
     tg.ready();
     tg.expand();
-
 }
 
 
 /* =====================================================
-   GAME CONSTANTS
+   CONSTANTS
 ===================================================== */
 
 const SUITS = [
@@ -965,17 +880,15 @@ const SUITS = [
 ];
 
 const RANKS = [
-
-    {name:"6",value:6},
-    {name:"7",value:7},
-    {name:"8",value:8},
-    {name:"9",value:9},
-    {name:"10",value:10},
-    {name:"В",value:11},
-    {name:"Д",value:12},
-    {name:"К",value:13},
-    {name:"Т",value:14}
-
+    ["6",6],
+    ["7",7],
+    ["8",8],
+    ["9",9],
+    ["10",10],
+    ["В",11],
+    ["Д",12],
+    ["К",13],
+    ["Т",14]
 ];
 
 
@@ -985,46 +898,25 @@ const RANKS = [
 
 let deck = [];
 
-let playerHand = [];
-
-let cpuHand = [];
-
 let trumpSuit = null;
-
 let trumpCard = null;
 
-let attackCards = [];
+let playerHand = [];
+let cpuHand = [];
 
+let attackCards = [];
 let defenseCards = [];
 
 let attacker = null;
-
 let defender = null;
 
 let phase = "waiting";
 
-let initialDefenderCards = 6;
+let defenderInitialCount = 6;
 
 let gameStarted = false;
 
-let playerName = "Игрок";
-
-let dragState = null;
-
-let busy = false;
-
-
-/*
-    waiting
-
-    player_attack
-    cpu_defense
-
-    cpu_attack
-    player_defense
-
-    finished
-*/
+let draggedCard = null;
 
 
 /* =====================================================
@@ -1032,115 +924,88 @@ let busy = false;
 ===================================================== */
 
 const playerHandEl =
-    document.getElementById(
-        "playerHand"
-    );
+    document.getElementById("playerHand");
 
 const opponentHandEl =
-    document.getElementById(
-        "opponentHand"
-    );
+    document.getElementById("opponentHand");
 
 const attackZone =
-    document.getElementById(
-        "attackZone"
-    );
+    document.getElementById("attackZone");
 
 const defenseZone =
-    document.getElementById(
-        "defenseZone"
-    );
+    document.getElementById("defenseZone");
 
 const trumpCardEl =
-    document.getElementById(
-        "trumpCard"
-    );
+    document.getElementById("trumpCard");
 
 const startScreen =
-    document.getElementById(
-        "startScreen"
-    );
+    document.getElementById("startScreen");
 
 const startButton =
-    document.getElementById(
-        "startButton"
-    );
+    document.getElementById("startButton");
 
 const takeButton =
-    document.getElementById(
-        "takeButton"
-    );
+    document.getElementById("takeButton");
 
-const endAttackButton =
-    document.getElementById(
-        "endAttackButton"
-    );
+const beatButton =
+    document.getElementById("beatButton");
+
+const finishButton =
+    document.getElementById("finishButton");
 
 const messageEl =
-    document.getElementById(
-        "message"
-    );
+    document.getElementById("message");
 
 
 /* =====================================================
-   UTILITY
+   HELPERS
 ===================================================== */
 
-function sleep(ms){
-
+function sleep(ms) {
     return new Promise(
-        resolve => setTimeout(
-            resolve,
-            ms
-        )
+        resolve => setTimeout(resolve, ms)
     );
-
 }
 
 
-function shuffle(array){
+function shuffle(array) {
 
-    for(
-        let i=array.length-1;
-        i>0;
+    for (
+        let i = array.length - 1;
+        i > 0;
         i--
-    ){
+    ) {
 
         const j =
             Math.floor(
-                Math.random()*(i+1)
+                Math.random() * (i + 1)
             );
 
         [
             array[i],
             array[j]
-        ] =
-        [
+        ] = [
             array[j],
             array[i]
         ];
-
     }
 
     return array;
-
 }
 
 
-function isRed(card){
+function isRed(card) {
 
     return (
-        card.suit==="♥" ||
-        card.suit==="♦"
+        card.suit === "♥" ||
+        card.suit === "♦"
     );
-
 }
 
 
-function cardText(card){
+function cardKey(card) {
 
-    return `${card.rank}${card.suit}`;
-
+    return `${card.rank}_${card.suit}`;
 }
 
 
@@ -1148,41 +1013,28 @@ function cardText(card){
    CREATE DECK
 ===================================================== */
 
-function createDeck(){
+function createDeck() {
 
     const result = [];
 
-    for(
-        const suit of SUITS
-    ){
+    for (const suit of SUITS) {
 
-        for(
-            const rank of RANKS
-        ){
+        for (const [rank,value] of RANKS) {
 
             result.push({
-
                 id:
-                    Math.random()
-                    .toString(36)
-                    .substring(2)+
-                    Date.now()
-                    .toString(36),
+                    `${rank}${suit}_${Math.random()
+                        .toString(36)
+                        .slice(2)}`,
 
-                rank:rank.name,
-
-                value:rank.value,
-
-                suit:suit
-
+                rank,
+                value,
+                suit
             });
-
         }
-
     }
 
     return shuffle(result);
-
 }
 
 
@@ -1190,50 +1042,58 @@ function createDeck(){
    CARD HTML
 ===================================================== */
 
-function createCardElement(card){
+function createCard(card) {
 
     const el =
         document.createElement("div");
 
     el.className =
-        "card " +
-        (isRed(card) ? "red" : "");
+        "card" +
+        (isRed(card) ? " red" : "");
+
+    el.dataset.id =
+        card.id;
 
     el.innerHTML = `
 
-        <div class="card-value">
-            ${card.rank}
-        </div>
+        <div class="card-face">
 
-        <div class="card-suit">
-            ${card.suit}
-        </div>
+            <div class="rank">
+                ${card.rank}
+            </div>
 
-        <div class="card-center">
-            ${card.suit}
-        </div>
+            <div class="suit">
+                ${card.suit}
+            </div>
 
-        <div class="card-corner">
-            ${card.rank}${card.suit}
-        </div>
+            <div class="center-suit">
+                ${card.suit}
+            </div>
 
+            <div class="corner">
+                ${card.rank}${card.suit}
+            </div>
+
+        </div>
     `;
 
     return el;
-
 }
 
 
-function createBackCard(){
+function createBack() {
 
     const el =
         document.createElement("div");
 
     el.className =
-        "card back";
+        "card";
+
+    el.innerHTML = `
+        <div class="card-back"></div>
+    `;
 
     return el;
-
 }
 
 
@@ -1241,57 +1101,32 @@ function createBackCard(){
    TRUMP
 ===================================================== */
 
-function setupTrump(){
+function setupTrump() {
 
     /*
-        Последняя карта колоды
-        является козырем.
-
-        Она НЕ удаляется.
-        Она остаётся под колодой.
+       Последняя карта остаётся
+       частью колоды и физически
+       находится под ней.
     */
 
     trumpCard =
-        deck[deck.length-1];
+        deck[deck.length - 1];
 
     trumpSuit =
         trumpCard.suit;
 
-    renderTrump();
+    const el =
+        createCard(trumpCard);
 
-}
+    el.classList.add(
+        "trump-under"
+    );
 
+    trumpCardEl.innerHTML = "";
 
-function renderTrump(){
+    trumpCardEl.appendChild(el);
 
-    trumpCardEl.className =
-        "card trump-card " +
-        (
-            isRed(trumpCard)
-                ? "red"
-                : ""
-        );
-
-    trumpCardEl.innerHTML = `
-
-        <div class="card-value">
-            ${trumpCard.rank}
-        </div>
-
-        <div class="card-suit">
-            ${trumpCard.suit}
-        </div>
-
-        <div class="card-center">
-            ${trumpCard.suit}
-        </div>
-
-        <div class="card-corner">
-            ${trumpCard.rank}${trumpCard.suit}
-        </div>
-
-    `;
-
+    updateInfo();
 }
 
 
@@ -1299,47 +1134,21 @@ function renderTrump(){
    SORT
 ===================================================== */
 
-function sortHand(hand){
+function sortHand(hand) {
 
-    hand.sort(
-        (a,b)=>{
+    hand.sort((a,b) => {
 
-            const aTrump =
-                a.suit===trumpSuit;
+        const at =
+            a.suit === trumpSuit;
 
-            const bTrump =
-                b.suit===trumpSuit;
+        const bt =
+            b.suit === trumpSuit;
 
-            if(
-                aTrump &&
-                !bTrump
-            ){
-                return 1;
-            }
+        if (at && !bt) return 1;
+        if (!at && bt) return -1;
 
-            if(
-                !aTrump &&
-                bTrump
-            ){
-                return -1;
-            }
-
-            if(
-                a.suit!==b.suit
-            ){
-
-                return (
-                    SUITS.indexOf(a.suit) -
-                    SUITS.indexOf(b.suit)
-                );
-
-            }
-
-            return a.value-b.value;
-
-        }
-    );
-
+        return a.value - b.value;
+    });
 }
 
 
@@ -1347,56 +1156,39 @@ function sortHand(hand){
    RENDER HANDS
 ===================================================== */
 
-function renderHands(){
+function renderHands() {
 
     sortHand(playerHand);
 
-    playerHandEl.innerHTML="";
-
-
-    /*
-        PLAYER
-    */
+    playerHandEl.innerHTML = "";
 
     const count =
         playerHand.length;
 
     const spacing =
-        count <= 6
-            ? 52
-            : 45;
-
-    playerHandEl.style.width =
-        `${Math.max(
-            100,
-            count*spacing
-        )}px`;
-
+        count > 8 ? 42 : 48;
 
     playerHand.forEach(
-        (card,index)=>{
+        (card,index) => {
 
             const el =
-                createCardElement(card);
+                createCard(card);
 
             const center =
-                (count-1)/2;
+                (count - 1) / 2;
 
-            const offset =
-                (index-center)*
-                spacing;
+            const x =
+                (index - center)
+                * spacing;
 
             el.style.left =
-                `calc(50% + ${offset}px - 31px)`;
+                `calc(50% + ${x}px - 34px)`;
 
             el.style.bottom =
-                "4px";
+                "0px";
 
             el.style.transform =
-                `rotate(${(index-center)*2.3}deg)`;
-
-            el.dataset.cardId =
-                card.id;
+                `rotate(${(index-center)*2.5}deg)`;
 
             addDragEvents(
                 el,
@@ -1404,332 +1196,117 @@ function renderHands(){
             );
 
             playerHandEl.appendChild(el);
-
         }
     );
 
 
-    /*
-        CPU
-    */
+    /* CPU HAND */
 
-    opponentHandEl.innerHTML="";
+    opponentHandEl.innerHTML = "";
 
     const cpuCount =
         cpuHand.length;
 
     const cpuSpacing =
-        cpuCount <= 6
-            ? 30
-            : 25;
-
-    opponentHandEl.style.width =
-        `${Math.max(
-            80,
-            cpuCount*cpuSpacing
-        )}px`;
-
+        cpuCount > 8 ? 35 : 40;
 
     cpuHand.forEach(
-        (card,index)=>{
+        (card,index) => {
 
             const el =
-                createBackCard();
+                createBack();
 
             const center =
-                (cpuCount-1)/2;
+                (cpuCount - 1) / 2;
 
-            const offset =
-                (index-center)*
-                cpuSpacing;
+            const x =
+                (index-center)
+                * cpuSpacing;
 
             el.style.left =
-                `calc(50% + ${offset}px - 31px)`;
+                `calc(50% + ${x}px - 34px)`;
 
             el.style.top =
-                `${Math.abs(
-                    index-center
-                )*.7}px`;
+                `${Math.abs(index-center)*1.2}px`;
 
             el.style.transform =
-                `rotate(${(index-center)*3}deg)`;
+                `rotate(${(index-center)*2.2}deg)`;
 
             opponentHandEl.appendChild(el);
-
         }
     );
-
 
     updateInfo();
-
 }
 
 
 /* =====================================================
-   DRAG
+   INFO
 ===================================================== */
 
-function addDragEvents(el,card){
-
-    let startX=0;
-    let startY=0;
-
-    let moved=false;
-
-
-    el.addEventListener(
-        "pointerdown",
-        event=>{
-
-            if(
-                phase!=="player_attack" &&
-                phase!=="player_defense"
-            ){
-                return;
-            }
-
-            if(busy){
-                return;
-            }
-
-            el.setPointerCapture(
-                event.pointerId
-            );
-
-            const rect =
-                el.getBoundingClientRect();
-
-            startX =
-                event.clientX;
-
-            startY =
-                event.clientY;
-
-            moved=false;
-
-            dragState = {
-
-                card:card,
-
-                element:el,
-
-                offsetX:
-                    event.clientX-
-                    rect.left,
-
-                offsetY:
-                    event.clientY-
-                    rect.top
-
-            };
-
-            el.classList.add(
-                "dragging"
-            );
-
-            el.style.left =
-                `${event.clientX-
-                    dragState.offsetX}px`;
-
-            el.style.top =
-                `${event.clientY-
-                    dragState.offsetY}px`;
-
-            el.style.bottom="auto";
-
-        }
-    );
-
-
-    el.addEventListener(
-        "pointermove",
-        event=>{
-
-            if(
-                !dragState ||
-                dragState.element!==el
-            ){
-                return;
-            }
-
-            const dx =
-                event.clientX-startX;
-
-            const dy =
-                event.clientY-startY;
-
-            if(
-                Math.abs(dx)>6 ||
-                Math.abs(dy)>6
-            ){
-
-                moved=true;
-
-            }
-
-            el.style.left =
-                `${event.clientX-
-                    dragState.offsetX}px`;
-
-            el.style.top =
-                `${event.clientY-
-                    dragState.offsetY}px`;
-
-        }
-    );
-
-
-    el.addEventListener(
-        "pointerup",
-        async event=>{
-
-            if(
-                !dragState ||
-                dragState.element!==el
-            ){
-                return;
-            }
-
-            const state =
-                dragState;
-
-            dragState=null;
-
-            el.classList.remove(
-                "dragging"
-            );
-
-
-            /*
-                Если просто нажали,
-                карта возвращается
-                обратно в руку.
-
-                Она НЕ удаляется.
-            */
-
-            if(!moved){
-
-                renderHands();
-
-                return;
-
-            }
-
-
-            /*
-                Проверяем,
-                находится ли карта
-                над игровым столом.
-            */
-
-            const table =
-                document
-                    .querySelector(".table")
-                    .getBoundingClientRect();
-
-            const inside =
-                event.clientX>=table.left &&
-                event.clientX<=table.right &&
-                event.clientY>=table.top &&
-                event.clientY<=table.bottom;
-
-
-            if(!inside){
-
-                renderHands();
-
-                return;
-
-            }
-
-
-            /*
-                Только теперь карта
-                реально разыгрывается.
-            */
-
-            await playPlayerCard(
-                state.card
-            );
-
-        }
-    );
-
-
-    el.addEventListener(
-        "pointercancel",
-        ()=>{
-
-            dragState=null;
-
-            renderHands();
-
-        }
-    );
-
+function updateInfo() {
+
+    document.getElementById(
+        "deckCount"
+    ).textContent =
+        Math.max(
+            0,
+            deck.length - 1
+        );
+
+    document.getElementById(
+        "trumpInfo"
+    ).textContent =
+        trumpSuit || "—";
+
+    document.getElementById(
+        "playerCount"
+    ).textContent =
+        playerHand.length;
+
+    document.getElementById(
+        "opponentCount"
+    ).textContent =
+        cpuHand.length;
 }
 
 
 /* =====================================================
-   GAME RULES
+   CAN BEAT
 ===================================================== */
 
 function canBeat(
     attack,
     defense
-){
+) {
 
-    if(!attack || !defense){
+    if (!attack || !defense)
         return false;
-    }
-
 
     const attackTrump =
-        attack.suit===trumpSuit;
+        attack.suit === trumpSuit;
 
     const defenseTrump =
-        defense.suit===trumpSuit;
+        defense.suit === trumpSuit;
 
-
-    /*
-        Козырь против обычной карты
-    */
-
-    if(
+    if (
         defenseTrump &&
         !attackTrump
-    ){
-
+    ) {
         return true;
-
     }
 
-
-    /*
-        Обычная карта
-        не бьёт козырь
-    */
-
-    if(
+    if (
         attackTrump &&
         !defenseTrump
-    ){
-
+    ) {
         return false;
-
     }
 
-
-    /*
-        Одинаковая масть
-    */
-
     return (
-        attack.suit===defense.suit &&
-        defense.value>attack.value
+        attack.suit === defense.suit &&
+        defense.value > attack.value
     );
-
 }
 
 
@@ -1737,16 +1314,14 @@ function canBeat(
    TABLE RANKS
 ===================================================== */
 
-function getTableRanks(){
+function tableRanks() {
 
     return [
         ...attackCards,
         ...defenseCards.filter(Boolean)
-    ]
-    .map(
-        card=>card.rank
+    ].map(
+        card => card.rank
     );
-
 }
 
 
@@ -1754,67 +1329,194 @@ function getTableRanks(){
    CAN ATTACK
 ===================================================== */
 
-function canAttackWith(card){
+function canAttack(card) {
 
-    if(!card){
+    if (!card)
         return false;
-    }
 
-
-    /*
-        Первый удар.
-    */
-
-    if(
-        attackCards.length===0
-    ){
-
+    if (
+        attackCards.length === 0
+    ) {
         return true;
-
     }
 
-
-    /*
-        Подкидывать можно
-        только существующие
-        ранги на столе.
-    */
-
-    return getTableRanks()
+    return tableRanks()
         .includes(card.rank);
-
 }
 
 
 /* =====================================================
-   PLAYER PLAY
+   PLAYER DRAG
 ===================================================== */
 
-async function playPlayerCard(card){
+function addDragEvents(
+    el,
+    card
+) {
 
-    if(busy){
-        return;
-    }
+    let startX = 0;
+    let startY = 0;
+    let moved = false;
 
-    if(
-        phase!=="player_attack" &&
-        phase!=="player_defense"
-    ){
-        return;
-    }
+    el.addEventListener(
+        "pointerdown",
+        event => {
+
+            if (
+                phase !== "PLAYER_ATTACK" &&
+                phase !== "PLAYER_DEFENSE"
+            ) {
+                return;
+            }
+
+            startX =
+                event.clientX;
+
+            startY =
+                event.clientY;
+
+            moved = false;
+
+            draggedCard = {
+                card,
+                el
+            };
+
+            const rect =
+                el.getBoundingClientRect();
+
+            el.setPointerCapture(
+                event.pointerId
+            );
+
+            el.classList.add(
+                "dragging"
+            );
+
+            el.style.left =
+                `${event.clientX -
+                    rect.width / 2}px`;
+
+            el.style.top =
+                `${event.clientY -
+                    rect.height / 2}px`;
+
+            el.style.bottom =
+                "auto";
+        }
+    );
 
 
-    /* ================================================
-       PLAYER ATTACK
-    ================================================= */
+    el.addEventListener(
+        "pointermove",
+        event => {
 
-    if(
-        phase==="player_attack"
-    ){
+            if (
+                !draggedCard ||
+                draggedCard.el !== el
+            ) {
+                return;
+            }
 
-        if(
-            !canAttackWith(card)
-        ){
+            if (
+                Math.abs(
+                    event.clientX - startX
+                ) > 6 ||
+                Math.abs(
+                    event.clientY - startY
+                ) > 6
+            ) {
+                moved = true;
+            }
+
+            el.style.left =
+                `${event.clientX -
+                    el.offsetWidth / 2}px`;
+
+            el.style.top =
+                `${event.clientY -
+                    el.offsetHeight / 2}px`;
+        }
+    );
+
+
+    el.addEventListener(
+        "pointerup",
+        async event => {
+
+            if (
+                !draggedCard ||
+                draggedCard.el !== el
+            ) {
+                return;
+            }
+
+            const current =
+                draggedCard;
+
+            draggedCard = null;
+
+            el.classList.remove(
+                "dragging"
+            );
+
+            if (!moved) {
+
+                renderHands();
+
+                return;
+            }
+
+            const zone =
+                document
+                    .querySelector(".play-area")
+                    .getBoundingClientRect();
+
+            const inside =
+                event.clientX >= zone.left &&
+                event.clientX <= zone.right &&
+                event.clientY >= zone.top &&
+                event.clientY <= zone.bottom;
+
+            if (!inside) {
+
+                renderHands();
+
+                return;
+            }
+
+            await playerPlayCard(
+                current.card
+            );
+        }
+    );
+
+
+    el.addEventListener(
+        "pointercancel",
+        () => {
+
+            draggedCard = null;
+
+            renderHands();
+        }
+    );
+}
+
+
+/* =====================================================
+   PLAYER PLAY CARD
+===================================================== */
+
+async function playerPlayCard(card) {
+
+    if (
+        phase === "PLAYER_ATTACK"
+    ) {
+
+        if (
+            !canAttack(card)
+        ) {
 
             showMessage(
                 "Эту карту нельзя подкинуть"
@@ -1823,119 +1525,81 @@ async function playPlayerCard(card){
             renderHands();
 
             return;
-
         }
 
-
-        if(
+        if (
             attackCards.length >=
-            initialDefenderCards
-        ){
+            defenderInitialCount
+        ) {
 
             showMessage(
-                "Лимит подкидывания достигнут"
+                "Больше подкидывать нельзя"
             );
 
             renderHands();
 
             return;
-
         }
 
-
-        /*
-            Карта удаляется из руки
-            ТОЛЬКО после того,
-            как игрок отпустил её
-            над столом.
-        */
-
-        removePlayerCard(card);
+        removePlayer(card);
 
         attackCards.push(card);
 
-        await animateCardToTable(
+        await animateToTable(
             card,
-            false,
-            attackCards.length-1
+            attackCards.length - 1,
+            false
         );
 
         renderHands();
 
-
         /*
-            Если это первая карта,
-            компьютер начинает
-            отбиваться.
+           Важно:
+
+           после первой/следующей
+           атаки компьютер защищается.
+
+           После успешной защиты
+           управление вернётся игроку.
         */
 
-        if(
-            attackCards.length===1
-        ){
+        phase =
+            "CPU_DEFENSE";
 
-            phase="cpu_defense";
-
-            defender="cpu";
-
-            showMessage(
-                "Компьютер отбивается..."
-            );
-
-            await sleep(450);
-
-            await cpuDefense();
-
-            return;
-
-        }
-
-
-        /*
-            Если игрок подкинул
-            дополнительную карту,
-            компьютер продолжает
-            защищаться.
-        */
-
-        phase="cpu_defense";
+        updateButtons();
 
         showMessage(
-            "Компьютер отбивается..."
+            "Компьютер отбивается"
         );
 
-        await sleep(350);
+        await sleep(450);
 
         await cpuDefense();
 
         return;
-
     }
 
 
-    /* ================================================
-       PLAYER DEFENSE
-    ================================================= */
-
-    if(
-        phase==="player_defense"
-    ){
+    if (
+        phase === "PLAYER_DEFENSE"
+    ) {
 
         const index =
-            getNextUnbeatenIndex();
+            nextUnbeaten();
 
-        if(index===-1){
-
+        if (index === -1) {
             return;
-
         }
 
         const target =
             attackCards[index];
 
-
-        if(
-            !canBeat(target,card)
-        ){
+        if (
+            !canBeat(
+                target,
+                card
+            )
+        ) {
 
             showMessage(
                 "Этой картой побить нельзя"
@@ -1944,73 +1608,44 @@ async function playPlayerCard(card){
             renderHands();
 
             return;
-
         }
 
+        removePlayer(card);
 
-        removePlayerCard(card);
+        defenseCards[index] =
+            card;
 
-        defenseCards[index]=card;
-
-
-        await animateCardToTable(
+        await animateToTable(
             card,
-            true,
-            index
+            index,
+            true
         );
 
         renderHands();
 
-
         /*
-            Проверяем:
-            есть ли ещё карта,
-            которую игрок должен побить.
+           После твоей защиты
+           компьютер имеет право
+           решить, подкидывать ли ему.
         */
 
-        if(
-            getNextUnbeatenIndex()!==-1
-        ){
+        await sleep(400);
 
-            showMessage(
-                "Нужно отбить следующую карту"
-            );
-
-            updateButtons();
-
-            return;
-
-        }
-
-
-        /*
-            Все карты побиты.
-
-            Теперь компьютер
-            САМ решает,
-            подкидывать ему или нет.
-        */
-
-        await sleep(350);
-
-        await cpuDecideAfterPlayerDefense();
-
+        await cpuCanAddAfterDefense();
     }
-
 }
 
 
 /* =====================================================
-   REMOVE PLAYER CARD
+   REMOVE PLAYER
 ===================================================== */
 
-function removePlayerCard(card){
+function removePlayer(card) {
 
     playerHand =
         playerHand.filter(
-            c=>c.id!==card.id
+            c => c.id !== card.id
         );
-
 }
 
 
@@ -2018,26 +1653,22 @@ function removePlayerCard(card){
    NEXT UNBEATEN
 ===================================================== */
 
-function getNextUnbeatenIndex(){
+function nextUnbeaten() {
 
-    for(
-        let i=0;
-        i<attackCards.length;
+    for (
+        let i = 0;
+        i < attackCards.length;
         i++
-    ){
+    ) {
 
-        if(
+        if (
             !defenseCards[i]
-        ){
-
+        ) {
             return i;
-
         }
-
     }
 
     return -1;
-
 }
 
 
@@ -2045,76 +1676,91 @@ function getNextUnbeatenIndex(){
    ANIMATE TO TABLE
 ===================================================== */
 
-async function animateCardToTable(
+async function animateToTable(
     card,
-    defense,
-    index
-){
+    index,
+    defense
+) {
+
+    const zone =
+        defense
+            ? defenseZone
+            : attackZone;
 
     const el =
-        createCardElement(card);
+        createCard(card);
 
     el.classList.add(
-        "played-card"
+        "played-card",
+        "play-animation"
     );
 
+    const pos =
+        tablePosition(
+            index,
+            defense
+        );
 
-    /*
-        Каждая пара карт
-        располагается отдельно.
-    */
+    el.style.left =
+        `${pos.x}px`;
 
-    const pair =
-        index%3;
+    el.style.top =
+        `${pos.y}px`;
+
+    el.style.opacity =
+        "0";
+
+    zone.appendChild(el);
+
+    await sleep(30);
+
+    el.style.opacity =
+        "1";
+
+    await sleep(320);
+}
+
+
+/* =====================================================
+   TABLE POSITION
+===================================================== */
+
+function tablePosition(
+    index,
+    defense
+) {
+
+    const columns = 4;
+
+    const cardW = 68;
+
+    const gap = 14;
+
+    const total =
+        columns * cardW +
+        (columns - 1) * gap;
+
+    const start =
+        (430 - total) / 2;
+
+    const col =
+        index % columns;
 
     const row =
-        Math.floor(index/3);
+        Math.floor(index / columns);
 
+    return {
+        x:
+            start +
+            col *
+            (cardW + gap) +
+            (defense ? 22 : 0),
 
-    if(!defense){
-
-        el.style.left =
-            `${42+pair*92}px`;
-
-        el.style.top =
-            `${35+row*68}px`;
-
-        el.style.transform =
-            `rotate(${-5+pair*3}deg)`;
-
-    }else{
-
-        el.style.left =
-            `${58+pair*92}px`;
-
-        el.style.top =
-            `${20+row*68}px`;
-
-        el.style.transform =
-            `rotate(${4+pair*3}deg)`;
-
-    }
-
-
-    el.style.opacity="0";
-
-    if(defense){
-
-        defenseZone.appendChild(el);
-
-    }else{
-
-        attackZone.appendChild(el);
-
-    }
-
-
-    await sleep(25);
-
-    el.style.opacity="1";
-
-    await sleep(330);
-
+        y:
+            52 +
+            row * 18 +
+            (defense ? -25 : 0)
+    };
 }
 
 
@@ -2122,269 +1768,267 @@ async function animateCardToTable(
    CPU DEFENSE
 ===================================================== */
 
-async function cpuDefense(){
+async function cpuDefense() {
 
-    if(
-        phase!=="cpu_defense"
-    ){
+    if (
+        phase !== "CPU_DEFENSE"
+    ) {
         return;
     }
-
 
     const index =
-        getNextUnbeatenIndex();
-
+        nextUnbeaten();
 
     /*
-        Всё побито.
+       Все карты отбиты.
+
+       Теперь не надо сразу
+       завершать весь раунд.
+
+       Управление возвращается
+       игроку.
     */
 
-    if(index===-1){
+    if (index === -1) {
 
-        await cpuDecideAfterDefense();
+        phase =
+            "PLAYER_ATTACK";
+
+        updateButtons();
+
+        showMessage(
+            "Твой ход — можешь подкинуть или закончить"
+        );
 
         return;
-
     }
-
 
     const target =
         attackCards[index];
 
-
     /*
-        Алгоритм:
-        выбираем минимальную
-        подходящую карту.
-
-        Сначала обычные карты.
-        Козырь — только если
-        другого варианта нет.
+       Ищем минимальную карту,
+       способную побить.
     */
-
-    const normalOptions =
-        cpuHand
-            .filter(
-                card=>
-                    card.suit!==trumpSuit &&
-                    canBeat(target,card)
-            )
-            .sort(
-                (a,b)=>
-                    a.value-b.value
-            );
-
-
-    const trumpOptions =
-        cpuHand
-            .filter(
-                card=>
-                    card.suit===trumpSuit &&
-                    canBeat(target,card)
-            )
-            .sort(
-                (a,b)=>
-                    a.value-b.value
-            );
-
 
     const options =
-        normalOptions.length>0
-            ? normalOptions
-            : trumpOptions;
-
+        cpuHand
+            .filter(
+                card =>
+                    canBeat(
+                        target,
+                        card
+                    )
+            )
+            .sort(
+                (a,b) =>
+                    strength(a) -
+                    strength(b)
+            );
 
     /*
-        Не может отбиться.
+       Не смог отбиться.
     */
 
-    if(
-        options.length===0
-    ){
+    if (
+        options.length === 0
+    ) {
 
         await sleep(600);
 
-        await cpuTakeCards();
+        await cpuTake();
 
         return;
-
     }
 
+    await sleep(600);
 
     const card =
-        options[0];
-
+        chooseDefense(options);
 
     cpuHand =
         cpuHand.filter(
-            c=>c.id!==card.id
+            c => c.id !== card.id
         );
 
+    defenseCards[index] =
+        card;
 
-    defenseCards[index]=card;
-
-
-    await sleep(500);
-
-
-    await animateCardToTable(
+    await animateToTable(
         card,
-        true,
-        index
+        index,
+        true
     );
-
 
     renderHands();
 
-
-    await sleep(300);
-
+    await sleep(400);
 
     /*
-        Проверяем,
-        остались ли карты,
-        которые нужно отбить.
+       После успешной защиты
+       компьютер НЕ решает,
+       закончен ли ход игрока.
+
+       Игрок получает управление.
     */
 
-    if(
-        getNextUnbeatenIndex()!==-1
-    ){
+    if (
+        nextUnbeaten() === -1
+    ) {
 
-        await cpuDefense();
+        phase =
+            "PLAYER_ATTACK";
 
-        return;
-
-    }
-
-
-    /*
-        Всё отбито.
-    */
-
-    await cpuDecideAfterDefense();
-
-}
-
-
-/* =====================================================
-   CPU DECISION AFTER DEFENSE
-===================================================== */
-
-async function cpuDecideAfterDefense(){
-
-    /*
-        Здесь компьютер был
-        защищающимся.
-
-        Теперь после успешной защиты
-        он НЕ должен автоматически
-        подкидывать.
-
-        Ход завершён.
-
-        Добор -> смена атакующего.
-    */
-
-    await sleep(500);
-
-    await finishSuccessfulRound();
-
-}
-
-
-/* =====================================================
-   CPU DECISION AFTER PLAYER DEFENSE
-===================================================== */
-
-async function cpuDecideAfterPlayerDefense(){
-
-    /*
-        ВАЖНЫЙ МОМЕНТ.
-
-        Игрок отбил все карты.
-
-        Компьютер знает:
-        - карты, лежащие на столе;
-        - свои карты;
-        - сколько карт можно
-          подкинуть.
-
-        Но компьютер НЕ знает
-        скрытые карты игрока.
-
-        Поэтому он ищет только
-        совпадающий ранг в своей руке.
-    */
-
-    const candidates =
-        getCpuAddCandidates();
-
-
-    /*
-        Если есть карта,
-        которую законно можно
-        подкинуть — подкидываем.
-    */
-
-    if(
-        candidates.length>0 &&
-        attackCards.length<
-            initialDefenderCards
-    ){
-
-        await sleep(450);
-
-        const card =
-            chooseCpuAddCard(
-                candidates
-            );
-
-        cpuHand =
-            cpuHand.filter(
-                c=>c.id!==card.id
-            );
-
-        attackCards.push(card);
-
-
-        await animateCardToTable(
-            card,
-            false,
-            attackCards.length-1
-        );
-
-
-        renderHands();
-
-
-        /*
-            Теперь снова защищается
-            игрок.
-        */
-
-        phase="player_defense";
+        updateButtons();
 
         showMessage(
-            "Компьютер подкинул — твоя защита"
+            "Твоя атака: подкинь или закончи"
         );
+
+    } else {
+
+        phase =
+            "CPU_DEFENSE";
+
+        await cpuDefense();
+    }
+}
+
+
+/* =====================================================
+   CPU DEFENSE CHOICE
+===================================================== */
+
+function chooseDefense(options) {
+
+    /*
+       Сначала некозырная,
+       затем минимальная по силе.
+    */
+
+    return options
+        .slice()
+        .sort(
+            (a,b) => {
+
+                const at =
+                    a.suit === trumpSuit;
+
+                const bt =
+                    b.suit === trumpSuit;
+
+                if (at !== bt)
+                    return at ? 1 : -1;
+
+                return (
+                    strength(a) -
+                    strength(b)
+                );
+            }
+        )[0];
+}
+
+
+function strength(card) {
+
+    return (
+        (card.suit === trumpSuit
+            ? 100
+            : 0)
+        + card.value
+    );
+}
+
+
+/* =====================================================
+   CPU ADD AFTER PLAYER DEFENSE
+===================================================== */
+
+async function cpuCanAddAfterDefense() {
+
+    /*
+       Сейчас атака принадлежит
+       компьютеру только если
+       компьютер изначально атаковал.
+
+       Если компьютер атаковал,
+       после твоей защиты он
+       может подкинуть.
+    */
+
+    if (
+        attacker !== "cpu"
+    ) {
+
+        /*
+           Здесь компьютер не должен
+           вмешиваться.
+
+           Игрок сам продолжает
+           свою атаку.
+        */
+
+        phase =
+            "PLAYER_ATTACK";
 
         updateButtons();
 
         return;
-
     }
 
+    const candidates =
+        getCpuAddCandidates();
+
+    if (
+        candidates.length === 0 ||
+        attackCards.length >=
+            defenderInitialCount
+    ) {
+
+        await finishRound();
+
+        return;
+    }
 
     /*
-        Компьютеру больше нечего
-        подкинуть.
+       AI принимает решение.
 
-        Только теперь раунд
-        действительно заканчивается.
+       Он видит свою руку,
+       но НЕ видит руку игрока.
     */
 
-    await finishSuccessfulRound();
+    const card =
+        chooseAttack(candidates);
 
+    await sleep(500);
+
+    cpuHand =
+        cpuHand.filter(
+            c => c.id !== card.id
+        );
+
+    attackCards.push(card);
+
+    await animateToTable(
+        card,
+        attackCards.length - 1,
+        false
+    );
+
+    renderHands();
+
+    /*
+       Теперь игрок снова защищается.
+    */
+
+    phase =
+        "PLAYER_DEFENSE";
+
+    updateButtons();
+
+    showMessage(
+        "Компьютер подкинул"
+    );
 }
 
 
@@ -2392,79 +2036,136 @@ async function cpuDecideAfterPlayerDefense(){
    CPU ADD CANDIDATES
 ===================================================== */
 
-function getCpuAddCandidates(){
-
-    if(
-        attackCards.length===0
-    ){
-
-        return cpuHand.slice();
-
-    }
-
+function getCpuAddCandidates() {
 
     const ranks =
-        getTableRanks();
-
+        tableRanks();
 
     return cpuHand.filter(
-        card=>
+        card =>
             ranks.includes(
                 card.rank
             )
     );
-
 }
 
 
 /* =====================================================
-   CPU ADD CHOICE
+   CPU ATTACK
 ===================================================== */
 
-function chooseCpuAddCard(
-    candidates
-){
+async function cpuStartAttack() {
+
+    if (
+        phase !== "CPU_ATTACK"
+    ) {
+        return;
+    }
+
+    if (
+        cpuHand.length === 0
+    ) {
+
+        endGame();
+
+        return;
+    }
+
+    await sleep(650);
+
+    const card =
+        chooseOpeningAttack();
+
+    cpuHand =
+        cpuHand.filter(
+            c => c.id !== card.id
+        );
+
+    attackCards.push(card);
+
+    await animateToTable(
+        card,
+        0,
+        false
+    );
+
+    renderHands();
+
+    phase =
+        "PLAYER_DEFENSE";
+
+    updateButtons();
+
+    showMessage(
+        "Твоя защита"
+    );
+}
+
+
+/* =====================================================
+   CPU OPENING ATTACK
+===================================================== */
+
+function chooseOpeningAttack() {
 
     /*
-        Приоритет:
+       Избавляемся от слабой
+       некозырной карты.
 
-        1. некозырь;
-        2. меньший ранг;
-        3. меньшая карта.
-
-        Это позволяет компьютеру
-        избавляться от карт,
-        сохраняя козыри.
+       Козыри бережём.
     */
+
+    return cpuHand
+        .slice()
+        .sort(
+            (a,b) => {
+
+                const at =
+                    a.suit === trumpSuit;
+
+                const bt =
+                    b.suit === trumpSuit;
+
+                if (at !== bt)
+                    return at ? 1 : -1;
+
+                return (
+                    a.value -
+                    b.value
+                );
+            }
+        )[0];
+}
+
+
+/* =====================================================
+   CPU ATTACK CHOICE
+===================================================== */
+
+function chooseAttack(
+    candidates
+) {
 
     return candidates
         .slice()
         .sort(
-            (a,b)=>{
+            (a,b) => {
 
-                const aTrump =
-                    a.suit===trumpSuit;
+                const at =
+                    a.suit === trumpSuit;
 
-                const bTrump =
-                    b.suit===trumpSuit;
+                const bt =
+                    b.suit === trumpSuit;
 
+                if (at !== bt)
+                    return at ? 1 : -1;
 
-                if(
-                    aTrump!==bTrump
-                ){
-
-                    return aTrump
-                        ? 1
-                        : -1;
-
-                }
-
-
-                return a.value-b.value;
-
+                return (
+                    a.value -
+                    b.value
+                );
             }
         )[0];
-
 }
 
 
@@ -2472,76 +2173,51 @@ function chooseCpuAddCard(
    CPU TAKE
 ===================================================== */
 
-async function cpuTakeCards(){
+async function cpuTake() {
 
     showMessage(
-        "Компьютер не отбился — берёт карты"
+        "Компьютер берёт карты"
     );
 
     await sleep(700);
 
-
-    const cards = [
+    cpuHand.push(
         ...attackCards,
         ...defenseCards.filter(Boolean)
-    ];
-
-
-    cpuHand.push(
-        ...cards
     );
 
+    clearTable();
 
-    attackCards=[];
-    defenseCards=[];
+    /*
+       После взятия атакующий
+       остаётся атакующим.
+    */
 
-
-    attackZone.innerHTML="";
-    defenseZone.innerHTML="";
-
+    await refill();
 
     renderHands();
 
-
-    /*
-        После взятия
-        атакующий НЕ меняется.
-
-        Компьютер атаковал,
-        значит компьютер
-        продолжает атаку.
-    */
-
-    await refillHands();
-
-
-    if(
-        playerHand.length===0 ||
-        cpuHand.length===0
-    ){
-
-        checkWinner();
-
+    if (
+        checkGameOver()
+    ) {
         return;
-
     }
 
+    phase =
+        "CPU_ATTACK";
 
-    phase="cpu_attack";
+    attacker =
+        "cpu";
 
-    attacker="cpu";
-    defender="player";
+    defender =
+        "player";
 
-    initialDefenderCards =
+    defenderInitialCount =
         playerHand.length;
-
 
     updateButtons();
 
-    await sleep(500);
-
     await cpuStartAttack();
-
 }
 
 
@@ -2549,103 +2225,71 @@ async function cpuTakeCards(){
    PLAYER TAKE
 ===================================================== */
 
-async function playerTakeCards(){
+async function playerTake() {
 
-    if(
-        phase!=="player_defense"
-    ){
+    if (
+        phase !== "PLAYER_DEFENSE"
+    ) {
         return;
     }
 
-    busy=true;
-
-    takeButton.style.display="none";
-
-
-    showMessage(
-        "Ты забираешь карты"
-    );
-
-
-    await sleep(400);
-
-
-    const cards = [
+    playerHand.push(
         ...attackCards,
         ...defenseCards.filter(Boolean)
-    ];
-
-
-    playerHand.push(
-        ...cards
     );
 
+    clearTable();
 
-    attackCards=[];
-    defenseCards=[];
+    showMessage(
+        "Ты забрал карты"
+    );
 
+    await sleep(450);
 
-    attackZone.innerHTML="";
-    defenseZone.innerHTML="";
+    /*
+       Атакующий добирает первым.
+    */
 
+    await refill();
 
     renderHands();
 
-
-    /*
-        Важное правило:
-        атакующий добирает первым.
-    */
-
-    await refillHands();
-
-
-    busy=false;
-
-
-    if(
-        playerHand.length===0 ||
-        cpuHand.length===0
-    ){
-
-        checkWinner();
-
+    if (
+        checkGameOver()
+    ) {
         return;
-
     }
 
-
     /*
-        Атакующий остаётся тем же.
-
-        Если атаковал компьютер,
-        он продолжает.
+       Атакующий продолжает.
     */
 
-    if(
-        attacker==="cpu"
-    ){
+    if (
+        attacker === "cpu"
+    ) {
 
-        phase="cpu_attack";
+        phase =
+            "CPU_ATTACK";
 
-        defender="player";
+        defender =
+            "player";
 
-        initialDefenderCards =
+        defenderInitialCount =
             playerHand.length;
 
         updateButtons();
 
-        await sleep(450);
-
         await cpuStartAttack();
 
-    }else{
+    } else {
 
-        phase="player_attack";
+        phase =
+            "PLAYER_ATTACK";
 
-        defender="cpu";
+        defender =
+            "cpu";
 
-        initialDefenderCards =
+        defenderInitialCount =
             cpuHand.length;
 
         updateButtons();
@@ -2653,139 +2297,93 @@ async function playerTakeCards(){
         showMessage(
             "Твой ход"
         );
-
     }
-
 }
 
 
 /* =====================================================
-   SUCCESSFUL ROUND
+   FINISH ROUND
 ===================================================== */
 
-async function finishSuccessfulRound(){
-
-    busy=true;
-
+async function finishRound() {
 
     showMessage(
-        "Все карты отбиты"
+        "Бито"
     );
 
+    await sleep(600);
 
-    await sleep(650);
+    clearTable();
 
+    await refill();
 
-    /*
-        Карты уходят в отбой.
-    */
+    renderHands();
 
-    attackCards=[];
-    defenseCards=[];
-
-
-    attackZone.innerHTML="";
-    defenseZone.innerHTML="";
-
-
-    /*
-        Проверяем победу
-        ДО добора.
-    */
-
-    if(
-        playerHand.length===0 ||
-        cpuHand.length===0
-    ){
-
-        busy=false;
-
-        checkWinner();
-
+    if (
+        checkGameOver()
+    ) {
         return;
-
     }
 
-
     /*
-        Добор.
-
-        Сначала атакующий,
-        потом защищающийся.
+       После успешной защиты
+       атакующий меняется.
     */
 
-    await refillHands();
+    if (
+        attacker === "player"
+    ) {
 
+        attacker =
+            "cpu";
 
-    if(
-        playerHand.length===0 ||
-        cpuHand.length===0
-    ){
+        defender =
+            "player";
 
-        busy=false;
+        phase =
+            "CPU_ATTACK";
 
-        checkWinner();
-
-        return;
-
-    }
-
-
-    /*
-        После успешной защиты
-        атакующий меняется.
-    */
-
-    if(
-        attacker==="player"
-    ){
-
-        attacker="cpu";
-        defender="player";
-
-        phase="cpu_attack";
-
-        initialDefenderCards =
+        defenderInitialCount =
             playerHand.length;
 
-
         updateButtons();
-
-        busy=false;
-
-
-        showMessage(
-            "Компьютер атакует"
-        );
-
-
-        await sleep(500);
 
         await cpuStartAttack();
 
+    } else {
 
-    }else{
+        attacker =
+            "player";
 
-        attacker="player";
-        defender="cpu";
+        defender =
+            "cpu";
 
-        phase="player_attack";
+        phase =
+            "PLAYER_ATTACK";
 
-        initialDefenderCards =
+        defenderInitialCount =
             cpuHand.length;
 
-
         updateButtons();
-
-        busy=false;
-
 
         showMessage(
             "Твой ход"
         );
-
     }
+}
 
+
+/* =====================================================
+   CLEAR TABLE
+===================================================== */
+
+function clearTable() {
+
+    attackCards = [];
+    defenseCards = [];
+
+    attackZone.innerHTML = "";
+    defenseZone.innerHTML = "";
 }
 
 
@@ -2793,273 +2391,48 @@ async function finishSuccessfulRound(){
    REFILL
 ===================================================== */
 
-async function refillHands(){
-
-    /*
-        Атакующий добирает первым.
-    */
+async function refill() {
 
     const first =
-        attacker==="player"
+        attacker === "player"
             ? playerHand
             : cpuHand;
 
     const second =
-        attacker==="player"
+        attacker === "player"
             ? cpuHand
             : playerHand;
 
+    for (
+        const hand of [
+            first,
+            second
+        ]
+    ) {
 
-    /*
-        Первый игрок.
-    */
+        while (
+            hand.length < 6 &&
+            deck.length > 1
+        ) {
 
-    while(
-        first.length<6 &&
-        deck.length>0
-    ){
+            const card =
+                deck.shift();
 
-        const card =
-            deck.shift();
+            hand.push(card);
 
-        first.push(card);
+            renderHands();
 
-        renderHands();
-
-        await dealAnimation(
-            first===playerHand
-        );
-
-        await sleep(75);
-
+            await sleep(70);
+        }
     }
 
-
     /*
-        Второй игрок.
+       Если осталась только
+       козырная карта под колодой,
+       она больше не раздаётся.
     */
-
-    while(
-        second.length<6 &&
-        deck.length>0
-    ){
-
-        const card =
-            deck.shift();
-
-        second.push(card);
-
-        renderHands();
-
-        await dealAnimation(
-            second===playerHand
-        );
-
-        await sleep(75);
-
-    }
-
 
     updateInfo();
-
-}
-
-
-/* =====================================================
-   DEAL ANIMATION
-===================================================== */
-
-async function dealAnimation(
-    toPlayer
-){
-
-    /*
-        Визуальная вспышка
-        на колоде.
-
-        Сама карта уже добавлена
-        в руку, но движение создаёт
-        ощущение раздачи.
-    */
-
-    const card =
-        document.createElement("div");
-
-    card.className=
-        "card back dealing";
-
-
-    const deckRect =
-        document
-            .querySelector(".deck")
-            .getBoundingClientRect();
-
-
-    card.style.position="fixed";
-
-    card.style.left=
-        `${deckRect.left}px`;
-
-    card.style.top=
-        `${deckRect.top}px`;
-
-    card.style.zIndex="1800";
-
-    document
-        .getElementById("app")
-        .appendChild(card);
-
-
-    const target =
-        toPlayer
-            ? playerHandEl
-                .getBoundingClientRect()
-            : opponentHandEl
-                .getBoundingClientRect();
-
-
-    const tx =
-        target.left+
-        target.width/2-
-        31;
-
-    const ty =
-        toPlayer
-            ? target.top
-            : target.top+10;
-
-
-    await sleep(15);
-
-
-    card.style.transition=
-        "left .25s cubic-bezier(.2,.8,.2,1),top .25s cubic-bezier(.2,.8,.2,1),transform .25s ease,opacity .25s ease";
-
-    card.style.left=
-        `${tx}px`;
-
-    card.style.top=
-        `${ty}px`;
-
-    card.style.transform=
-        `rotate(${toPlayer ? 0 : 180}deg) scale(.8)`;
-
-    await sleep(260);
-
-
-    card.remove();
-
-}
-
-
-/* =====================================================
-   CPU START ATTACK
-===================================================== */
-
-async function cpuStartAttack(){
-
-    if(
-        phase!=="cpu_attack"
-    ){
-        return;
-    }
-
-
-    if(
-        cpuHand.length===0
-    ){
-
-        checkWinner();
-
-        return;
-
-    }
-
-
-    await sleep(450);
-
-
-    /*
-        Первый удар.
-
-        Компьютер НЕ может выбирать
-        случайную любую карту
-        бесконечно.
-
-        Он выбирает стратегически:
-        младшую некозырную.
-    */
-
-    const card =
-        chooseCpuOpeningCard();
-
-
-    cpuHand =
-        cpuHand.filter(
-            c=>c.id!==card.id
-        );
-
-
-    attackCards.push(card);
-
-
-    await animateCardToTable(
-        card,
-        false,
-        0
-    );
-
-
-    renderHands();
-
-
-    phase="player_defense";
-
-    defender="player";
-
-    showMessage(
-        "Твоя защита"
-    );
-
-
-    updateButtons();
-
-}
-
-
-/* =====================================================
-   CPU OPENING CARD
-===================================================== */
-
-function chooseCpuOpeningCard(){
-
-    const nonTrump =
-        cpuHand
-            .filter(
-                c=>c.suit!==trumpSuit
-            )
-            .sort(
-                (a,b)=>
-                    a.value-b.value
-            );
-
-
-    if(
-        nonTrump.length>0
-    ){
-
-        return nonTrump[0];
-
-    }
-
-
-    return cpuHand
-        .slice()
-        .sort(
-            (a,b)=>
-                a.value-b.value
-        )[0];
-
 }
 
 
@@ -3067,103 +2440,147 @@ function chooseCpuOpeningCard(){
    BUTTONS
 ===================================================== */
 
-function updateButtons(){
+function updateButtons() {
 
-    takeButton.style.display="none";
+    takeButton.style.display =
+        "none";
 
-    endAttackButton.style.display="none";
+    beatButton.style.display =
+        "none";
 
-
-    if(
-        phase==="player_defense"
-    ){
-
-        takeButton.style.display="block";
-
-    }
-
+    finishButton.style.display =
+        "none";
 
     /*
-        Игрок может завершить
-        атаку только если
-        уже положил хотя бы
-        одну карту.
-
-        Это не заставляет
-        компьютер завершать
-        свою атаку.
+       Защищаемся.
     */
 
-    if(
-        phase==="player_attack" &&
-        attackCards.length>0
-    ){
+    if (
+        phase === "PLAYER_DEFENSE"
+    ) {
 
-        endAttackButton.style.display="block";
+        takeButton.style.display =
+            "block";
 
+        /*
+           БИТО появляется только
+           если все карты побиты.
+        */
+
+        if (
+            nextUnbeaten() === -1
+        ) {
+
+            beatButton.style.display =
+                "block";
+        }
     }
 
+    /*
+       Игрок атакует.
+
+       После хотя бы одной карты
+       он может завершить атаку.
+    */
+
+    if (
+        phase === "PLAYER_ATTACK" &&
+        attackCards.length > 0
+    ) {
+
+        finishButton.style.display =
+            "block";
+    }
 }
 
 
 /* =====================================================
-   END PLAYER ATTACK
+   FINISH BUTTON
 ===================================================== */
 
-endAttackButton.addEventListener(
+finishButton.addEventListener(
     "click",
-    async ()=>{
+    async () => {
 
-        if(
-            phase!=="player_attack" ||
-            attackCards.length===0 ||
-            busy
-        ){
+        if (
+            phase !== "PLAYER_ATTACK"
+        ) {
             return;
         }
 
+        if (
+            attackCards.length === 0
+        ) {
+            return;
+        }
 
         /*
-            Игрок добровольно
-            закончил подкидывание.
+           Игрок сам закончил
+           свою атаку.
 
-            Компьютер теперь
-            отбивается.
+           Теперь компьютер
+           должен завершить защиту.
         */
 
-        phase="cpu_defense";
-
-        defender="cpu";
+        phase =
+            "CPU_DEFENSE";
 
         updateButtons();
 
         showMessage(
-            "Компьютер отбивается..."
+            "Компьютер отбивается"
         );
 
-
-        await sleep(400);
-
         await cpuDefense();
-
     }
 );
 
 
 /* =====================================================
-   TAKE
+   BEAT BUTTON
+===================================================== */
+
+beatButton.addEventListener(
+    "click",
+    async () => {
+
+        if (
+            phase !== "PLAYER_DEFENSE"
+        ) {
+            return;
+        }
+
+        if (
+            nextUnbeaten() !== -1
+        ) {
+
+            showMessage(
+                "Есть карта, которую нужно отбить"
+            );
+
+            return;
+        }
+
+        /*
+           Если компьютер атаковал,
+           именно здесь игрок говорит:
+           "всё, бито".
+        */
+
+        await finishRound();
+    }
+);
+
+
+/* =====================================================
+   TAKE BUTTON
 ===================================================== */
 
 takeButton.addEventListener(
     "click",
-    async ()=>{
+    async () => {
 
-        if(busy){
-            return;
-        }
-
-        await playerTakeCards();
-
+        await playerTake();
     }
 );
 
@@ -3172,23 +2589,24 @@ takeButton.addEventListener(
    MESSAGE
 ===================================================== */
 
-let messageTimer=null;
+let messageTimer = null;
 
-function showMessage(text){
+function showMessage(text) {
 
-    messageEl.innerText=text;
+    messageEl.textContent =
+        text;
 
-    messageEl.classList.add("show");
-
+    messageEl.classList.add(
+        "show"
+    );
 
     clearTimeout(
         messageTimer
     );
 
-
     messageTimer =
         setTimeout(
-            ()=>{
+            () => {
 
                 messageEl.classList.remove(
                     "show"
@@ -3197,36 +2615,141 @@ function showMessage(text){
             },
             1800
         );
-
 }
 
 
 /* =====================================================
-   INFO
+   CHECK GAME OVER
 ===================================================== */
 
-function updateInfo(){
+function checkGameOver() {
 
-    document.getElementById(
-        "deckCount"
-    ).innerText=
-        deck.length;
+    /*
+       Игра заканчивается только
+       после завершения раунда /
+       добора.
+    */
 
-    document.getElementById(
-        "trumpInfo"
-    ).innerText=
-        trumpSuit || "—";
+    if (
+        playerHand.length === 0 &&
+        cpuHand.length === 0
+    ) {
 
-    document.getElementById(
-        "playerCount"
-    ).innerText=
-        playerHand.length;
+        endGame(
+            "Ничья"
+        );
 
-    document.getElementById(
-        "opponentCount"
-    ).innerText=
-        cpuHand.length;
+        return true;
+    }
 
+    if (
+        playerHand.length === 0 &&
+        deck.length <= 1
+    ) {
+
+        endGame(
+            "Ты победил"
+        );
+
+        return true;
+    }
+
+    if (
+        cpuHand.length === 0 &&
+        deck.length <= 1
+    ) {
+
+        endGame(
+            "Ты проиграл"
+        );
+
+        return true;
+    }
+
+    return false;
+}
+
+
+/* =====================================================
+   END GAME
+===================================================== */
+
+function endGame(text) {
+
+    phase =
+        "GAME_OVER";
+
+    updateButtons();
+
+    showMessage(text);
+
+    setTimeout(
+        () => {
+
+            if (tg) {
+                tg.showAlert(text);
+            } else {
+                alert(text);
+            }
+
+        },
+        500
+    );
+}
+
+
+/* =====================================================
+   DEAL
+===================================================== */
+
+async function dealInitialCards() {
+
+    playerHand = [];
+    cpuHand = [];
+
+    renderHands();
+
+    /*
+       Карты раздаются по одной:
+       игрок → компьютер.
+    */
+
+    for (
+        let i = 0;
+        i < 6;
+        i++
+    ) {
+
+        if (
+            deck.length <= 1
+        ) {
+            break;
+        }
+
+        playerHand.push(
+            deck.shift()
+        );
+
+        renderHands();
+
+        await sleep(90);
+
+        if (
+            deck.length <= 1
+        ) {
+            break;
+        }
+
+        cpuHand.push(
+            deck.shift()
+        );
+
+        renderHands();
+
+        await sleep(90);
+    }
+
+    updateInfo();
 }
 
 
@@ -3236,371 +2759,157 @@ function updateInfo(){
 
 startButton.addEventListener(
     "click",
-    async ()=>{
+    async () => {
 
-        if(gameStarted){
+        if (gameStarted)
             return;
-        }
 
-        gameStarted=true;
+        gameStarted = true;
 
-        startButton.disabled=true;
+        startScreen.style.display =
+            "none";
 
-        startScreen.style.display="none";
-
-        await startGame();
-
-    }
-);
-
-
-/* =====================================================
-   START GAME
-===================================================== */
-
-async function startGame(){
-
-    /*
-        Имя Telegram.
-    */
-
-    if(
-        tg &&
-        tg.initDataUnsafe &&
-        tg.initDataUnsafe.user
-    ){
-
-        const user =
-            tg.initDataUnsafe.user;
-
-        playerName =
-            user.first_name ||
-            user.username ||
+        let playerName =
             "Игрок";
 
-    }
-
-
-    document.getElementById(
-        "playerName"
-    ).innerText=
-        playerName;
-
-
-    /*
-        Новая колода.
-    */
-
-    deck=createDeck();
-
-
-    /*
-        Козырь.
-    */
-
-    setupTrump();
-
-
-    /*
-        Раздача.
-    */
-
-    await initialDeal();
-
-
-    /*
-        Определяем первого.
-    */
-
-    determineFirstPlayer();
-
-
-    updateInfo();
-
-    updateButtons();
-
-
-    /*
-        Если начинает компьютер —
-        запускаем его.
-    */
-
-    if(
-        attacker==="cpu"
-    ){
-
-        showMessage(
-            "Компьютер начинает"
-        );
-
-        await sleep(900);
-
-        await cpuStartAttack();
-
-    }else{
-
-        showMessage(
-            "Твой ход"
-        );
-
-    }
-
-}
-
-
-/* =====================================================
-   INITIAL DEAL
-===================================================== */
-
-async function initialDeal(){
-
-    playerHand=[];
-    cpuHand=[];
-
-    attackCards=[];
-    defenseCards=[];
-
-    attackZone.innerHTML="";
-    defenseZone.innerHTML="";
-
-
-    /*
-        Раздаём по очереди.
-
-        Игрок -> компьютер.
-    */
-
-    for(
-        let i=0;
-        i<6;
-        i++
-    ){
-
-        const playerCard =
-            deck.shift();
-
-        playerHand.push(
-            playerCard
-        );
-
-        renderHands();
-
-        await dealAnimation(true);
-
-        await sleep(55);
-
-
-        const cpuCard =
-            deck.shift();
-
-        cpuHand.push(
-            cpuCard
-        );
-
-        renderHands();
-
-        await dealAnimation(false);
-
-        await sleep(55);
-
-    }
-
-
-    renderHands();
-
-}
-
-
-/* =====================================================
-   FIRST PLAYER
-===================================================== */
-
-function determineFirstPlayer(){
-
-    const playerTrumps =
-        playerHand
-            .filter(
-                c=>c.suit===trumpSuit
-            )
-            .sort(
-                (a,b)=>
-                    a.value-b.value
-            );
-
-
-    const cpuTrumps =
-        cpuHand
-            .filter(
-                c=>c.suit===trumpSuit
-            )
-            .sort(
-                (a,b)=>
-                    a.value-b.value
-            );
-
-
-    let playerStarts=false;
-
-
-    if(
-        playerTrumps.length &&
-        cpuTrumps.length
-    ){
-
-        playerStarts =
-            playerTrumps[0].value <
-            cpuTrumps[0].value;
-
-    }
-    else if(
-        playerTrumps.length
-    ){
-
-        playerStarts=true;
-
-    }
-    else if(
-        cpuTrumps.length
-    ){
-
-        playerStarts=false;
-
-    }
-    else{
+        if (
+            tg &&
+            tg.initDataUnsafe &&
+            tg.initDataUnsafe.user
+        ) {
+
+            playerName =
+                tg.initDataUnsafe.user.first_name ||
+                tg.initDataUnsafe.user.username ||
+                "Игрок";
+        }
+
+        document.getElementById(
+            "playerName"
+        ).textContent =
+            playerName;
+
+        deck =
+            createDeck();
+
+        setupTrump();
+
+        await dealInitialCards();
 
         /*
-            Если козырей нет,
-            сравниваем младшую
-            карту.
+           Определяем младший козырь.
         */
 
-        const playerMin =
-            Math.min(
-                ...playerHand.map(
-                    c=>c.value
+        const pTrump =
+            playerHand
+                .filter(
+                    c =>
+                        c.suit === trumpSuit
                 )
+                .sort(
+                    (a,b) =>
+                        a.value -
+                        b.value
+                )[0];
+
+        const cTrump =
+            cpuHand
+                .filter(
+                    c =>
+                        c.suit === trumpSuit
+                )
+                .sort(
+                    (a,b) =>
+                        a.value -
+                        b.value
+                )[0];
+
+        let playerStarts;
+
+        if (
+            pTrump &&
+            cTrump
+        ) {
+
+            playerStarts =
+                pTrump.value <
+                cTrump.value;
+
+        } else if (pTrump) {
+
+            playerStarts = true;
+
+        } else if (cTrump) {
+
+            playerStarts = false;
+
+        } else {
+
+            const pMin =
+                Math.min(
+                    ...playerHand.map(
+                        c => c.value
+                    )
+                );
+
+            const cMin =
+                Math.min(
+                    ...cpuHand.map(
+                        c => c.value
+                    )
+                );
+
+            playerStarts =
+                pMin <= cMin;
+        }
+
+        if (
+            playerStarts
+        ) {
+
+            attacker =
+                "player";
+
+            defender =
+                "cpu";
+
+            phase =
+                "PLAYER_ATTACK";
+
+            defenderInitialCount =
+                cpuHand.length;
+
+            showMessage(
+                "Твой ход"
             );
 
-        const cpuMin =
-            Math.min(
-                ...cpuHand.map(
-                    c=>c.value
-                )
+        } else {
+
+            attacker =
+                "cpu";
+
+            defender =
+                "player";
+
+            phase =
+                "CPU_ATTACK";
+
+            defenderInitialCount =
+                playerHand.length;
+
+            showMessage(
+                "Компьютер начинает"
             );
 
-        playerStarts =
-            playerMin<=cpuMin;
+            await sleep(800);
 
+            await cpuStartAttack();
+        }
+
+        updateButtons();
+        updateInfo();
     }
-
-
-    if(playerStarts){
-
-        attacker="player";
-        defender="cpu";
-
-        phase="player_attack";
-
-        initialDefenderCards=
-            cpuHand.length;
-
-    }else{
-
-        attacker="cpu";
-        defender="player";
-
-        phase="cpu_attack";
-
-        initialDefenderCards=
-            playerHand.length;
-
-    }
-
-}
-
-
-/* =====================================================
-   WINNER
-===================================================== */
-
-function checkWinner(){
-
-    if(
-        phase==="finished"
-    ){
-        return;
-    }
-
-
-    const playerEmpty =
-        playerHand.length===0;
-
-    const cpuEmpty =
-        cpuHand.length===0;
-
-
-    if(
-        !playerEmpty &&
-        !cpuEmpty
-    ){
-        return;
-    }
-
-
-    phase="finished";
-
-    updateButtons();
-
-
-    let text;
-
-
-    if(
-        playerEmpty &&
-        cpuEmpty
-    ){
-
-        text=
-            "Ничья! Оба избавились от карт.";
-
-    }
-    else if(
-        playerEmpty
-    ){
-
-        text=
-            "Ты победил! 🏆";
-
-    }
-    else{
-
-        text=
-            "Ты проиграл. 🤡";
-
-    }
-
-
-    showMessage(text);
-
-
-    setTimeout(
-        ()=>{
-
-            if(tg){
-
-                tg.showAlert(text);
-
-            }else{
-
-                alert(text);
-
-            }
-
-        },
-        500
-    );
-
-}
+);
 
 
 /* =====================================================
