@@ -10,25 +10,32 @@ const { Server } = require("socket.io");
 =========================================================
 HEAVY LUX CARD
 SERVER.JS
-VERSION 5.0
+VERSION 5.1
 PLAYER VS PLAYER
 NO AI
 NO FACTIONS
+FULL DURAK ROUND LOGIC
 =========================================================
 */
 
 const app = express();
-const server = http.createServer(app);
 
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
+const server =
+    http.createServer(app);
 
-const PORT = process.env.PORT || 3000;
-const BOT_TOKEN = process.env.BOT_TOKEN || "";
+const io =
+    new Server(server, {
+        cors: {
+            origin: "*",
+            methods: ["GET", "POST"]
+        }
+    });
+
+const PORT =
+    process.env.PORT || 3000;
+
+const BOT_TOKEN =
+    process.env.BOT_TOKEN || "";
 
 /*
 =========================================================
@@ -56,19 +63,11 @@ const BUSINESS_MAX_STORAGE_MS =
 
 const ROOM_CODE_LENGTH = 6;
 
-/*
- * Сколько времени игроку даётся
- * на восстановление соединения.
- *
- * 60 секунд.
- */
-const ROOM_RECONNECT_TIMEOUT = 60 * 1000;
+const ROOM_RECONNECT_TIMEOUT =
+    60 * 1000;
 
-/*
- * Комната автоматически удаляется
- * после длительного бездействия.
- */
-const ROOM_CLEANUP_TIMEOUT = 30 * 60 * 1000;
+const ROOM_CLEANUP_TIMEOUT =
+    30 * 60 * 1000;
 
 /*
 =========================================================
@@ -77,13 +76,20 @@ DATABASE
 */
 
 const DATA_FILE =
-    path.join(__dirname, "players.json");
+    path.join(
+        __dirname,
+        "players.json"
+    );
 
 let players = {};
 
 function loadPlayers() {
     try {
-        if (fs.existsSync(DATA_FILE)) {
+        if (
+            fs.existsSync(
+                DATA_FILE
+            )
+        ) {
             const data =
                 fs.readFileSync(
                     DATA_FILE,
@@ -91,7 +97,9 @@ function loadPlayers() {
                 );
 
             players =
-                JSON.parse(data) || {};
+                JSON.parse(
+                    data
+                ) || {};
         }
     } catch (error) {
         console.error(
@@ -130,9 +138,15 @@ MIDDLEWARE
 =========================================================
 */
 
-app.use(cors());
+app.use(
+    cors()
+);
 
-app.use(express.json());
+app.use(
+    express.json({
+        limit: "1mb"
+    })
+);
 
 /*
 =========================================================
@@ -140,7 +154,9 @@ TELEGRAM AUTH
 =========================================================
 */
 
-function validateTelegramInitData(initData) {
+function validateTelegramInitData(
+    initData
+) {
     if (!BOT_TOKEN) {
         console.warn(
             "BOT_TOKEN is not configured"
@@ -151,13 +167,16 @@ function validateTelegramInitData(initData) {
 
     if (
         !initData ||
-        typeof initData !== "string"
+        typeof initData !==
+            "string"
     ) {
         return null;
     }
 
     const params =
-        new URLSearchParams(initData);
+        new URLSearchParams(
+            initData
+        );
 
     const hash =
         params.get("hash");
@@ -168,10 +187,15 @@ function validateTelegramInitData(initData) {
 
     params.delete("hash");
 
+    /*
+     * Telegram WebApp data-check-string:
+     * fields sorted alphabetically.
+     */
     const dataCheckString =
         [...params.entries()]
-            .sort(([a], [b]) =>
-                a.localeCompare(b)
+            .sort(
+                ([a], [b]) =>
+                    a.localeCompare(b)
             )
             .map(
                 ([key, value]) =>
@@ -185,7 +209,9 @@ function validateTelegramInitData(initData) {
                 "sha256",
                 "WebAppData"
             )
-            .update(BOT_TOKEN)
+            .update(
+                BOT_TOKEN
+            )
             .digest();
 
     const calculatedHash =
@@ -194,7 +220,9 @@ function validateTelegramInitData(initData) {
                 "sha256",
                 secretKey
             )
-            .update(dataCheckString)
+            .update(
+                dataCheckString
+            )
             .digest("hex");
 
     if (
@@ -207,8 +235,14 @@ function validateTelegramInitData(initData) {
     try {
         if (
             !crypto.timingSafeEqual(
-                Buffer.from(calculatedHash),
-                Buffer.from(hash)
+                Buffer.from(
+                    calculatedHash,
+                    "utf8"
+                ),
+                Buffer.from(
+                    hash,
+                    "utf8"
+                )
             )
         ) {
             return null;
@@ -219,13 +253,25 @@ function validateTelegramInitData(initData) {
 
     const authDate =
         Number(
-            params.get("auth_date") || 0
+            params.get(
+                "auth_date"
+            ) || 0
         );
 
+    if (!authDate) {
+        return null;
+    }
+
+    /*
+     * InitData не старше 24 часов.
+     */
+    const age =
+        Date.now() / 1000 -
+        authDate;
+
     if (
-        !authDate ||
-        Date.now() / 1000 - authDate >
-            86400
+        age < -60 ||
+        age > 86400
     ) {
         return null;
     }
@@ -235,17 +281,87 @@ function validateTelegramInitData(initData) {
     try {
         user =
             JSON.parse(
-                params.get("user") || "{}"
+                params.get(
+                    "user"
+                ) || "{}"
             );
     } catch {
         return null;
     }
 
-    if (!user || !user.id) {
+    if (
+        !user ||
+        !user.id
+    ) {
         return null;
     }
 
     return user;
+}
+
+/*
+=========================================================
+HTTP TELEGRAM AUTH
+=========================================================
+*/
+
+function getHttpInitData(req) {
+    const headerValue =
+        req.headers[
+            "x-telegram-init-data"
+        ];
+
+    if (
+        typeof headerValue ===
+        "string" &&
+        headerValue.trim()
+    ) {
+        return headerValue;
+    }
+
+    if (
+        typeof req.body?.initData ===
+        "string"
+    ) {
+        return req.body.initData;
+    }
+
+    if (
+        typeof req.query?.initData ===
+        "string"
+    ) {
+        return req.query.initData;
+    }
+
+    return "";
+}
+
+function requirePlayer(
+    req,
+    res
+) {
+    const initData =
+        getHttpInitData(req);
+
+    const user =
+        validateTelegramInitData(
+            initData
+        );
+
+    if (!user) {
+        res.status(401).json({
+            success: false,
+            error:
+                "Telegram authorization required"
+        });
+
+        return null;
+    }
+
+    const player =
+        createPlayer(user);
+
+    return player;
 }
 
 /*
@@ -255,7 +371,8 @@ PLAYER
 */
 
 function createPlayer(user) {
-    const id = String(user.id);
+    const id =
+        String(user.id);
 
     if (!players[id]) {
         players[id] = {
@@ -336,7 +453,11 @@ function createPlayer(user) {
         player.username ||
         "";
 
-    if (!Array.isArray(player.cars)) {
+    if (
+        !Array.isArray(
+            player.cars
+        )
+    ) {
         player.cars = [];
     }
 
@@ -369,7 +490,9 @@ function createPlayer(user) {
         "number"
     ) {
         player.balance =
-            Number(player.balance) || 0;
+            Number(
+                player.balance
+            ) || 0;
     }
 
     if (
@@ -386,8 +509,40 @@ function createPlayer(user) {
         player.xp = 0;
     }
 
+    if (
+        typeof player.wins !==
+        "number"
+    ) {
+        player.wins =
+            Number(
+                player.wins
+            ) || 0;
+    }
+
+    if (
+        typeof player.losses !==
+        "number"
+    ) {
+        player.losses =
+            Number(
+                player.losses
+            ) || 0;
+    }
+
+    if (
+        typeof player.games !==
+        "number"
+    ) {
+        player.games =
+            Number(
+                player.games
+            ) || 0;
+    }
+
     player.title =
-        getTitle(player.level);
+        getTitle(
+            player.level
+        );
 
     player.updated_at =
         Date.now();
@@ -397,7 +552,9 @@ function createPlayer(user) {
     return player;
 }
 
-function publicPlayer(player) {
+function publicPlayer(
+    player
+) {
     if (!player) {
         return null;
     }
@@ -440,13 +597,16 @@ function publicPlayer(player) {
             player.cars || [],
 
         beautifulPlates:
-            player.beautifulPlates || [],
+            player.beautifulPlates ||
+            [],
 
         realEstate:
-            player.realEstate || [],
+            player.realEstate ||
+            [],
 
         businesses:
-            player.businesses || []
+            player.businesses ||
+            []
     };
 }
 
@@ -457,41 +617,60 @@ LEVELS
 */
 
 function getTitle(level) {
-    if (level >= 100) {
+    if (
+        level >= 100
+    ) {
         return "Легенда";
     }
 
-    if (level >= 80) {
+    if (
+        level >= 80
+    ) {
         return "Император";
     }
 
-    if (level >= 60) {
+    if (
+        level >= 60
+    ) {
         return "Магнат";
     }
 
-    if (level >= 40) {
+    if (
+        level >= 40
+    ) {
         return "Мастер";
     }
 
-    if (level >= 20) {
+    if (
+        level >= 20
+    ) {
         return "Ветеран";
     }
 
     return "Новичок";
 }
 
-function addXP(player, amount) {
+function addXP(
+    player,
+    amount
+) {
     if (!player) {
         return;
     }
 
     player.xp =
-        Number(player.xp || 0) +
-        Number(amount || 0);
+        Number(
+            player.xp || 0
+        ) +
+        Number(
+            amount || 0
+        );
 
     while (
-        player.level < MAX_LEVEL &&
-        player.xp >= player.level * 100
+        player.level <
+            MAX_LEVEL &&
+        player.xp >=
+            player.level * 100
     ) {
         player.xp -=
             player.level * 100;
@@ -499,13 +678,20 @@ function addXP(player, amount) {
         player.level++;
     }
 
-    if (player.level >= MAX_LEVEL) {
-        player.level = MAX_LEVEL;
+    if (
+        player.level >=
+        MAX_LEVEL
+    ) {
+        player.level =
+            MAX_LEVEL;
+
         player.xp = 0;
     }
 
     player.title =
-        getTitle(player.level);
+        getTitle(
+            player.level
+        );
 
     player.updated_at =
         Date.now();
@@ -567,10 +753,13 @@ const CAR_COLORS = [
     }
 ];
 
-function getColor(colorId) {
+function getColor(
+    colorId
+) {
     return CAR_COLORS.find(
         color =>
-            color.id === colorId
+            color.id ===
+            colorId
     );
 }
 
@@ -649,7 +838,7 @@ const CARS = [
 
 /*
 =========================================================
-EXCLUSIVE / TUNING ATELIER
+HEAVY EXCLUSIVE CARS
 =========================================================
 */
 
@@ -946,44 +1135,19 @@ function getPlayerById(id) {
         return null;
     }
 
-    return players[String(id)] || null;
+    return (
+        players[
+            String(id)
+        ] || null
+    );
 }
 
-function requirePlayer(req, res) {
-    const telegramId =
-        String(
-            req.headers["x-telegram-id"] ||
-            req.body?.telegramId ||
-            req.query?.telegramId ||
-            ""
-        );
-
-    if (!telegramId) {
-        res.status(401).json({
-            success: false,
-            error: "Telegram ID required"
-        });
-
-        return null;
-    }
-
-    const player =
-        getPlayerById(telegramId);
-
-    if (!player) {
-        res.status(401).json({
-            success: false,
-            error: "Player not found"
-        });
-
-        return null;
-    }
-
-    return player;
-}
-
-function normalizePlate(number) {
-    return String(number || "")
+function normalizePlate(
+    number
+) {
+    return String(
+        number || ""
+    )
         .replace(/\s/g, "")
         .toUpperCase();
 }
@@ -994,21 +1158,28 @@ PLATE REGISTRY
 =========================================================
 */
 
-function isPlateUsed(number) {
+function isPlateUsed(
+    number
+) {
     const normalized =
-        normalizePlate(number);
+        normalizePlate(
+            number
+        );
 
     for (
         const player
-        of Object.values(players)
+        of Object.values(
+            players
+        )
     ) {
         for (
             const car
             of player.cars || []
         ) {
             if (
-                normalizePlate(car.plate) ===
-                normalized
+                normalizePlate(
+                    car.plate
+                ) === normalized
             ) {
                 return true;
             }
@@ -1024,7 +1195,8 @@ function isPlateUsed(number) {
 
         for (
             const plate
-            of player.beautifulPlates || []
+            of player.beautifulPlates ||
+            []
         ) {
             if (
                 normalizePlate(
@@ -1059,7 +1231,10 @@ function generatePlate() {
                     Math.random() *
                     1000
                 )
-            ).padStart(3, "0");
+            ).padStart(
+                3,
+                "0"
+            );
 
         const second =
             LETTERS[
@@ -1090,11 +1265,17 @@ function generatePlate() {
 
         attempts++;
     } while (
-        isPlateUsed(plate) &&
+        isPlateUsed(
+            plate
+        ) &&
         attempts < 10000
     );
 
-    if (isPlateUsed(plate)) {
+    if (
+        isPlateUsed(
+            plate
+        )
+    ) {
         throw new Error(
             "No free plate available"
         );
@@ -1103,14 +1284,18 @@ function generatePlate() {
     return plate;
 }
 
-function getCatalogCar(carId) {
+function getCatalogCar(
+    carId
+) {
     return CARS.find(
         car =>
             car.id === carId
     );
 }
 
-function getExclusiveCar(carId) {
+function getExclusiveCar(
+    carId
+) {
     return EXCLUSIVE_CARS.find(
         car =>
             car.id === carId
@@ -1153,29 +1338,41 @@ BASE
 =========================================================
 */
 
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        game: "Heavy Lux Card",
-        status: "online",
-        version: "5.0.0",
-        ai: false,
-        factions: false,
-        pvp: true
-    });
-});
+app.get(
+    "/",
+    (req, res) => {
+        res.json({
+            success: true,
+            game:
+                "Heavy Lux Card",
+            status:
+                "online",
+            version:
+                "5.1.0",
+            ai:
+                false,
+            factions:
+                false,
+            pvp:
+                true
+        });
+    }
+);
 
 app.get(
     "/api/health",
     (req, res) => {
         res.json({
             success: true,
-            status: "online",
-            version: "5.0.0",
+            status:
+                "online",
+            version:
+                "5.1.0",
 
             players:
-                Object.keys(players)
-                    .length,
+                Object.keys(
+                    players
+                ).length,
 
             rooms:
                 rooms.size,
@@ -1226,30 +1423,40 @@ app.post(
                 return res
                     .status(401)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Telegram authorization failed"
                     });
             }
 
             const player =
-                createPlayer(user);
+                createPlayer(
+                    user
+                );
 
             res.json({
-                success: true,
+                success:
+                    true,
+
                 player:
                     publicPlayer(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "AUTH ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Internal server error"
             });
@@ -1271,7 +1478,9 @@ app.get(
         }
 
         res.json({
-            success: true,
+            success:
+                true,
+
             player:
                 publicPlayer(
                     player
@@ -1290,7 +1499,8 @@ app.get(
     "/api/car-colors",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
             colors:
                 CAR_COLORS
         });
@@ -1301,7 +1511,8 @@ app.get(
     "/api/cars",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
             cars:
                 CARS
         });
@@ -1312,7 +1523,8 @@ app.get(
     "/api/dealership",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
             cars:
                 CARS,
             colors:
@@ -1325,13 +1537,18 @@ app.get(
     "/api/exclusive-cars",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
+
             category:
                 "Heavy Exclusive Cars",
+
             atelier:
                 "Tuning Atelier",
+
             cars:
                 EXCLUSIVE_CARS,
+
             colors:
                 CAR_COLORS
         });
@@ -1367,7 +1584,8 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Автомобиль не найден"
                     });
@@ -1382,7 +1600,8 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Выберите цвет автомобиля"
                     });
@@ -1395,7 +1614,8 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Недостаточно HC",
                         required:
@@ -1477,24 +1697,33 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
+
                 message:
                     "Автомобиль приобретён",
+
                 car:
                     playerCar,
+
                 player:
                     publicPlayer(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "BUY CAR ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка покупки автомобиля"
             });
@@ -1531,7 +1760,8 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Эксклюзивный автомобиль не найден"
                     });
@@ -1546,7 +1776,8 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Выберите цвет автомобиля"
                     });
@@ -1559,7 +1790,8 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Недостаточно HC",
                         required:
@@ -1641,24 +1873,33 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
+
                 message:
                     "Эксклюзивный автомобиль приобретён в тюнинг-ателье",
+
                 car:
                     playerCar,
+
                 player:
                     publicPlayer(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "BUY EXCLUSIVE CAR ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка покупки эксклюзивного автомобиля"
             });
@@ -1686,9 +1927,12 @@ app.get(
         }
 
         res.json({
-            success: true,
+            success:
+                true,
+
             cars:
                 player.cars || [],
+
             player:
                 publicPlayer(
                     player
@@ -1717,8 +1961,11 @@ app.get(
         }
 
         const cars =
-            (player.cars || [])
-                .map(car => ({
+            (
+                player.cars ||
+                []
+            ).map(
+                car => ({
                     ...car,
 
                     registrationAvailable:
@@ -1726,10 +1973,12 @@ app.get(
 
                     registrationPrice:
                         GIBDD_REGISTRATION_PRICE
-                }));
+                })
+            );
 
         res.json({
-            success: true,
+            success:
+                true,
 
             department:
                 "ГИБДД",
@@ -1754,17 +2003,23 @@ function registerCar(
 
     if (!car) {
         return {
-            success: false,
-            status: 404,
+            success:
+                false,
+            status:
+                404,
             error:
                 "Автомобиль не найден"
         };
     }
 
-    if (car.registered) {
+    if (
+        car.registered
+    ) {
         return {
-            success: false,
-            status: 400,
+            success:
+                false,
+            status:
+                400,
             error:
                 "Автомобиль уже зарегистрирован"
         };
@@ -1775,8 +2030,10 @@ function registerCar(
         GIBDD_REGISTRATION_PRICE
     ) {
         return {
-            success: false,
-            status: 400,
+            success:
+                false,
+            status:
+                400,
             error:
                 "Недостаточно HC",
             required:
@@ -1813,7 +2070,8 @@ function registerCar(
     savePlayers();
 
     return {
-        success: true,
+        success:
+            true,
         car,
         plate
     };
@@ -1839,16 +2097,21 @@ app.post(
                     req.body?.carId
                 );
 
-            if (!result.success) {
+            if (
+                !result.success
+            ) {
                 return res
                     .status(
                         result.status
                     )
-                    .json(result);
+                    .json(
+                        result
+                    );
             }
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 message:
                     "Автомобиль зарегистрирован в ГИБДД",
@@ -1867,14 +2130,19 @@ app.post(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "GIBDD ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка регистрации автомобиля"
             });
@@ -1891,8 +2159,11 @@ OLD MREO COMPATIBILITY
 app.post(
     "/api/mreo/register",
     (req, res) => {
-        res.status(410).json({
-            success: false,
+        res.status(
+            410
+        ).json({
+            success:
+                false,
             error:
                 "MREO больше не используется. Используйте ГИБДД."
         });
@@ -1909,7 +2180,8 @@ app.get(
     "/api/plates",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
             plates:
                 BEAUTIFUL_PLATES
         });
@@ -1920,7 +2192,8 @@ app.get(
     "/api/beautiful-plates",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
             plates:
                 BEAUTIFUL_PLATES
         });
@@ -1941,7 +2214,9 @@ app.get(
         }
 
         res.json({
-            success: true,
+            success:
+                true,
+
             plates:
                 player.beautifulPlates ||
                 []
@@ -1980,7 +2255,8 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Номер не найден"
                     });
@@ -1993,7 +2269,8 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Недостаточно HC"
                     });
@@ -2007,7 +2284,8 @@ app.post(
                 return res
                     .status(409)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Этот номер уже занят"
                     });
@@ -2016,28 +2294,30 @@ app.post(
             player.balance -=
                 plate.price;
 
-            player.beautifulPlates.push({
-                id:
-                    crypto.randomUUID(),
+            player.beautifulPlates.push(
+                {
+                    id:
+                        crypto.randomUUID(),
 
-                plateId:
-                    plate.id,
+                    plateId:
+                        plate.id,
 
-                number:
-                    plate.number,
+                    number:
+                        plate.number,
 
-                price:
-                    plate.price,
+                    price:
+                        plate.price,
 
-                rarity:
-                    plate.rarity,
+                    rarity:
+                        plate.rarity,
 
-                purchasedAt:
-                    Date.now(),
+                    purchasedAt:
+                        Date.now(),
 
-                installedOn:
-                    null
-            });
+                    installedOn:
+                        null
+                }
+            );
 
             player.updated_at =
                 Date.now();
@@ -2045,7 +2325,8 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 message:
                     "Красивый номер приобретён",
@@ -2057,14 +2338,19 @@ app.post(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "BUY PLATE ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка покупки номера"
             });
@@ -2102,17 +2388,21 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Автомобиль не найден"
                     });
             }
 
-            if (!car.registered) {
+            if (
+                !car.registered
+            ) {
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Сначала зарегистрируйте автомобиль в ГИБДД"
                     });
@@ -2129,15 +2419,17 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Номер вам не принадлежит"
                     });
             }
 
             /*
-             * Снимаем этот красивый номер
-             * с любого автомобиля владельца.
+             * Один красивый номер
+             * может стоять только
+             * на одной машине.
              */
             for (
                 const otherCar
@@ -2153,7 +2445,8 @@ app.post(
             }
 
             /*
-             * Один автомобиль —
+             * На одной машине
+             * может быть только
              * один красивый номер.
              */
             for (
@@ -2184,7 +2477,8 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 message:
                     "Красивый номер установлен",
@@ -2198,14 +2492,19 @@ app.post(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "INSTALL PLATE ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка установки номера"
             });
@@ -2243,17 +2542,21 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Автомобиль не найден"
                     });
             }
 
-            if (!car.beautifulPlate) {
+            if (
+                !car.beautifulPlate
+            ) {
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "На автомобиле нет красивого номера"
                     });
@@ -2283,7 +2586,8 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 message:
                     "Красивый номер снят",
@@ -2295,14 +2599,19 @@ app.post(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "REMOVE PLATE ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка снятия номера"
             });
@@ -2320,7 +2629,9 @@ app.get(
     "/api/real-estate",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
+
             realEstate:
                 REAL_ESTATE
         });
@@ -2341,7 +2652,9 @@ app.get(
         }
 
         res.json({
-            success: true,
+            success:
+                true,
+
             realEstate:
                 player.realEstate ||
                 []
@@ -2372,17 +2685,13 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Объект недвижимости не найден"
                     });
             }
 
-            /*
-             * Пока сохраняем правило:
-             * один объект каждого типа
-             * на игрока.
-             */
             if (
                 player.realEstate.some(
                     item =>
@@ -2393,7 +2702,8 @@ app.post(
                 return res
                     .status(409)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Этот объект уже принадлежит вам"
                     });
@@ -2406,7 +2716,8 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Недостаточно HC"
                     });
@@ -2448,7 +2759,8 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 property,
 
@@ -2457,14 +2769,19 @@ app.post(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "BUY ESTATE ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка покупки недвижимости"
             });
@@ -2494,7 +2811,9 @@ function calculateBusinessIncome(
     let elapsed =
         now - last;
 
-    if (elapsed < 0) {
+    if (
+        elapsed < 0
+    ) {
         elapsed = 0;
     }
 
@@ -2529,17 +2848,39 @@ function updateBusinessIncome(
             business
         );
 
-    if (income <= 0) {
+    if (
+        income <= 0
+    ) {
         return 0;
     }
 
     business.storedIncome =
         Number(
-            business.storedIncome || 0
+            business.storedIncome ||
+            0
         ) + income;
 
-    business.lastIncomeUpdate =
-        Date.now();
+    /*
+     * Важный момент:
+     * после расчёта переносим
+     * точку отсчёта только
+     * на фактически начисленный
+     * интервал.
+     *
+     * Остаток времени не теряется.
+     */
+    const hoursAdded =
+        income /
+        Number(
+            business.incomePerHour ||
+            1
+        );
+
+    business.lastIncomeUpdate +=
+        hoursAdded *
+        60 *
+        60 *
+        1000;
 
     return income;
 }
@@ -2554,7 +2895,8 @@ app.get(
     "/api/businesses",
     (req, res) => {
         res.json({
-            success: true,
+            success:
+                true,
 
             maxStorageHours:
                 BUSINESS_MAX_STORAGE_HOURS,
@@ -2590,7 +2932,9 @@ app.get(
                     business
                 );
 
-            if (income > 0) {
+            if (
+                income > 0
+            ) {
                 changed = true;
             }
         }
@@ -2603,7 +2947,8 @@ app.get(
         }
 
         res.json({
-            success: true,
+            success:
+                true,
 
             maxStorageHours:
                 BUSINESS_MAX_STORAGE_HOURS,
@@ -2643,7 +2988,8 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Бизнес не найден"
                     });
@@ -2676,7 +3022,8 @@ app.post(
                 return res
                     .status(409)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Все объекты этого типа уже проданы"
                     });
@@ -2689,7 +3036,8 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Недостаточно HC"
                     });
@@ -2737,7 +3085,8 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 business,
 
@@ -2746,14 +3095,19 @@ app.post(
                         player
                     )
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "BUY BUSINESS ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка покупки бизнеса"
             });
@@ -2792,7 +3146,8 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Бизнес не найден"
                     });
@@ -2808,14 +3163,18 @@ app.post(
                     0
                 );
 
-            if (amount <= 0) {
+            if (
+                amount <= 0
+            ) {
                 return res
                     .status(400)
                     .json({
-                        success: false,
+                        success:
+                            false,
                         error:
                             "Доход ещё не накоплен",
-                        amount: 0
+                        amount:
+                            0
                     });
             }
 
@@ -2834,7 +3193,8 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 collected:
                     amount,
@@ -2844,14 +3204,19 @@ app.post(
 
                 business
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "COLLECT ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка сбора дохода"
             });
@@ -2912,7 +3277,8 @@ app.post(
             savePlayers();
 
             res.json({
-                success: true,
+                success:
+                    true,
 
                 collected:
                     total,
@@ -2923,14 +3289,19 @@ app.post(
                 businesses:
                     player.businesses
             });
-        } catch (error) {
+        } catch (
+            error
+        ) {
             console.error(
                 "COLLECT ALL ERROR:",
                 error
             );
 
-            res.status(500).json({
-                success: false,
+            res.status(
+                500
+            ).json({
+                success:
+                    false,
                 error:
                     "Ошибка сбора дохода"
             });
@@ -2986,7 +3357,9 @@ const RANKS = [
     }
 ];
 
-function shuffle(array) {
+function shuffle(
+    array
+) {
     for (
         let i =
             array.length - 1;
@@ -3039,7 +3412,9 @@ function createDeck() {
         }
     }
 
-    return shuffle(deck);
+    return shuffle(
+        deck
+    );
 }
 
 /*
@@ -3048,7 +3423,8 @@ ROOMS
 =========================================================
 */
 
-const rooms = new Map();
+const rooms =
+    new Map();
 
 function generateRoomCode() {
     const chars =
@@ -3061,7 +3437,8 @@ function generateRoomCode() {
 
         for (
             let i = 0;
-            i < ROOM_CODE_LENGTH;
+            i <
+            ROOM_CODE_LENGTH;
             i++
         ) {
             code +=
@@ -3130,6 +3507,11 @@ function createRoom(
         defender:
             null,
 
+        /*
+         * Лимит текущего захода.
+         * Он фиксируется в начале
+         * каждого захода.
+         */
         roundLimit:
             MAX_HAND,
 
@@ -3175,7 +3557,9 @@ function findRoomByPlayer(
     return null;
 }
 
-function touchRoom(room) {
+function touchRoom(
+    room
+) {
     if (room) {
         room.lastActivity =
             Date.now();
@@ -3188,7 +3572,9 @@ ROOM PUBLIC
 =========================================================
 */
 
-function publicRoom(room) {
+function publicRoom(
+    room
+) {
     return {
         code:
             room.code,
@@ -3245,8 +3631,9 @@ function publicRoomGame(
     playerId
 ) {
     const ownHand =
-        room.hands[playerId] ||
-        [];
+        room.hands[
+            playerId
+        ] || [];
 
     const opponent =
         room.players.find(
@@ -3327,8 +3714,16 @@ function publicRoomGame(
     };
 }
 
-function sendRoomState(room) {
-    touchRoom(room);
+function sendRoomState(
+    room
+) {
+    if (!room) {
+        return;
+    }
+
+    touchRoom(
+        room
+    );
 
     for (
         const player
@@ -3345,7 +3740,9 @@ function sendRoomState(room) {
 
         socket.emit(
             "room_state",
-            publicRoom(room)
+            publicRoom(
+                room
+            )
         );
 
         socket.emit(
@@ -3421,20 +3818,26 @@ function canBeat(
     );
 }
 
-function tableRanks(room) {
+function tableRanks(
+    room
+) {
     const ranks = [];
 
     for (
         const pair
         of room.table
     ) {
-        if (pair.attack) {
+        if (
+            pair.attack
+        ) {
             ranks.push(
                 pair.attack.rank
             );
         }
 
-        if (pair.defense) {
+        if (
+            pair.defense
+        ) {
             ranks.push(
                 pair.defense.rank
             );
@@ -3452,6 +3855,10 @@ function canAddCard(
         return false;
     }
 
+    /*
+     * Лимит текущего захода
+     * зафиксирован в roundLimit.
+     */
     if (
         room.table.length >=
         room.roundLimit
@@ -3459,6 +3866,9 @@ function canAddCard(
         return false;
     }
 
+    /*
+     * Первая карта захода.
+     */
     if (
         room.table.length ===
         0
@@ -3466,6 +3876,11 @@ function canAddCard(
         return true;
     }
 
+    /*
+     * Подкидывать можно
+     * только по существующим
+     * номиналам на столе.
+     */
     return tableRanks(
         room
     ).includes(
@@ -3473,7 +3888,9 @@ function canAddCard(
     );
 }
 
-function allBeaten(room) {
+function allBeaten(
+    room
+) {
     if (
         room.table.length ===
         0
@@ -3487,10 +3904,64 @@ function allBeaten(room) {
     );
 }
 
-function firstUnbeaten(room) {
+function firstUnbeaten(
+    room
+) {
     return room.table.findIndex(
         pair =>
             !pair.defense
+    );
+}
+
+/*
+=========================================================
+BEGIN ROUND
+=========================================================
+*/
+
+function beginAttackRound(
+    room
+) {
+    room.table = [];
+
+    const defender =
+        room.players.find(
+            player =>
+                player.id !==
+                room.attacker
+        );
+
+    room.defender =
+        defender
+            ? defender.id
+            : null;
+
+    const defenderHand =
+        room.defender
+            ? (
+                room.hands[
+                    room.defender
+                ] || []
+            )
+            : [];
+
+    /*
+     * Максимум карт в заходе:
+     * не больше 6 и не больше
+     * количества карт защитника
+     * в момент начала захода.
+     */
+    room.roundLimit =
+        Math.min(
+            MAX_HAND,
+            defenderHand.length
+        );
+
+    room.phase =
+        "attack";
+
+    touchRoom(
+        room
     );
 }
 
@@ -3510,18 +3981,23 @@ function determineFirstAttacker(
         room.players[1];
 
     const h1 =
-        room.hands[p1.id] || [];
+        room.hands[
+            p1.id
+        ] || [];
 
     const h2 =
-        room.hands[p2.id] || [];
+        room.hands[
+            p2.id
+        ] || [];
 
     const trumps1 =
         h1
-            .filter(card =>
-                isTrump(
-                    room,
-                    card
-                )
+            .filter(
+                card =>
+                    isTrump(
+                        room,
+                        card
+                    )
             )
             .sort(
                 (a, b) =>
@@ -3531,11 +4007,12 @@ function determineFirstAttacker(
 
     const trumps2 =
         h2
-            .filter(card =>
-                isTrump(
-                    room,
-                    card
-                )
+            .filter(
+                card =>
+                    isTrump(
+                        room,
+                        card
+                    )
             )
             .sort(
                 (a, b) =>
@@ -3555,29 +4032,37 @@ function determineFirstAttacker(
             : p2.id;
     }
 
-    if (trumps1.length) {
+    if (
+        trumps1.length
+    ) {
         return p1.id;
     }
 
-    if (trumps2.length) {
+    if (
+        trumps2.length
+    ) {
         return p2.id;
     }
 
     const min1 =
-        Math.min(
-            ...h1.map(
-                card =>
-                    card.value
+        h1.length
+            ? Math.min(
+                ...h1.map(
+                    card =>
+                        card.value
+                )
             )
-        );
+            : Infinity;
 
     const min2 =
-        Math.min(
-            ...h2.map(
-                card =>
-                    card.value
+        h2.length
+            ? Math.min(
+                ...h2.map(
+                    card =>
+                        card.value
+                )
             )
-        );
+            : Infinity;
 
     return min1 <= min2
         ? p1.id
@@ -3590,7 +4075,9 @@ START GAME
 =========================================================
 */
 
-function startRoomGame(room) {
+function startRoomGame(
+    room
+) {
     if (
         room.players.length !==
         2
@@ -3614,23 +4101,28 @@ function startRoomGame(room) {
         i < MAX_HAND;
         i++
     ) {
-        room.hands[
-            room.players[0].id
-        ].push(
-            room.deck.shift()
-        );
+        const c1 =
+            room.deck.shift();
 
-        room.hands[
-            room.players[1].id
-        ].push(
-            room.deck.shift()
-        );
+        const c2 =
+            room.deck.shift();
+
+        if (c1) {
+            room.hands[
+                room.players[0].id
+            ].push(c1);
+        }
+
+        if (c2) {
+            room.hands[
+                room.players[1].id
+            ].push(c2);
+        }
     }
 
     /*
      * Последняя карта колоды
-     * определяет козырную масть.
-     *
+     * определяет козырь.
      * Она остаётся в колоде.
      */
     const trumpCard =
@@ -3643,28 +4135,16 @@ function startRoomGame(room) {
             ? trumpCard.suit
             : SUITS[0];
 
-    room.table =
-        [];
-
     room.attacker =
         determineFirstAttacker(
             room
         );
 
-    const defender =
-        room.players.find(
-            player =>
-                player.id !==
-                room.attacker
-        );
-
     room.defender =
-        defender
-            ? defender.id
-            : null;
+        null;
 
-    room.phase =
-        "attack";
+    room.table =
+        [];
 
     room.roundLimit =
         MAX_HAND;
@@ -3672,13 +4152,22 @@ function startRoomGame(room) {
     room.status =
         "playing";
 
+    room.phase =
+        "attack";
+
     room.finished =
         false;
 
     room.winner =
         null;
 
-    touchRoom(room);
+    beginAttackRound(
+        room
+    );
+
+    touchRoom(
+        room
+    );
 
     return true;
 }
@@ -3689,16 +4178,18 @@ REFILL HANDS
 =========================================================
 */
 
-function refillHands(room) {
+function refillHands(
+    room
+) {
     /*
-     * В Дураке сначала карты
-     * добирает атакующий,
-     * затем остальные игроки
-     * по очереди.
+     * Классический порядок
+     * добора:
      *
-     * Здесь всегда два игрока.
+     * 1. атакующий
+     * 2. защитник
+     *
+     * В нашем формате 2 игрока.
      */
-
     const order = [
         room.attacker,
         room.defender
@@ -3713,9 +4204,15 @@ function refillHands(room) {
         }
 
         const hand =
-            room.hands[playerId];
+            room.hands[
+                playerId
+            ];
 
-        if (!hand) {
+        if (
+            !Array.isArray(
+                hand
+            )
+        ) {
             continue;
         }
 
@@ -3734,15 +4231,19 @@ function refillHands(room) {
 
 /*
 =========================================================
-GAME OVER
+FINISH ROOM
 =========================================================
 */
 
 function finishRoom(
     room,
-    winnerId
+    winnerId,
+    reason = "normal"
 ) {
-    if (room.finished) {
+    if (
+        !room ||
+        room.finished
+    ) {
         return;
     }
 
@@ -3758,7 +4259,9 @@ function finishRoom(
     room.winner =
         winnerId || null;
 
-    if (winnerId) {
+    if (
+        winnerId
+    ) {
         const winner =
             getPlayerById(
                 winnerId
@@ -3781,16 +4284,21 @@ function finishRoom(
         if (winner) {
             winner.wins =
                 Number(
-                    winner.wins || 0
+                    winner.wins ||
+                    0
                 ) + 1;
 
             winner.games =
                 Number(
-                    winner.games || 0
+                    winner.games ||
+                    0
                 ) + 1;
 
-            winner.balance +=
-                500;
+            winner.balance =
+                Number(
+                    winner.balance ||
+                    0
+                ) + 500;
 
             addXP(
                 winner,
@@ -3801,12 +4309,14 @@ function finishRoom(
         if (loser) {
             loser.losses =
                 Number(
-                    loser.losses || 0
+                    loser.losses ||
+                    0
                 ) + 1;
 
             loser.games =
                 Number(
-                    loser.games || 0
+                    loser.games ||
+                    0
                 ) + 1;
 
             addXP(
@@ -3815,6 +4325,9 @@ function finishRoom(
             );
         }
     } else {
+        /*
+         * Только настоящая ничья.
+         */
         for (
             const player
             of room.players
@@ -3824,17 +4337,20 @@ function finishRoom(
                     player.id
                 );
 
-            if (p) {
-                p.games =
-                    Number(
-                        p.games || 0
-                    ) + 1;
-
-                addXP(
-                    p,
-                    20
-                );
+            if (!p) {
+                continue;
             }
+
+            p.games =
+                Number(
+                    p.games ||
+                    0
+                ) + 1;
+
+            addXP(
+                p,
+                20
+            );
         }
     }
 
@@ -3857,7 +4373,10 @@ function finishRoom(
             "game_finished",
             {
                 winner:
-                    winnerId || null,
+                    winnerId ||
+                    null,
+
+                reason,
 
                 message:
                     winnerId ===
@@ -3877,7 +4396,9 @@ function finishRoom(
         );
     }
 
-    sendRoomState(room);
+    sendRoomState(
+        room
+    );
 }
 
 /*
@@ -3886,14 +4407,30 @@ GAME OVER CHECK
 =========================================================
 */
 
-function checkGameOver(room) {
+function checkGameOver(
+    room
+) {
+    if (
+        room.finished
+    ) {
+        return true;
+    }
+
     /*
-     * Проверяем окончание только
-     * когда колода полностью пуста.
+     * Пока колода не пуста,
+     * окончательная победа
+     * не фиксируется.
      */
     if (
         room.deck.length >
         0
+    ) {
+        return false;
+    }
+
+    if (
+        room.players.length !==
+        2
     ) {
         return false;
     }
@@ -3904,18 +4441,25 @@ function checkGameOver(room) {
     const p2 =
         room.players[1];
 
-    if (!p1 || !p2) {
+    if (
+        !p1 ||
+        !p2
+    ) {
         return false;
     }
 
     const h1 =
-        room.hands[p1.id] || [];
+        room.hands[
+            p1.id
+        ] || [];
 
     const h2 =
-        room.hands[p2.id] || [];
+        room.hands[
+            p2.id
+        ] || [];
 
     /*
-     * Оба закончили одновременно.
+     * Оба без карт.
      */
     if (
         h1.length === 0 &&
@@ -3923,35 +4467,38 @@ function checkGameOver(room) {
     ) {
         finishRoom(
             room,
-            null
+            null,
+            "draw"
         );
 
         return true;
     }
 
     /*
-     * Первый игрок без карт.
+     * Первый без карт.
      */
     if (
         h1.length === 0
     ) {
         finishRoom(
             room,
-            p1.id
+            p1.id,
+            "normal"
         );
 
         return true;
     }
 
     /*
-     * Второй игрок без карт.
+     * Второй без карт.
      */
     if (
         h2.length === 0
     ) {
         finishRoom(
             room,
-            p2.id
+            p2.id,
+            "normal"
         );
 
         return true;
@@ -3995,9 +4542,15 @@ function playerAttack(
     }
 
     const hand =
-        room.hands[playerId];
+        room.hands[
+            playerId
+        ];
 
-    if (!Array.isArray(hand)) {
+    if (
+        !Array.isArray(
+            hand
+        )
+    ) {
         return;
     }
 
@@ -4008,7 +4561,10 @@ function playerAttack(
                 cardId
         );
 
-    if (index === -1) {
+    if (
+        index ===
+        -1
+    ) {
         emitActionError(
             room,
             playerId,
@@ -4037,10 +4593,9 @@ function playerAttack(
     }
 
     /*
-     * В защите может быть несколько
-     * атакующих карт, но количество
-     * не должно превышать количество
-     * карт у защитника на момент раунда.
+     * Защищающийся не может
+     * получить больше карт,
+     * чем позволяет roundLimit.
      */
     if (
         room.table.length >=
@@ -4071,9 +4626,13 @@ function playerAttack(
     room.phase =
         "defense";
 
-    touchRoom(room);
+    touchRoom(
+        room
+    );
 
-    sendRoomState(room);
+    sendRoomState(
+        room
+    );
 }
 
 /*
@@ -4109,16 +4668,27 @@ function playerDefense(
     }
 
     const index =
-        firstUnbeaten(room);
+        firstUnbeaten(
+            room
+        );
 
-    if (index === -1) {
+    if (
+        index ===
+        -1
+    ) {
         return;
     }
 
     const hand =
-        room.hands[playerId];
+        room.hands[
+            playerId
+        ];
 
-    if (!Array.isArray(hand)) {
+    if (
+        !Array.isArray(
+            hand
+        )
+    ) {
         return;
     }
 
@@ -4143,11 +4713,14 @@ function playerDefense(
     }
 
     const defense =
-        hand[cardIndex];
+        hand[
+            cardIndex
+        ];
 
     const attack =
-        room.table[index]
-            .attack;
+        room.table[
+            index
+        ].attack;
 
     if (
         !canBeat(
@@ -4170,28 +4743,38 @@ function playerDefense(
         1
     );
 
-    room.table[index]
-        .defense =
+    room.table[
+        index
+    ].defense =
         defense;
 
     /*
-     * После успешного отбивания
-     * атакующий может продолжить
-     * атаку либо завершить раунд.
+     * Если все карты отбиты,
+     * атакующий получает право
+     * подкинуть ещё или завершить
+     * заход.
      */
-    if (allBeaten(room)) {
+    if (
+        allBeaten(
+            room
+        )
+    ) {
         room.phase =
             "attack_continue";
     }
 
-    touchRoom(room);
+    touchRoom(
+        room
+    );
 
-    sendRoomState(room);
+    sendRoomState(
+        room
+    );
 }
 
 /*
 =========================================================
-FINISH ATTACK
+FINISH ATTACK ROUND
 =========================================================
 */
 
@@ -4220,7 +4803,11 @@ function finishAttackRound(
         return;
     }
 
-    if (!allBeaten(room)) {
+    if (
+        !allBeaten(
+            room
+        )
+    ) {
         emitActionError(
             room,
             playerId,
@@ -4230,9 +4817,6 @@ function finishAttackRound(
         return;
     }
 
-    /*
-     * Сохраняем текущих игроков.
-     */
     const oldAttacker =
         room.attacker;
 
@@ -4240,26 +4824,45 @@ function finishAttackRound(
         room.defender;
 
     /*
-     * Карты со стола уходят.
+     * Завершённый заход.
      */
     room.table =
         [];
 
     /*
-     * После успешного отбивания
-     * оба игрока добирают карты.
+     * Сначала проверяем
+     * возможную победу после
+     * сыгранных карт.
+     *
+     * Но только если колода
+     * уже пуста.
      */
-    refillHands(room);
-
     if (
-        checkGameOver(room)
+        room.deck.length ===
+        0
     ) {
-        return;
+        const attackerHand =
+            room.hands[
+                oldAttacker
+            ] || [];
+
+        if (
+            attackerHand.length ===
+            0
+        ) {
+            finishRoom(
+                room,
+                oldAttacker,
+                "normal"
+            );
+
+            return;
+        }
     }
 
     /*
-     * Право атаки переходит
-     * к бывшему защитнику.
+     * Новый атакующий —
+     * бывший защитник.
      */
     room.attacker =
         oldDefender;
@@ -4267,22 +4870,54 @@ function finishAttackRound(
     room.defender =
         oldAttacker;
 
-    room.roundLimit =
-        Math.min(
-            MAX_HAND,
-            (
-                room.hands[
-                    room.defender
-                ] || []
-            ).length
-        );
+    /*
+     * Добор происходит
+     * по старому порядку:
+     * сначала старый атакующий,
+     * затем старый защитник.
+     */
+    room.attacker =
+        oldAttacker;
 
-    room.phase =
-        "attack";
+    room.defender =
+        oldDefender;
 
-    touchRoom(room);
+    refillHands(
+        room
+    );
 
-    sendRoomState(room);
+    /*
+     * Теперь меняем роли.
+     */
+    room.attacker =
+        oldDefender;
+
+    room.defender =
+        oldAttacker;
+
+    /*
+     * Если после добора
+     * кто-то закончил игру.
+     */
+    if (
+        checkGameOver(
+            room
+        )
+    ) {
+        return;
+    }
+
+    beginAttackRound(
+        room
+    );
+
+    touchRoom(
+        room
+    );
+
+    sendRoomState(
+        room
+    );
 }
 
 /*
@@ -4317,27 +4952,37 @@ function takeCards(
     }
 
     const hand =
-        room.hands[playerId];
+        room.hands[
+            playerId
+        ];
 
-    if (!Array.isArray(hand)) {
+    if (
+        !Array.isArray(
+            hand
+        )
+    ) {
         return;
     }
 
     /*
-     * Защитник забирает все карты
-     * со стола.
+     * Защитник забирает
+     * все карты стола.
      */
     for (
         const pair
         of room.table
     ) {
-        if (pair.attack) {
+        if (
+            pair.attack
+        ) {
             hand.push(
                 pair.attack
             );
         }
 
-        if (pair.defense) {
+        if (
+            pair.defense
+        ) {
             hand.push(
                 pair.defense
             );
@@ -4348,33 +4993,63 @@ function takeCards(
         [];
 
     /*
-     * При взятии карт атакующий
-     * сохраняет право атаки.
+     * Атакующий сохраняет
+     * право атаки.
      */
-    refillHands(room);
+    const attackerId =
+        room.attacker;
 
+    const defenderId =
+        room.defender;
+
+    /*
+     * Добор:
+     * сначала атакующий,
+     * затем защитник.
+     */
+    room.attacker =
+        attackerId;
+
+    room.defender =
+        defenderId;
+
+    refillHands(
+        room
+    );
+
+    /*
+     * Если колода пуста,
+     * после взятия проверяем
+     * окончание партии.
+     */
     if (
-        checkGameOver(room)
+        checkGameOver(
+            room
+        )
     ) {
         return;
     }
 
-    room.roundLimit =
-        Math.min(
-            MAX_HAND,
-            (
-                room.hands[
-                    room.defender
-                ] || []
-            ).length
-        );
+    /*
+     * Роли НЕ меняются.
+     */
+    room.attacker =
+        attackerId;
 
-    room.phase =
-        "attack";
+    room.defender =
+        defenderId;
 
-    touchRoom(room);
+    beginAttackRound(
+        room
+    );
 
-    sendRoomState(room);
+    touchRoom(
+        room
+    );
+
+    sendRoomState(
+        room
+    );
 }
 
 /*
@@ -4418,6 +5093,67 @@ function emitActionError(
 
 /*
 =========================================================
+RESET WAITING ROOM
+=========================================================
+*/
+
+function resetRoomToWaiting(
+    room
+) {
+    room.status =
+        "waiting";
+
+    room.phase =
+        "waiting";
+
+    room.finished =
+        false;
+
+    room.winner =
+        null;
+
+    room.deck =
+        [];
+
+    room.table =
+        [];
+
+    room.hands =
+        {};
+
+    room.attacker =
+        null;
+
+    room.defender =
+        null;
+
+    room.trumpSuit =
+        null;
+
+    room.roundLimit =
+        MAX_HAND;
+
+    for (
+        const player
+        of room.players
+    ) {
+        player.ready =
+            false;
+
+        player.disconnected =
+            false;
+
+        player.disconnectedAt =
+            null;
+    }
+
+    touchRoom(
+        room
+    );
+}
+
+/*
+=========================================================
 ROOM PLAYER REMOVE
 =========================================================
 */
@@ -4435,14 +5171,18 @@ function removePlayerFromRoom(
 
     if (
         room.hands &&
-        room.hands[playerId]
+        room.hands[
+            playerId
+        ]
     ) {
         delete room.hands[
             playerId
         ];
     }
 
-    touchRoom(room);
+    touchRoom(
+        room
+    );
 }
 
 /*
@@ -4467,6 +5207,11 @@ function reconnectPlayer(
         return false;
     }
 
+    /*
+     * Если старый socket всё ещё
+     * существует — он больше
+     * не считается активным.
+     */
     player.socketId =
         socket.id;
 
@@ -4476,9 +5221,43 @@ function reconnectPlayer(
     player.disconnectedAt =
         null;
 
-    touchRoom(room);
+    touchRoom(
+        room
+    );
 
     return true;
+}
+
+/*
+=========================================================
+SOCKET AUTH HELPER
+=========================================================
+*/
+
+function authenticateSocket(
+    socket,
+    initData
+) {
+    const user =
+        validateTelegramInitData(
+            initData
+        );
+
+    if (!user) {
+        return null;
+    }
+
+    const player =
+        createPlayer(
+            user
+        );
+
+    socket.playerId =
+        String(
+            player.telegram_id
+        );
+
+    return player;
 }
 
 /*
@@ -4505,12 +5284,13 @@ io.on(
             "authenticate",
             data => {
                 try {
-                    const user =
-                        validateTelegramInitData(
+                    const player =
+                        authenticateSocket(
+                            socket,
                             data?.initData
                         );
 
-                    if (!user) {
+                    if (!player) {
                         socket.emit(
                             "server_error",
                             {
@@ -4522,21 +5302,6 @@ io.on(
                         return;
                     }
 
-                    const player =
-                        createPlayer(
-                            user
-                        );
-
-                    socket.playerId =
-                        String(
-                            player.telegram_id
-                        );
-
-                    /*
-                     * Если игрок уже был
-                     * в комнате, восстанавливаем
-                     * его socket.
-                     */
                     const existingRoom =
                         findRoomByPlayer(
                             socket.playerId
@@ -4575,7 +5340,9 @@ io.on(
                                 )
                         }
                     );
-                } catch (error) {
+                } catch (
+                    error
+                ) {
                     console.error(
                         "SOCKET AUTH ERROR:",
                         error
@@ -4698,7 +5465,9 @@ io.on(
                         .toUpperCase();
 
                 const room =
-                    rooms.get(code);
+                    rooms.get(
+                        code
+                    );
 
                 if (!room) {
                     socket.emit(
@@ -4713,8 +5482,8 @@ io.on(
                 }
 
                 /*
-                 * Если игрок уже находится
-                 * в этой комнате — восстанавливаем.
+                 * Повторный вход
+                 * в ту же комнату.
                  */
                 if (
                     room.players.some(
@@ -4793,7 +5562,9 @@ io.on(
                         null
                 });
 
-                touchRoom(room);
+                touchRoom(
+                    room
+                );
 
                 socket.emit(
                     "room_joined",
@@ -4806,9 +5577,9 @@ io.on(
                 );
 
                 /*
-                 * Второй игрок вошёл.
-                 *
-                 * Автоматически запускаем игру.
+                 * Текущая версия проекта
+                 * запускает игру автоматически
+                 * после входа второго игрока.
                  */
                 room.players.forEach(
                     player => {
@@ -4865,7 +5636,9 @@ io.on(
                 player.ready =
                     true;
 
-                touchRoom(room);
+                touchRoom(
+                    room
+                );
 
                 if (
                     room.players.length ===
@@ -5028,8 +5801,10 @@ io.on(
 
                 /*
                  * Если игрок сознательно
-                 * вышел во время игры —
-                 * это поражение.
+                 * вышел во время игры:
+                 *
+                 * вышедший проигрывает,
+                 * соперник побеждает.
                  */
                 if (
                     room.status ===
@@ -5042,14 +5817,56 @@ io.on(
                                 socket.playerId
                         );
 
-                    if (opponent) {
+                    if (
+                        opponent
+                    ) {
                         finishRoom(
                             room,
-                            opponent.id
+                            opponent.id,
+                            "leave"
                         );
                     }
+
+                    removePlayerFromRoom(
+                        room,
+                        socket.playerId
+                    );
+
+                    socket.emit(
+                        "room_left"
+                    );
+
+                    if (
+                        room.players.length ===
+                        0
+                    ) {
+                        rooms.delete(
+                            room.code
+                        );
+                    } else {
+                        /*
+                         * Победитель остаётся
+                         * в комнате, но старая
+                         * партия уже закончена.
+                         *
+                         * Комната становится
+                         * новой waiting-комнатой.
+                         */
+                        resetRoomToWaiting(
+                            room
+                        );
+
+                        sendRoomState(
+                            room
+                        );
+                    }
+
+                    return;
                 }
 
+                /*
+                 * Выход из waiting-комнаты.
+                 */
                 removePlayerFromRoom(
                     room,
                     socket.playerId
@@ -5067,39 +5884,9 @@ io.on(
                         room.code
                     );
                 } else {
-                    /*
-                     * Второй игрок остаётся
-                     * в комнате ожидания.
-                     */
-                    room.status =
-                        "waiting";
-
-                    room.phase =
-                        "waiting";
-
-                    room.finished =
-                        false;
-
-                    room.winner =
-                        null;
-
-                    room.deck =
-                        [];
-
-                    room.table =
-                        [];
-
-                    room.hands =
-                        {};
-
-                    room.attacker =
-                        null;
-
-                    room.defender =
-                        null;
-
-                    room.trumpSuit =
-                        null;
+                    resetRoomToWaiting(
+                        room
+                    );
 
                     sendRoomState(
                         room
@@ -5149,10 +5936,8 @@ io.on(
                 }
 
                 /*
-                 * НЕ объявляем поражение сразу.
-                 *
-                 * Telegram WebApp может
-                 * временно потерять соединение.
+                 * Не объявляем поражение
+                 * мгновенно.
                  */
                 player.disconnected =
                     true;
@@ -5160,7 +5945,9 @@ io.on(
                 player.disconnectedAt =
                     Date.now();
 
-                touchRoom(room);
+                touchRoom(
+                    room
+                );
 
                 sendRoomState(
                     room
@@ -5172,7 +5959,7 @@ io.on(
 
 /*
 =========================================================
-ROOM CLEANUP / DISCONNECT TIMEOUT
+ROOM CLEANUP / RECONNECT TIMEOUT
 =========================================================
 */
 
@@ -5185,11 +5972,11 @@ setInterval(
             const [
                 code,
                 room
-            ] of rooms.entries()
+            ]
+            of rooms.entries()
         ) {
             /*
-             * Проверяем игроков,
-             * которые отключились.
+             * Игра идёт.
              */
             if (
                 room.status ===
@@ -5212,29 +5999,70 @@ setInterval(
                         room.players.find(
                             player =>
                                 player.id !==
-                                disconnectedPlayer.id &&
+                                    disconnectedPlayer.id &&
                                 !player.disconnected
                         );
 
-                    if (opponent) {
+                    if (
+                        opponent
+                    ) {
                         finishRoom(
                             room,
-                            opponent.id
+                            opponent.id,
+                            "disconnect_timeout"
                         );
+
+                        /*
+                         * Удаляем отключившегося
+                         * из комнаты после
+                         * фиксации поражения.
+                         */
+                        removePlayerFromRoom(
+                            room,
+                            disconnectedPlayer.id
+                        );
+
+                        if (
+                            room.players.length ===
+                            0
+                        ) {
+                            rooms.delete(
+                                code
+                            );
+                        } else {
+                            resetRoomToWaiting(
+                                room
+                            );
+
+                            sendRoomState(
+                                room
+                            );
+                        }
                     }
                 }
             }
 
             /*
-             * Удаляем полностью пустые
-             * или давно неактивные комнаты.
+             * Полностью пустые комнаты.
              */
             if (
                 room.players.length ===
-                    0 ||
+                0
+            ) {
+                rooms.delete(
+                    code
+                );
+
+                continue;
+            }
+
+            /*
+             * Старые waiting-комнаты.
+             */
+            if (
                 now -
                     room.lastActivity >
-                    ROOM_CLEANUP_TIMEOUT
+                ROOM_CLEANUP_TIMEOUT
             ) {
                 rooms.delete(
                     code
@@ -5247,7 +6075,7 @@ setInterval(
 
 /*
 =========================================================
-ERROR HANDLER
+EXPRESS ERROR HANDLER
 =========================================================
 */
 
@@ -5263,12 +6091,19 @@ app.use(
             err
         );
 
-        if (res.headersSent) {
-            return next(err);
+        if (
+            res.headersSent
+        ) {
+            return next(
+                err
+            );
         }
 
-        res.status(500).json({
-            success: false,
+        res.status(
+            500
+        ).json({
+            success:
+                false,
             error:
                 "Internal server error"
         });
@@ -5301,7 +6136,7 @@ server.listen(
         );
 
         console.log(
-            "VERSION: 5.0.0"
+            "VERSION: 5.1.0"
         );
 
         console.log(
@@ -5358,6 +6193,10 @@ server.listen(
 
         console.log(
             "ROOM RECONNECT: ENABLED"
+        );
+
+        console.log(
+            "FULL DURAK ROUND LOGIC: ENABLED"
         );
 
         console.log(
