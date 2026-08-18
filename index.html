@@ -1,450 +1,1744 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
+<title>Heavy Lux Card</title>
 
-    <title>Heavy Lux Card</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+body {
+    min-height: 100vh;
+    background: #0b0b0d;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    overflow-x: hidden;
+}
 
-        body {
-            min-height: 100vh;
-            background: #0b0b0d;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-        }
+.app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    margin: auto;
+    padding: 20px 14px 30px;
+}
 
-        .app {
-            width: 100%;
-            max-width: 480px;
-            min-height: 100vh;
-            margin: 0 auto;
-            padding: 24px 18px;
-        }
+.logo {
+    text-align: center;
+    margin-bottom: 20px;
+}
 
-        .logo {
-            text-align: center;
-            margin-bottom: 28px;
-        }
+.logo h1 {
+    font-size: 27px;
+    letter-spacing: 4px;
+    font-weight: 800;
+}
 
-        .logo h1 {
-            font-size: 28px;
-            letter-spacing: 4px;
-            font-weight: 800;
-        }
+.logo p {
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: #777;
+}
 
-        .logo p {
-            margin-top: 5px;
-            font-size: 11px;
-            letter-spacing: 5px;
-            color: #888;
-        }
+/* PROFILE */
 
-        .balance {
-            background: #151519;
-            border: 1px solid #29292f;
-            border-radius: 18px;
-            padding: 22px;
-            text-align: center;
-            margin-bottom: 18px;
-        }
+#game {
+    display: none;
+}
 
-        .balance-label {
-            color: #888;
-            font-size: 12px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
+.player {
+    text-align: center;
+    margin-bottom: 14px;
+}
 
-        .balance-value {
-            font-size: 32px;
-            font-weight: 800;
-        }
+.player-name {
+    font-size: 18px;
+    font-weight: 700;
+}
 
-        .currency {
-            font-size: 16px;
-            color: #aaa;
-            margin-left: 5px;
-        }
+.player-title {
+    color: #999;
+    font-size: 12px;
+    margin-top: 4px;
+}
 
-        .level {
-            background: #151519;
-            border: 1px solid #29292f;
-            border-radius: 18px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
+.balance {
+    background: #151519;
+    border: 1px solid #29292f;
+    border-radius: 17px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 12px;
+}
 
-        .level-top {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
+.balance-label {
+    color: #777;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+}
 
-        .level-title {
-            font-weight: 700;
-        }
+.balance-value {
+    font-size: 28px;
+    font-weight: 800;
+}
 
-        .xp {
-            color: #888;
-            font-size: 13px;
-        }
+.currency {
+    color: #aaa;
+    font-size: 14px;
+}
 
-        .progress {
-            width: 100%;
-            height: 7px;
-            background: #29292f;
-            border-radius: 10px;
-            overflow: hidden;
-        }
+.level {
+    background: #151519;
+    border: 1px solid #29292f;
+    border-radius: 17px;
+    padding: 15px;
+    margin-bottom: 14px;
+}
 
-        .progress-bar {
-            width: 0%;
-            height: 100%;
-            background: #ffffff;
-            transition: width 0.3s ease;
-        }
+.level-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 9px;
+}
 
-        .player {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+.level-title {
+    font-weight: 700;
+}
 
-        .player-name {
-            font-size: 18px;
-            font-weight: 700;
-        }
+.xp {
+    color: #777;
+    font-size: 12px;
+}
 
-        .player-title {
-            color: #999;
-            font-size: 13px;
-            margin-top: 5px;
-        }
+.progress {
+    width: 100%;
+    height: 6px;
+    background: #29292f;
+    border-radius: 10px;
+    overflow: hidden;
+}
 
-        .play {
-            width: 100%;
-            border: none;
-            border-radius: 16px;
-            padding: 18px;
-            background: #ffffff;
-            color: #000000;
-            font-size: 17px;
-            font-weight: 800;
-            margin-bottom: 18px;
-        }
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    background: #fff;
+}
 
-        .menu {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
+.play {
+    width: 100%;
+    border: none;
+    border-radius: 15px;
+    padding: 17px;
+    background: #fff;
+    color: #000;
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
 
-        .menu-button {
-            background: #151519;
-            border: 1px solid #29292f;
-            color: #ffffff;
-            border-radius: 15px;
-            padding: 18px 10px;
-            text-align: center;
-            font-size: 14px;
-        }
+.menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
 
-        .motors {
-            grid-column: span 2;
-            border: 1px solid #444;
-        }
+.menu-button {
+    background: #151519;
+    border: 1px solid #29292f;
+    color: #fff;
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+    font-size: 13px;
+}
 
-        .footer {
-            text-align: center;
-            color: #555;
-            font-size: 10px;
-            margin-top: 30px;
-            letter-spacing: 2px;
-        }
+.motors {
+    grid-column: span 2;
+    border-color: #444;
+}
 
-        .loading {
-            text-align: center;
-            color: #777;
-            padding: 30px;
-        }
+/* COMMON */
 
-        .error {
-            background: #241414;
-            border: 1px solid #522222;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            color: #ff9999;
-            margin-bottom: 15px;
-        }
-    </style>
+.loading {
+    text-align: center;
+    color: #777;
+    padding: 35px 10px;
+}
+
+.error {
+    background: #241414;
+    border: 1px solid #522222;
+    border-radius: 12px;
+    padding: 15px;
+    color: #ff9999;
+    white-space: pre-line;
+    text-align: center;
+}
+
+/* DURAK */
+
+#durak {
+    display: none;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.back-button {
+    background: #151519;
+    border: 1px solid #29292f;
+    color: white;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 12px;
+}
+
+.game-title {
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.deck-info {
+    background: #151519;
+    border: 1px solid #29292f;
+    border-radius: 12px;
+    padding: 9px 12px;
+    font-size: 11px;
+    color: #aaa;
+}
+
+.trump {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.trump-label {
+    color: #777;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.trump-card {
+    margin: 6px auto;
+    width: 55px;
+    height: 76px;
+}
+
+/* TABLE */
+
+.table {
+    background: #111116;
+    border: 1px solid #28282e;
+    border-radius: 20px;
+    min-height: 470px;
+    padding: 13px 8px;
+    position: relative;
+}
+
+.player-area {
+    text-align: center;
+}
+
+.area-title {
+    color: #999;
+    font-size: 11px;
+    margin-bottom: 7px;
+}
+
+.cards {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 82px;
+}
+
+.center {
+    min-height: 180px;
+    margin: 8px 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.attack-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.defense-slot {
+    margin-top: -58px;
+    margin-left: 22px;
+}
+
+/* CARDS */
+
+.card {
+    width: 53px;
+    height: 76px;
+    background: #fff;
+    color: #111;
+    border-radius: 9px;
+    border: 2px solid #ddd;
+    box-shadow: 0 3px 7px rgba(0,0,0,.35);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 5px;
+    font-weight: 800;
+    user-select: none;
+    cursor: pointer;
+}
+
+.card.red {
+    color: #c92727;
+}
+
+.card.black {
+    color: #111;
+}
+
+.card.small {
+    width: 45px;
+    height: 64px;
+    font-size: 13px;
+}
+
+.card.selected {
+    transform: translateY(-10px);
+    border-color: #fff;
+}
+
+.card.disabled {
+    opacity: .45;
+}
+
+.card-rank {
+    font-size: 15px;
+}
+
+.card-suit {
+    font-size: 22px;
+    text-align: center;
+}
+
+.card-bottom {
+    text-align: right;
+    transform: rotate(180deg);
+    font-size: 11px;
+}
+
+/* CONTROLS */
+
+.controls {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.control-button {
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 13px 8px;
+    background: #17171c;
+    color: #fff;
+    font-weight: 700;
+}
+
+.control-button.primary {
+    background: #fff;
+    color: #000;
+}
+
+.control-button:disabled {
+    opacity: .35;
+}
+
+.status {
+    min-height: 35px;
+    text-align: center;
+    color: #aaa;
+    font-size: 12px;
+    padding: 8px;
+}
+
+.result {
+    text-align: center;
+    padding: 25px 10px;
+}
+
+.result h2 {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.result p {
+    color: #999;
+    margin-bottom: 20px;
+}
+
+.footer {
+    text-align: center;
+    color: #444;
+    font-size: 9px;
+    margin-top: 20px;
+    letter-spacing: 2px;
+}
+</style>
 </head>
 
 <body>
 
 <div class="app">
 
-    <div class="logo">
-        <h1>HEAVY LUX</h1>
-        <p>CARD</p>
+<div class="logo">
+    <h1>HEAVY LUX</h1>
+    <p>CARD</p>
+</div>
+
+<div id="loading" class="loading">
+    Загрузка профиля...
+</div>
+
+<div id="error" class="error" style="display:none;"></div>
+
+<!-- ================= PROFILE ================= -->
+
+<div id="game">
+
+    <div class="player">
+        <div id="playerName" class="player-name"></div>
+        <div id="playerTitle" class="player-title"></div>
     </div>
 
-    <div id="loading" class="loading">
-        Загрузка профиля...
+    <div class="balance">
+        <div class="balance-label">Баланс</div>
+        <div class="balance-value">
+            <span id="balance">5 000</span>
+            <span class="currency">HC</span>
+        </div>
     </div>
 
-    <div id="error" class="error" style="display:none;"></div>
+    <div class="level">
 
-    <div id="game" style="display:none;">
+        <div class="level-top">
+            <div id="level" class="level-title">
+                Уровень 1
+            </div>
 
-        <div class="player">
-            <div id="playerName" class="player-name"></div>
-            <div id="playerTitle" class="player-title"></div>
-        </div>
-
-        <div class="balance">
-            <div class="balance-label">Баланс</div>
-
-            <div class="balance-value">
-                <span id="balance">5 000</span>
-                <span class="currency">HC</span>
+            <div id="xp" class="xp">
+                0 XP
             </div>
         </div>
 
-        <div class="level">
-
-            <div class="level-top">
-                <div id="level" class="level-title">
-                    Уровень 1
-                </div>
-
-                <div id="xp" class="xp">
-                    0 XP
-                </div>
-            </div>
-
-            <div class="progress">
-                <div id="progressBar" class="progress-bar"></div>
-            </div>
-
+        <div class="progress">
+            <div id="progressBar" class="progress-bar"></div>
         </div>
 
-        <button class="play" onclick="startGame()">
-            ИГРАТЬ
+    </div>
+
+    <button class="play" onclick="startGame()">
+        ИГРАТЬ
+    </button>
+
+    <div class="menu">
+
+        <div class="menu-button">
+            👤<br>Профиль
+        </div>
+
+        <div class="menu-button">
+            🏆<br>Рейтинг
+        </div>
+
+        <div class="menu-button">
+            🏢<br>Бизнес
+        </div>
+
+        <div class="menu-button">
+            🏠<br>Недвижимость
+        </div>
+
+        <div class="menu-button motors">
+            🚘<br>HEAVY MOTORS
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= DURAK ================= -->
+
+<div id="durak">
+
+    <div class="game-header">
+
+        <button class="back-button" onclick="backToMenu()">
+            ← Меню
         </button>
 
-        <div class="menu">
+        <div class="game-title">
+            ДУРАК
+        </div>
 
-            <div class="menu-button">
-                👤<br>
-                Профиль
+        <div class="deck-info">
+            Колода: <span id="deckCount">36</span>
+        </div>
+
+    </div>
+
+    <div class="trump">
+
+        <div class="trump-label">
+            Козырь
+        </div>
+
+        <div id="trumpCard"></div>
+
+    </div>
+
+    <div class="table">
+
+        <!-- COMPUTER -->
+
+        <div class="player-area">
+
+            <div class="area-title">
+                КОМПЬЮТЕР · <span id="computerCount">6</span> карт
             </div>
 
-            <div class="menu-button">
-                🏆<br>
-                Рейтинг
+            <div id="computerCards" class="cards"></div>
+
+        </div>
+
+        <!-- TABLE -->
+
+        <div id="center" class="center"></div>
+
+        <div id="status" class="status">
+            Загрузка игры...
+        </div>
+
+        <!-- PLAYER -->
+
+        <div class="player-area">
+
+            <div class="area-title">
+                ТВОИ КАРТЫ · <span id="playerCount">6</span>
             </div>
 
-            <div class="menu-button">
-                🏢<br>
-                Бизнес
-            </div>
-
-            <div class="menu-button">
-                🏠<br>
-                Недвижимость
-            </div>
-
-            <div class="menu-button motors">
-                🚘<br>
-                HEAVY MOTORS
-            </div>
+            <div id="playerCards" class="cards"></div>
 
         </div>
 
     </div>
 
-    <div class="footer">
-        HEAVY LUX CARD
+    <div class="controls">
+
+        <button
+            id="takeButton"
+            class="control-button"
+            onclick="playerTake()"
+            disabled
+        >
+            ВЗЯТЬ
+        </button>
+
+        <button
+            id="passButton"
+            class="control-button primary"
+            onclick="playerEndAttack()"
+            disabled
+        >
+            БИТО
+        </button>
+
     </div>
+
+</div>
+
+<div class="footer">
+    HEAVY LUX CARD
+</div>
 
 </div>
 
 <script>
 
-    // ======================================
-    // TELEGRAM
-    // ======================================
+/* =========================================
+   TELEGRAM
+========================================= */
 
-    const tg = window.Telegram.WebApp;
+const tg = window.Telegram.WebApp;
 
-    tg.ready();
-    tg.expand();
+tg.ready();
+tg.expand();
 
+/* =========================================
+   API
+========================================= */
 
-    // ======================================
-    // BACKEND
-    // ======================================
+const API_URL = "https://heavy-lux-card-api.onrender.com";
 
- const API_URL = "https://heavy-lux-card-api.onrender.com";
+let playerData = null;
 
-console.log("API_URL:", API_URL);
-console.log("Telegram initData:", tg.initData);
+/* =========================================
+   AUTH
+========================================= */
 
+async function authenticate() {
 
-    // ======================================
-    // AUTH
-    // ======================================
+    try {
 
-    async function authenticate() {
+        const initData = tg.initData;
 
-        try {
+        if (!initData) {
+            throw new Error(
+                "Откройте Heavy Lux Card через Telegram"
+            );
+        }
 
-            const initData = tg.initData;
+        const response = await fetch(
+            `${API_URL}/api/auth`,
+            {
+                method: "POST",
 
-            if (!initData) {
-                throw new Error(
-                    "Откройте Heavy Lux Card через Telegram"
-                );
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    initData: initData
+                })
             }
+        );
 
-            const response = await fetch(
-                `${API_URL}/api/auth`,
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error || "Ошибка авторизации"
+            );
+        }
+
+        playerData = data.player;
+
+        showPlayer(playerData);
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("loading").style.display = "none";
+
+        const errorBox =
+            document.getElementById("error");
+
+        errorBox.innerText =
+            "Ошибка: " +
+            (error.message || "Неизвестная ошибка");
+
+        errorBox.style.display = "block";
+    }
+}
+
+/* =========================================
+   PLAYER
+========================================= */
+
+function showPlayer(player) {
+
+    document.getElementById("loading").style.display = "none";
+
+    document.getElementById("game").style.display = "block";
+
+    document.getElementById("playerName").innerText =
+        player.first_name ||
+        player.username ||
+        "Игрок";
+
+    document.getElementById("balance").innerText =
+        Number(player.balance).toLocaleString("ru-RU");
+
+    document.getElementById("level").innerText =
+        `Уровень ${player.level}`;
+
+    document.getElementById("xp").innerText =
+        `${player.xp} XP`;
+
+    document.getElementById("playerTitle").innerText =
+        player.title || "";
+
+    const progress =
+        Math.min(
+            (player.xp % 1000) / 1000 * 100,
+            100
+        );
+
+    document.getElementById("progressBar").style.width =
+        `${progress}%`;
+}
+
+/* =========================================
+   CARDS
+========================================= */
+
+const suits = [
+    {
+        symbol: "♠",
+        name: "spades",
+        color: "black"
+    },
+    {
+        symbol: "♥",
+        name: "hearts",
+        color: "red"
+    },
+    {
+        symbol: "♦",
+        name: "diamonds",
+        color: "red"
+    },
+    {
+        symbol: "♣",
+        name: "clubs",
+        color: "black"
+    }
+];
+
+const ranks = [
+    {
+        name: "6",
+        value: 6
+    },
+    {
+        name: "7",
+        value: 7
+    },
+    {
+        name: "8",
+        value: 8
+    },
+    {
+        name: "9",
+        value: 9
+    },
+    {
+        name: "10",
+        value: 10
+    },
+    {
+        name: "J",
+        value: 11
+    },
+    {
+        name: "Q",
+        value: 12
+    },
+    {
+        name: "K",
+        value: 13
+    },
+    {
+        name: "A",
+        value: 14
+    }
+];
+
+let deck = [];
+let playerHand = [];
+let computerHand = [];
+
+let trumpSuit = null;
+
+let attacker = "player";
+
+let attackCards = [];
+let defendedCards = [];
+
+let gamePhase = "attack";
+
+/* =========================================
+   CREATE DECK
+========================================= */
+
+function createDeck() {
+
+    deck = [];
+
+    suits.forEach(suit => {
+
+        ranks.forEach(rank => {
+
+            deck.push({
+                id:
+                    suit.name +
+                    "_" +
+                    rank.name,
+
+                suit: suit.name,
+                symbol: suit.symbol,
+                color: suit.color,
+
+                rank: rank.name,
+                value: rank.value
+            });
+
+        });
+
+    });
+
+    shuffle(deck);
+}
+
+/* =========================================
+   SHUFFLE
+========================================= */
+
+function shuffle(array) {
+
+    for (
+        let i = array.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+                Math.random() * (i + 1)
+            );
+
+        [
+            array[i],
+            array[j]
+        ] =
+        [
+            array[j],
+            array[i]
+        ];
+    }
+}
+
+/* =========================================
+   START GAME
+========================================= */
+
+function startGame() {
+
+    document.getElementById("game").style.display = "none";
+
+    document.getElementById("durak").style.display = "block";
+
+    createDeck();
+
+    playerHand = [];
+    computerHand = [];
+
+    attackCards = [];
+    defendedCards = [];
+
+    trumpSuit = deck[deck.length - 1].suit;
+
+    dealCards();
+
+    determineFirstAttacker();
+
+    renderGame();
+
+}
+
+/* =========================================
+   DEAL
+========================================= */
+
+function dealCards() {
+
+    for (let i = 0; i < 6; i++) {
+
+        playerHand.push(deck.pop());
+
+        computerHand.push(deck.pop());
+
+    }
+
+}
+
+/* =========================================
+   FIRST ATTACKER
+========================================= */
+
+function determineFirstAttacker() {
+
+    const playerTrump =
+        playerHand
+            .filter(card => card.suit === trumpSuit)
+            .sort((a,b) => a.value - b.value)[0];
+
+    const computerTrump =
+        computerHand
+            .filter(card => card.suit === trumpSuit)
+            .sort((a,b) => a.value - b.value)[0];
+
+    if (!playerTrump && !computerTrump) {
+
+        attacker =
+            Math.random() < .5
+                ? "player"
+                : "computer";
+
+        return;
+    }
+
+    if (!computerTrump) {
+
+        attacker = "player";
+        return;
+    }
+
+    if (!playerTrump) {
+
+        attacker = "computer";
+        return;
+    }
+
+    attacker =
+        playerTrump.value <
+        computerTrump.value
+            ? "player"
+            : "computer";
+}
+
+/* =========================================
+   CARD HTML
+========================================= */
+
+function cardHTML(card, options = {}) {
+
+    const small =
+        options.small
+            ? "small"
+            : "";
+
+    const disabled =
+        options.disabled
+            ? "disabled"
+            : "";
+
+    const selected =
+        options.selected
+            ? "selected"
+            : "";
+
+    return `
+        <div
+            class="card ${card.color} ${small} ${disabled} ${selected}"
+            data-id="${card.id}"
+            onclick="${options.onclick || ""}"
+        >
+
+            <div class="card-rank">
+                ${card.rank}
+            </div>
+
+            <div class="card-suit">
+                ${card.symbol}
+            </div>
+
+            <div class="card-bottom">
+                ${card.rank}
+            </div>
+
+        </div>
+    `;
+}
+
+/* =========================================
+   RENDER
+========================================= */
+
+function renderGame() {
+
+    document.getElementById("deckCount").innerText =
+        deck.length;
+
+    document.getElementById("playerCount").innerText =
+        playerHand.length;
+
+    document.getElementById("computerCount").innerText =
+        computerHand.length;
+
+    renderTrump();
+
+    renderComputer();
+
+    renderPlayer();
+
+    renderTable();
+
+    updateControls();
+
+}
+
+/* =========================================
+   TRUMP
+========================================= */
+
+function renderTrump() {
+
+    const fakeCard = {
+        suit: trumpSuit,
+        symbol:
+            suits.find(
+                s => s.name === trumpSuit
+            ).symbol,
+
+        color:
+            suits.find(
+                s => s.name === trumpSuit
+            ).color,
+
+        rank: "?"
+    };
+
+    document.getElementById("trumpCard").innerHTML =
+        cardHTML(
+            fakeCard,
+            {
+                small: true
+            }
+        );
+}
+
+/* =========================================
+   COMPUTER
+========================================= */
+
+function renderComputer() {
+
+    let html = "";
+
+    computerHand.forEach(() => {
+
+        html += `
+            <div class="card small">
+                <div>?</div>
+                <div class="card-suit">🂠</div>
+                <div>?</div>
+            </div>
+        `;
+
+    });
+
+    document.getElementById("computerCards").innerHTML =
+        html;
+}
+
+/* =========================================
+   PLAYER
+========================================= */
+
+function renderPlayer() {
+
+    let html = "";
+
+    playerHand
+        .sort((a,b) => {
+
+            if (a.suit === trumpSuit && b.suit !== trumpSuit)
+                return 1;
+
+            if (a.suit !== trumpSuit && b.suit === trumpSuit)
+                return -1;
+
+            return a.value - b.value;
+
+        })
+        .forEach(card => {
+
+            const canPlay =
+                canPlayerPlay(card);
+
+            html += cardHTML(
+                card,
                 {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        initData: initData
-                    })
+                    disabled: !canPlay,
+                    onclick:
+                        canPlay
+                            ? `playerCardClick('${card.id}')`
+                            : ""
                 }
             );
 
-            const data = await response.json();
+        });
 
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.error || "Ошибка авторизации"
-                );
-            }
-
-            showPlayer(data.player);
-
-  } catch (error) {
-
-    console.error("FULL ERROR:", error);
-
-    document.getElementById(
-        "loading"
-    ).style.display = "none";
-
-    const errorBox =
-        document.getElementById("error");
-
-    errorBox.innerText =
-        "Ошибка: " +
-        (error.name || "Unknown") +
-        "\n\n" +
-        (error.message || "Нет сообщения") +
-        "\n\nAPI: " +
-        API_URL +
-        "\n\ninitData: " +
-        (tg.initData ? "получен" : "НЕ ПОЛУЧЕН");
-
-    errorBox.style.display = "block";
+    document.getElementById("playerCards").innerHTML =
+        html;
 }
-    }
 
+/* =========================================
+   TABLE
+========================================= */
 
-    // ======================================
-    // PLAYER
-    // ======================================
+function renderTable() {
 
-    function showPlayer(player) {
+    const center =
+        document.getElementById("center");
 
-        document.getElementById(
-            "loading"
-        ).style.display = "none";
+    let html = "";
 
-        document.getElementById(
-            "game"
-        ).style.display = "block";
+    attackCards.forEach((attack, index) => {
 
-        const name =
-            player.first_name ||
-            player.username ||
-            "Игрок";
+        html += `
+            <div class="attack-card">
 
-        document.getElementById(
-            "playerName"
-        ).innerText = name;
+                ${cardHTML(
+                    attack,
+                    {
+                        small: true
+                    }
+                )}
 
-        document.getElementById(
-            "balance"
-        ).innerText =
-            Number(player.balance).toLocaleString("ru-RU");
+                ${
+                    defendedCards[index]
+                        ? `
+                            <div class="defense-slot">
+                                ${cardHTML(
+                                    defendedCards[index],
+                                    {
+                                        small: true
+                                    }
+                                )}
+                            </div>
+                        `
+                        : ""
+                }
 
-        document.getElementById(
-            "level"
-        ).innerText =
-            `Уровень ${player.level}`;
+            </div>
+        `;
 
-        document.getElementById(
-            "xp"
-        ).innerText =
-            `${player.xp} XP`;
+    });
 
-        document.getElementById(
-            "playerTitle"
-        ).innerText =
-            player.title || "";
+    center.innerHTML = html;
+}
 
-        const progress =
-            Math.min(
-                (player.xp % 1000) / 1000 * 100,
-                100
+/* =========================================
+   CAN PLAY
+========================================= */
+
+function canPlayerPlay(card) {
+
+    if (gamePhase === "attack") {
+
+        if (attacker !== "player")
+            return false;
+
+        if (attackCards.length === 0)
+            return true;
+
+        const ranksOnTable =
+            attackCards.map(
+                c => c.rank
             );
 
-        document.getElementById(
-            "progressBar"
-        ).style.width =
-            `${progress}%`;
-    }
+        const defendedRanks =
+            defendedCards.map(
+                c => c.rank
+            );
 
+        const allowedRanks =
+            [
+                ...ranksOnTable,
+                ...defendedRanks
+            ];
 
-    // ======================================
-    // GAME
-    // ======================================
-
-    function startGame() {
-
-        tg.showAlert(
-            "Локальная игра против компьютера будет добавлена следующим этапом."
+        return allowedRanks.includes(
+            card.rank
         );
     }
 
+    if (gamePhase === "defense") {
 
-    // ======================================
-    // START
-    // ======================================
+        return canBeatCard(
+            card,
+            attackCards[attackCards.length - 1]
+        );
 
-    authenticate();
+    }
+
+    return false;
+}
+
+/* =========================================
+   CARD BEATING
+========================================= */
+
+function canBeatCard(defense, attack) {
+
+    if (defense.suit === attack.suit) {
+
+        return defense.value > attack.value;
+    }
+
+    if (
+        defense.suit === trumpSuit &&
+        attack.suit !== trumpSuit
+    ) {
+
+        return true;
+    }
+
+    return false;
+}
+
+/* =========================================
+   PLAYER CLICK
+========================================= */
+
+function playerCardClick(id) {
+
+    const card =
+        playerHand.find(
+            c => c.id === id
+        );
+
+    if (!card)
+        return;
+
+    if (gamePhase === "attack") {
+
+        playerAttack(card);
+
+    } else if (gamePhase === "defense") {
+
+        playerDefense(card);
+
+    }
+
+}
+
+/* =========================================
+   PLAYER ATTACK
+========================================= */
+
+function playerAttack(card) {
+
+    const index =
+        playerHand.findIndex(
+            c => c.id === card.id
+        );
+
+    if (index === -1)
+        return;
+
+    playerHand.splice(index, 1);
+
+    attackCards.push(card);
+
+    gamePhase = "defense";
+
+    statusText(
+        "Компьютер должен отбиться"
+    );
+
+    renderGame();
+
+    setTimeout(
+        computerDefense,
+        600
+    );
+}
+
+/* =========================================
+   COMPUTER DEFENSE
+========================================= */
+
+function computerDefense() {
+
+    const attack =
+        attackCards[
+            attackCards.length - 1
+        ];
+
+    const possible =
+        computerHand
+            .filter(card =>
+                canBeatCard(
+                    card,
+                    attack
+                )
+            )
+            .sort((a,b) => {
+
+                const aTrump =
+                    a.suit === trumpSuit;
+
+                const bTrump =
+                    b.suit === trumpSuit;
+
+                if (
+                    aTrump !== bTrump
+                ) {
+
+                    return aTrump ? 1 : -1;
+                }
+
+                return a.value - b.value;
+
+            });
+
+    if (possible.length === 0) {
+
+        computerTake();
+
+        return;
+    }
+
+    const card = possible[0];
+
+    const index =
+        computerHand.findIndex(
+            c => c.id === card.id
+        );
+
+    computerHand.splice(index, 1);
+
+    defendedCards.push(card);
+
+    gamePhase = "attack";
+
+    attacker = "player";
+
+    statusText(
+        "Твой ход. Можешь подкинуть карту или закончить"
+    );
+
+    renderGame();
+
+}
+
+/* =========================================
+   COMPUTER TAKE
+========================================= */
+
+function computerTake() {
+
+    statusText(
+        "Компьютер забирает карты"
+    );
+
+    computerHand.push(
+        ...attackCards,
+        ...defendedCards
+    );
+
+    attackCards = [];
+    defendedCards = [];
+
+    gamePhase = "attack";
+
+    attacker = "player";
+
+    renderGame();
+
+    setTimeout(
+        playerTurn,
+        400
+    );
+}
+
+/* =========================================
+   PLAYER DEFENSE
+========================================= */
+
+function playerDefense(card) {
+
+    const attack =
+        attackCards[
+            attackCards.length - 1
+        ];
+
+    if (
+        !canBeatCard(
+            card,
+            attack
+        )
+    ) {
+
+        return;
+    }
+
+    const index =
+        playerHand.findIndex(
+            c => c.id === card.id
+        );
+
+    playerHand.splice(index, 1);
+
+    defendedCards.push(card);
+
+    gamePhase = "attack";
+
+    attacker = "computer";
+
+    statusText(
+        "Компьютер может подкинуть"
+    );
+
+    renderGame();
+
+    setTimeout(
+        computerAttack,
+        700
+    );
+}
+
+/* =========================================
+   COMPUTER ATTACK
+========================================= */
+
+function computerAttack() {
+
+    const ranksOnTable =
+        [
+            ...attackCards,
+            ...defendedCards
+        ].map(
+            c => c.rank
+        );
+
+    const possible =
+        computerHand
+            .filter(
+                card =>
+                    ranksOnTable.includes(
+                        card.rank
+                    )
+            )
+            .sort(
+                (a,b) =>
+                    a.value - b.value
+            );
+
+    if (possible.length === 0) {
+
+        finishAttack();
+
+        return;
+    }
+
+    const card = possible[0];
+
+    const index =
+        computerHand.findIndex(
+            c => c.id === card.id
+        );
+
+    computerHand.splice(index, 1);
+
+    attackCards.push(card);
+
+    gamePhase = "defense";
+
+    statusText(
+        "Твой ход — отбивайся"
+    );
+
+    renderGame();
+}
+
+/* =========================================
+   PLAYER TAKE
+========================================= */
+
+function playerTake() {
+
+    if (gamePhase !== "defense")
+        return;
+
+    playerHand.push(
+        ...attackCards,
+        ...defendedCards
+    );
+
+    attackCards = [];
+    defendedCards = [];
+
+    gamePhase = "attack";
+
+    attacker = "computer";
+
+    renderGame();
+
+    setTimeout(
+        computerAttack,
+        700
+    );
+}
+
+/* =========================================
+   END ATTACK
+========================================= */
+
+function playerEndAttack() {
+
+    if (
+        gamePhase !== "attack" ||
+        attacker !== "player"
+    ) {
+
+        return;
+    }
+
+    finishAttack();
+
+}
+
+/* =========================================
+   FINISH ATTACK
+========================================= */
+
+function finishAttack() {
+
+    attackCards = [];
+    defendedCards = [];
+
+    gamePhase = "attack";
+
+    attacker =
+        attacker === "player"
+            ? "computer"
+            : "player";
+
+    drawCards();
+
+    checkWinner();
+
+    if (
+        attacker === "computer"
+    ) {
+
+        statusText(
+            "Ход компьютера"
+        );
+
+        renderGame();
+
+        setTimeout(
+            computerAttack,
+            700
+        );
+
+    } else {
+
+        statusText(
+            "Твой ход"
+        );
+
+        renderGame();
+
+    }
+
+}
+
+/* =========================================
+   DRAW
+========================================= */
+
+function drawCards() {
+
+    while (
+        playerHand.length < 6 &&
+        deck.length > 0
+    ) {
+
+        playerHand.push(
+            deck.pop()
+        );
+
+    }
+
+    while (
+        computerHand.length < 6 &&
+        deck.length > 0
+    ) {
+
+        computerHand.push(
+            deck.pop()
+        );
+
+    }
+}
+
+/* =========================================
+   WINNER
+========================================= */
+
+function checkWinner() {
+
+    if (
+        deck.length === 0 &&
+        playerHand.length === 0
+    ) {
+
+        showResult(
+            "ПОБЕДА",
+            "Ты победил компьютер."
+        );
+
+        return true;
+    }
+
+    if (
+        deck.length === 0 &&
+        computerHand.length === 0
+    ) {
+
+        showResult(
+            "ПОРАЖЕНИЕ",
+            "Компьютер победил."
+        );
+
+        return true;
+    }
+
+    return false;
+}
+
+/* =========================================
+   RESULT
+========================================= */
+
+function showResult(title, text) {
+
+    document.getElementById("durak").innerHTML = `
+
+        <div class="result">
+
+            <h2>${title}</h2>
+
+            <p>${text}</p>
+
+            <button
+                class="play"
+                onclick="startGame()"
+            >
+                НОВАЯ ИГРА
+            </button>
+
+            <button
+                class="control-button"
+                onclick="backToMenu()"
+            >
+                В МЕНЮ
+            </button>
+
+        </div>
+
+    `;
+
+}
+
+/* =========================================
+   STATUS
+========================================= */
+
+function statusText(text) {
+
+    document.getElementById(
+        "status"
+    ).innerText = text;
+
+}
+
+/* =========================================
+   CONTROLS
+========================================= */
+
+function updateControls() {
+
+    const take =
+        document.getElementById(
+            "takeButton"
+        );
+
+    const pass =
+        document.getElementById(
+            "passButton"
+        );
+
+    take.disabled =
+        !(
+            gamePhase === "defense" &&
+            attacker !== "player"
+        );
+
+    pass.disabled =
+        !(
+            gamePhase === "attack" &&
+            attacker === "player" &&
+            attackCards.length > 0
+        );
+}
+
+/* =========================================
+   PLAYER TURN
+========================================= */
+
+function playerTurn() {
+
+    attacker = "player";
+
+    gamePhase = "attack";
+
+    statusText(
+        "Твой ход"
+    );
+
+    renderGame();
+
+}
+
+/* =========================================
+   BACK
+========================================= */
+
+function backToMenu() {
+
+    document.getElementById(
+        "durak"
+    ).style.display = "none";
+
+    document.getElementById(
+        "game"
+    ).style.display = "block";
+
+}
+
+/* =========================================
+   START
+========================================= */
+
+authenticate();
 
 </script>
 
