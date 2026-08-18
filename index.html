@@ -2,12 +2,15 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     >
 
     <title>Heavy Lux Card</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
         * {
@@ -112,6 +115,23 @@
             width: 0%;
             height: 100%;
             background: #ffffff;
+            transition: width 0.3s ease;
+        }
+
+        .player {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .player-name {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .player-title {
+            color: #999;
+            font-size: 13px;
+            margin-top: 5px;
         }
 
         .play {
@@ -154,6 +174,22 @@
             margin-top: 30px;
             letter-spacing: 2px;
         }
+
+        .loading {
+            text-align: center;
+            color: #777;
+            padding: 30px;
+        }
+
+        .error {
+            background: #241414;
+            border: 1px solid #522222;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            color: #ff9999;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 
@@ -166,55 +202,77 @@
         <p>CARD</p>
     </div>
 
-    <div class="balance">
-        <div class="balance-label">Баланс</div>
-        <div class="balance-value">
-            5 000 <span class="currency">HC</span>
-        </div>
+    <div id="loading" class="loading">
+        Загрузка профиля...
     </div>
 
-    <div class="level">
+    <div id="error" class="error" style="display:none;"></div>
 
-        <div class="level-top">
-            <div class="level-title">Уровень 1</div>
-            <div class="xp">0 / 1 000 XP</div>
+    <div id="game" style="display:none;">
+
+        <div class="player">
+            <div id="playerName" class="player-name"></div>
+            <div id="playerTitle" class="player-title"></div>
         </div>
 
-        <div class="progress">
-            <div class="progress-bar"></div>
+        <div class="balance">
+            <div class="balance-label">Баланс</div>
+
+            <div class="balance-value">
+                <span id="balance">5 000</span>
+                <span class="currency">HC</span>
+            </div>
         </div>
 
-    </div>
+        <div class="level">
 
-    <button class="play">
-        ИГРАТЬ
-    </button>
+            <div class="level-top">
+                <div id="level" class="level-title">
+                    Уровень 1
+                </div>
 
-    <div class="menu">
+                <div id="xp" class="xp">
+                    0 XP
+                </div>
+            </div>
 
-        <div class="menu-button">
-            👤<br>
-            Профиль
+            <div class="progress">
+                <div id="progressBar" class="progress-bar"></div>
+            </div>
+
         </div>
 
-        <div class="menu-button">
-            🏆<br>
-            Рейтинг
-        </div>
+        <button class="play" onclick="startGame()">
+            ИГРАТЬ
+        </button>
 
-        <div class="menu-button">
-            🏢<br>
-            Бизнес
-        </div>
+        <div class="menu">
 
-        <div class="menu-button">
-            🏠<br>
-            Недвижимость
-        </div>
+            <div class="menu-button">
+                👤<br>
+                Профиль
+            </div>
 
-        <div class="menu-button motors">
-            🚘<br>
-            HEAVY MOTORS
+            <div class="menu-button">
+                🏆<br>
+                Рейтинг
+            </div>
+
+            <div class="menu-button">
+                🏢<br>
+                Бизнес
+            </div>
+
+            <div class="menu-button">
+                🏠<br>
+                Недвижимость
+            </div>
+
+            <div class="menu-button motors">
+                🚘<br>
+                HEAVY MOTORS
+            </div>
+
         </div>
 
     </div>
@@ -224,6 +282,160 @@
     </div>
 
 </div>
+
+<script>
+
+    // ======================================
+    // TELEGRAM
+    // ======================================
+
+    const tg = window.Telegram.WebApp;
+
+    tg.ready();
+    tg.expand();
+
+
+    // ======================================
+    // BACKEND
+    // ======================================
+
+    const API_URL = "ВСТАВЬ_СЮДА_АДРЕС_RENDER";
+
+
+    // ======================================
+    // AUTH
+    // ======================================
+
+    async function authenticate() {
+
+        try {
+
+            const initData = tg.initData;
+
+            if (!initData) {
+                throw new Error(
+                    "Откройте Heavy Lux Card через Telegram"
+                );
+            }
+
+            const response = await fetch(
+                `${API_URL}/api/auth`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        initData: initData
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.error || "Ошибка авторизации"
+                );
+            }
+
+            showPlayer(data.player);
+
+        } catch (error) {
+
+            console.error(error);
+
+            document.getElementById(
+                "loading"
+            ).style.display = "none";
+
+            const errorBox =
+                document.getElementById("error");
+
+            errorBox.innerText = error.message;
+
+            errorBox.style.display = "block";
+        }
+    }
+
+
+    // ======================================
+    // PLAYER
+    // ======================================
+
+    function showPlayer(player) {
+
+        document.getElementById(
+            "loading"
+        ).style.display = "none";
+
+        document.getElementById(
+            "game"
+        ).style.display = "block";
+
+        const name =
+            player.first_name ||
+            player.username ||
+            "Игрок";
+
+        document.getElementById(
+            "playerName"
+        ).innerText = name;
+
+        document.getElementById(
+            "balance"
+        ).innerText =
+            Number(player.balance).toLocaleString("ru-RU");
+
+        document.getElementById(
+            "level"
+        ).innerText =
+            `Уровень ${player.level}`;
+
+        document.getElementById(
+            "xp"
+        ).innerText =
+            `${player.xp} XP`;
+
+        document.getElementById(
+            "playerTitle"
+        ).innerText =
+            player.title || "";
+
+        const progress =
+            Math.min(
+                (player.xp % 1000) / 1000 * 100,
+                100
+            );
+
+        document.getElementById(
+            "progressBar"
+        ).style.width =
+            `${progress}%`;
+    }
+
+
+    // ======================================
+    // GAME
+    // ======================================
+
+    function startGame() {
+
+        tg.showAlert(
+            "Локальная игра против компьютера будет добавлена следующим этапом."
+        );
+    }
+
+
+    // ======================================
+    // START
+    // ======================================
+
+    authenticate();
+
+</script>
 
 </body>
 </html>
