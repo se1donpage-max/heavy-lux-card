@@ -715,6 +715,25 @@ const tg =
     window.Telegram
         ? window.Telegram.WebApp
         : null;
+      /* =========================================================
+   SOCKET.IO
+========================================================= */
+
+const socket = io("https://heavy-lux-card.onrender.com", {
+    transports: ["websocket", "polling"]
+});
+
+socket.on("connect", () => {
+    console.log("Socket.IO connected:", socket.id);
+});
+
+socket.on("connect_error", (error) => {
+    console.error("Socket.IO connection error:", error);
+});
+
+socket.on("disconnect", (reason) => {
+    console.log("Socket.IO disconnected:", reason);
+});
 
 if(tg){
     tg.ready();
