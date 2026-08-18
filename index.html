@@ -1,1205 +1,1849 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
-<title>Heavy Lux Card</title>
+    <meta
+        name="theme-color"
+        content="#0b0b0f"
+    >
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Heavy Lux Card</title>
 
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <!-- Telegram Mini App -->
+    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
 
-<style>
+    <style>
 
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none;
-}
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-html,
-body{
+        html,
+        body {
+            margin: 0;
+            padding: 0;
 
-    margin:0;
-    padding:0;
+            width: 100%;
+            min-height: 100%;
 
-    width:100%;
-    height:100%;
+            background:
+                radial-gradient(
+                    circle at top,
+                    #242433 0%,
+                    #101016 45%,
+                    #08080b 100%
+                );
 
-    overflow:hidden;
+            color: #ffffff;
 
-    background:#050505;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "SF Pro Display",
+                "Segoe UI",
+                Arial,
+                sans-serif;
+        }
 
-    color:#fff;
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+        button {
+            font-family: inherit;
+        }
 
-    touch-action:none;
-}
+        .app {
+            width: 100%;
+            max-width: 600px;
 
-body{
-    min-height:100vh;
-}
+            margin: 0 auto;
 
-#app{
+            min-height: 100vh;
 
-    position:relative;
+            padding:
+                calc(env(safe-area-inset-top) + 12px)
+                14px
+                calc(env(safe-area-inset-bottom) + 20px);
+        }
 
-    width:100%;
-    height:100vh;
+        /* =====================================================
+           LOADING
+        ===================================================== */
 
-    overflow:hidden;
-}
+        #loadingScreen {
 
+            position: fixed;
 
-/* =========================================================
-   TOP
-========================================================= */
+            inset: 0;
 
-.topbar{
+            z-index: 9999;
 
-    position:absolute;
+            display: flex;
 
-    top:env(
-        safe-area-inset-top,
-        8px
-    );
+            flex-direction: column;
 
-    left:0;
-    right:0;
+            align-items: center;
 
-    height:52px;
+            justify-content: center;
 
-    padding:8px 14px;
+            background:
+                radial-gradient(
+                    circle at center,
+                    #24243a 0%,
+                    #0b0b0f 65%
+                );
+        }
 
-    display:flex;
+        .loading-logo {
 
-    align-items:center;
+            width: 90px;
+            height: 90px;
 
-    justify-content:space-between;
+            border-radius: 26px;
 
-    z-index:100;
+            display: flex;
 
-}
+            align-items: center;
+            justify-content: center;
 
-.logo{
+            font-size: 42px;
 
-    font-size:12px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffd76a,
+                    #b7791f
+                );
 
-    font-weight:900;
+            box-shadow:
+                0 15px 50px
+                rgba(255, 190, 70, .25);
+        }
 
-    letter-spacing:2px;
+        .loading-title {
 
-}
+            margin-top: 20px;
 
-.info{
+            font-size: 23px;
 
-    display:flex;
+            font-weight: 800;
 
-    gap:5px;
+            letter-spacing: .5px;
+        }
 
-}
+        .loading-text {
 
-.info-item{
+            margin-top: 8px;
 
-    padding:6px 8px;
+            color: #8e8e9c;
 
-    border:1px solid #292929;
+            font-size: 14px;
+        }
 
-    border-radius:9px;
+        .loader {
 
-    background:#0b0b0b;
+            width: 32px;
+            height: 32px;
 
-    color:#999;
+            margin-top: 24px;
 
-    font-size:9px;
+            border-radius: 50%;
 
-}
+            border:
+                3px solid
+                rgba(255,255,255,.15);
 
-.info-item b{
-    color:#fff;
-}
+            border-top-color:
+                #ffd76a;
 
+            animation:
+                spin .8s linear infinite;
+        }
 
-/* =========================================================
-   PROFILE
-========================================================= */
+        @keyframes spin {
 
-.profile{
+            to {
+                transform: rotate(360deg);
+            }
 
-    position:absolute;
+        }
 
-    top:58px;
+        /* =====================================================
+           HEADER
+        ===================================================== */
 
-    left:14px;
+        .header {
 
-    z-index:150;
+            display: flex;
 
-    display:flex;
+            align-items: center;
 
-    align-items:center;
+            justify-content: space-between;
 
-    gap:8px;
+            gap: 10px;
 
-    padding:6px 10px;
+            margin-bottom: 14px;
+        }
 
-    background:#090909;
+        .brand {
 
-    border:1px solid #242424;
+            display: flex;
 
-    border-radius:10px;
+            align-items: center;
 
-}
+            gap: 10px;
+        }
 
-.profile-avatar{
+        .brand-icon {
 
-    width:27px;
-    height:27px;
+            width: 42px;
+            height: 42px;
 
-    border-radius:50%;
+            flex-shrink: 0;
 
-    border:1px solid #444;
+            border-radius: 13px;
 
-    display:flex;
+            display: flex;
 
-    align-items:center;
+            align-items: center;
+            justify-content: center;
 
-    justify-content:center;
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffe58a,
+                    #b87520
+                );
 
-    background:#151515;
+            color: #17120a;
 
-    font-size:11px;
+            font-size: 22px;
 
-    font-weight:900;
+            box-shadow:
+                0 8px 25px
+                rgba(255, 192, 72, .18);
+        }
 
-}
+        .brand-name {
 
-.profile-info{
+            font-size: 18px;
 
-    display:flex;
+            font-weight: 800;
+        }
 
-    flex-direction:column;
+        .brand-subtitle {
 
-    gap:2px;
+            margin-top: 2px;
 
-}
+            font-size: 11px;
 
-.profile-name{
+            color: #7e7e8b;
+        }
 
-    font-size:10px;
+        .connection {
 
-    font-weight:900;
+            display: flex;
 
-}
+            align-items: center;
 
-.profile-meta{
+            gap: 6px;
 
-    color:#777;
+            padding:
+                7px
+                9px;
 
-    font-size:8px;
+            border-radius: 20px;
 
-}
+            background:
+                rgba(255,255,255,.05);
 
+            color: #9999a6;
 
-/* =========================================================
-   TABLE
-========================================================= */
+            font-size: 11px;
+        }
 
-.table{
+        .connection-dot {
 
-    position:absolute;
+            width: 7px;
+            height: 7px;
 
-    left:50%;
-    top:50%;
+            border-radius: 50%;
 
-    width:min(96vw,700px);
+            background: #777;
 
-    height:min(76vh,650px);
+        }
 
-    transform:
-        translate(-50%,-50%);
+        .connection.online .connection-dot {
 
-}
+            background: #4ade80;
 
+            box-shadow:
+                0 0 10px
+                rgba(74,222,128,.8);
 
-/* =========================================================
-   DECK
-========================================================= */
+        }
 
-.deck-area{
+        /* =====================================================
+           PROFILE
+        ===================================================== */
 
-    position:absolute;
+        .profile-card {
 
-    left:11%;
+            padding: 16px;
 
-    top:50%;
+            border:
+                1px solid
+                rgba(255,255,255,.07);
 
-    width:125px;
+            border-radius: 22px;
 
-    height:130px;
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(255,255,255,.07),
+                    rgba(255,255,255,.025)
+                );
 
-    transform:
-        translate(-50%,-50%);
+            box-shadow:
+                0 15px 40px
+                rgba(0,0,0,.18);
 
-    z-index:20;
+            backdrop-filter: blur(15px);
 
-}
+            margin-bottom: 12px;
+        }
 
-.deck{
+        .profile-top {
 
-    position:absolute;
+            display: flex;
 
-    left:0;
-    top:17px;
+            align-items: center;
 
-    width:66px;
-    height:94px;
+            gap: 12px;
+        }
 
-    transform:rotate(-5deg);
+        .avatar {
 
-}
+            width: 54px;
+            height: 54px;
 
-.deck-card{
+            border-radius: 17px;
 
-    position:absolute;
+            display: flex;
 
-    inset:0;
+            align-items: center;
+            justify-content: center;
 
-    border-radius:8px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #36364b,
+                    #1c1c29
+                );
 
-    border:2px solid #aaa;
+            border:
+                1px solid
+                rgba(255,255,255,.08);
 
-    background:
+            font-size: 22px;
 
-        repeating-linear-gradient(
-            45deg,
-            #0b0b0b 0,
-            #0b0b0b 5px,
-            #242424 5px,
-            #242424 10px
-        );
+            font-weight: 800;
+        }
 
-    box-shadow:
-        0 5px 14px
-        rgba(0,0,0,.65);
+        .player-name {
 
-}
+            font-size: 17px;
 
-.deck-card::after{
+            font-weight: 750;
 
-    content:"HL";
+            white-space: nowrap;
 
-    position:absolute;
+            overflow: hidden;
 
-    left:50%;
-    top:50%;
+            text-overflow: ellipsis;
+        }
 
-    transform:
-        translate(-50%,-50%);
+        .player-title {
 
-    width:38px;
-    height:38px;
+            margin-top: 4px;
 
-    border:1px solid #777;
+            color: #b9b9c5;
 
-    display:flex;
+            font-size: 12px;
+        }
 
-    align-items:center;
-    justify-content:center;
+        .level {
 
-    font-size:11px;
+            margin-left: auto;
 
-    font-weight:900;
+            min-width: 48px;
 
-    letter-spacing:2px;
+            text-align: center;
 
-    color:#ddd;
+            padding: 8px 9px;
 
-}
+            border-radius: 13px;
 
-.deck-card:nth-child(1){
-    transform:
-        translate(-6px,-5px);
-}
+            background:
+                rgba(255,215,106,.10);
 
-.deck-card:nth-child(2){
-    transform:
-        translate(-3px,-2px);
-}
+            border:
+                1px solid
+                rgba(255,215,106,.18);
 
-.deck-card:nth-child(3){
-    transform:
-        translate(0,0);
-}
+            color: #ffd76a;
 
+            font-size: 12px;
 
-/* =========================================================
-   TRUMP
-========================================================= */
+            font-weight: 800;
+        }
 
-.trump{
+        .balance {
 
-    position:absolute;
+            display: flex;
 
-    left:58px;
-    top:31px;
+            align-items: center;
 
-    width:66px;
-    height:94px;
+            justify-content: space-between;
 
-    z-index:2;
+            margin-top: 16px;
 
-    transform:rotate(76deg);
+            padding-top: 14px;
 
-}
+            border-top:
+                1px solid
+                rgba(255,255,255,.06);
+        }
 
+        .balance-label {
 
-/* =========================================================
-   CARD
-========================================================= */
+            color: #858591;
 
-.card{
+            font-size: 12px;
+        }
 
-    position:absolute;
+        .balance-value {
 
-    width:66px;
-    height:94px;
+            color: #ffd76a;
 
-    border-radius:8px;
+            font-size: 22px;
 
-    background:#fff;
+            font-weight: 850;
 
-    color:#080808;
+            letter-spacing: .2px;
+        }
 
-    border:1px solid #ccc;
+        .coin {
 
-    box-shadow:
-        0 7px 16px
-        rgba(0,0,0,.55);
+            display: inline-flex;
 
-    overflow:hidden;
+            align-items: center;
+            justify-content: center;
 
-    font-weight:900;
+            width: 22px;
+            height: 22px;
 
-}
+            margin-left: 5px;
 
-.card.red{
-    color:#111;
-}
+            border-radius: 50%;
 
-.card.back{
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffe48a,
+                    #c48627
+                );
 
-    background:
+            color: #33240b;
 
-        repeating-linear-gradient(
-            45deg,
-            #0b0b0b 0,
-            #0b0b0b 5px,
-            #242424 5px,
-            #242424 10px
-        );
+            font-size: 12px;
 
-    border:2px solid #999;
+            font-weight: 900;
 
-}
+            vertical-align: 2px;
+        }
 
-.card.back::after{
+        /* =====================================================
+           XP
+        ===================================================== */
 
-    content:"HL";
+        .xp-box {
 
-    position:absolute;
+            margin-top: 12px;
+        }
 
-    left:50%;
-    top:50%;
+        .xp-header {
 
-    transform:
-        translate(-50%,-50%);
+            display: flex;
 
-    width:38px;
-    height:38px;
+            justify-content: space-between;
 
-    border:1px solid #777;
+            color: #777784;
 
-    display:flex;
+            font-size: 11px;
 
-    align-items:center;
-    justify-content:center;
+            margin-bottom: 6px;
+        }
 
-    font-size:11px;
+        .xp-bar {
 
-    font-weight:900;
+            width: 100%;
 
-    letter-spacing:2px;
+            height: 6px;
 
-    color:#ddd;
+            overflow: hidden;
 
-}
+            border-radius: 10px;
 
-.card-value{
+            background:
+                rgba(255,255,255,.06);
+        }
 
-    position:absolute;
+        .xp-fill {
 
-    top:5px;
-    left:6px;
+            width: 0%;
 
-    font-size:15px;
+            height: 100%;
 
-}
+            border-radius: inherit;
 
-.card-suit{
+            background:
+                linear-gradient(
+                    90deg,
+                    #ffd76a,
+                    #fff0a8
+                );
 
-    position:absolute;
+            transition:
+                width .4s ease;
+        }
 
-    top:23px;
-    left:7px;
+        /* =====================================================
+           NAV
+        ===================================================== */
 
-    font-size:14px;
+        .navigation {
 
-}
+            display: grid;
 
-.card-center{
+            grid-template-columns:
+                repeat(3, 1fr);
 
-    position:absolute;
+            gap: 8px;
 
-    left:50%;
-    top:52%;
+            margin-bottom: 12px;
+        }
 
-    transform:
-        translate(-50%,-50%);
+        .nav-button {
 
-    font-size:30px;
+            border: none;
 
-}
+            border-radius: 15px;
 
-.card-corner{
+            padding: 12px 8px;
 
-    position:absolute;
+            color: #9999a6;
 
-    right:5px;
-    bottom:4px;
+            background:
+                rgba(255,255,255,.045);
 
-    transform:rotate(180deg);
+            font-size: 12px;
 
-    font-size:11px;
+            font-weight: 700;
 
-}
+            cursor: pointer;
+        }
 
+        .nav-button.active {
 
-/* =========================================================
-   OPPONENT
-========================================================= */
+            color: #17120a;
 
-.opponent{
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffe58a,
+                    #d19a35
+                );
+        }
 
-    position:absolute;
+        /* =====================================================
+           SCREENS
+        ===================================================== */
 
-    top:7vh;
+        .screen {
 
-    left:50%;
+            display: none;
+        }
 
-    transform:
-        translateX(-50%);
+        .screen.active {
 
-    text-align:center;
+            display: block;
+        }
 
-    z-index:50;
+        .section-title {
 
-}
+            margin: 5px 3px 10px;
 
-.avatar{
+            font-size: 17px;
 
-    width:48px;
-    height:48px;
+            font-weight: 800;
+        }
 
-    margin:auto;
+        .section-description {
 
-    border:1px solid #444;
+            margin:
+                -5px
+                3px
+                12px;
 
-    border-radius:50%;
+            color: #777784;
 
-    background:#111;
+            font-size: 12px;
 
-    display:flex;
+            line-height: 1.45;
+        }
 
-    justify-content:center;
+        /* =====================================================
+           HOME
+        ===================================================== */
 
-    align-items:center;
+        .hero {
 
-    font-size:20px;
+            position: relative;
 
-}
+            overflow: hidden;
 
-.opponent-name{
+            padding: 22px;
 
-    margin-top:5px;
+            min-height: 185px;
 
-    font-size:12px;
+            border-radius: 24px;
 
-    font-weight:900;
+            background:
+                radial-gradient(
+                    circle at 85% 15%,
+                    rgba(255,215,106,.18),
+                    transparent 30%
+                ),
+                linear-gradient(
+                    135deg,
+                    #272739,
+                    #111118
+                );
 
-}
+            border:
+                1px solid
+                rgba(255,255,255,.07);
 
-.opponent-count{
+            box-shadow:
+                0 20px 50px
+                rgba(0,0,0,.25);
+        }
 
-    margin-top:3px;
+        .hero::after {
 
-    color:#777;
+            content: "♠";
 
-    font-size:10px;
+            position: absolute;
 
-}
+            right: -10px;
+            bottom: -40px;
 
+            font-size: 170px;
 
-/* =========================================================
-   OPPONENT HAND
-========================================================= */
+            color:
+                rgba(255,255,255,.025);
 
-.opponent-hand{
+            transform: rotate(-12deg);
+        }
 
-    position:absolute;
+        .hero-small {
 
-    left:50%;
+            color: #92929e;
 
-    top:0;
+            font-size: 12px;
+        }
 
-    width:260px;
+        .hero-title {
 
-    height:105px;
+            max-width: 270px;
 
-    transform:
-        translateX(-50%);
+            margin-top: 8px;
 
-    z-index:35;
+            font-size: 28px;
 
-}
+            line-height: 1.05;
 
-.opponent-hand .card{
+            font-weight: 900;
+        }
 
-    width:58px;
-    height:84px;
+        .hero-title span {
 
-}
+            color: #ffd76a;
+        }
 
+        .hero-text {
 
-/* =========================================================
-   PLAYER
-========================================================= */
+            max-width: 270px;
 
-.player-info{
+            margin-top: 10px;
 
-    position:absolute;
+            color: #8b8b99;
 
-    bottom:7vh;
+            font-size: 12px;
 
-    left:50%;
+            line-height: 1.5;
+        }
 
-    transform:
-        translateX(-50%);
+        .primary-button {
 
-    text-align:center;
+            position: relative;
 
-    z-index:120;
+            z-index: 2;
 
-}
+            margin-top: 18px;
 
-.player-name{
+            border: none;
 
-    font-size:12px;
+            padding: 13px 18px;
 
-    font-weight:900;
+            border-radius: 14px;
 
-}
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffe58a,
+                    #c68a29
+                );
 
-.player-count{
+            color: #191309;
 
-    margin-top:3px;
+            font-size: 13px;
 
-    color:#777;
+            font-weight: 850;
 
-    font-size:10px;
+            cursor: pointer;
 
-}
+            box-shadow:
+                0 10px 25px
+                rgba(209,154,53,.18);
+        }
 
+        .primary-button:active {
 
-/* =========================================================
-   PLAYER HAND
-========================================================= */
+            transform: scale(.97);
+        }
 
-.hand{
+        .stats-grid {
 
-    position:absolute;
+            display: grid;
 
-    left:50%;
+            grid-template-columns:
+                repeat(3, 1fr);
 
-    bottom:0;
+            gap: 8px;
 
-    width:100%;
+            margin-top: 10px;
+        }
 
-    height:145px;
+        .stat {
 
-    transform:
-        translateX(-50%);
+            padding: 14px 10px;
 
-    z-index:200;
+            border-radius: 17px;
 
-}
+            background:
+                rgba(255,255,255,.045);
 
-.hand .card{
+            border:
+                1px solid
+                rgba(255,255,255,.05);
 
-    transition:
-        left .22s ease,
-        bottom .22s ease,
-        transform .22s ease;
+            text-align: center;
+        }
 
-}
+        .stat-value {
 
-.hand .card.allowed{
+            font-size: 19px;
 
-    box-shadow:
-        0 0 0 2px #fff,
-        0 8px 20px
-        rgba(255,255,255,.18);
+            font-weight: 850;
+        }
 
-}
+        .stat-label {
 
-.hand .card.not-allowed{
+            margin-top: 4px;
 
-    opacity:.38;
+            color: #777784;
 
-}
+            font-size: 10px;
+        }
 
+        /* =====================================================
+           GAME
+        ===================================================== */
 
-/* =========================================================
-   TABLE
-========================================================= */
+        .game-status {
 
-.attack-zone,
-.defense-zone{
+            padding: 14px;
 
-    position:absolute;
+            border-radius: 18px;
 
-    left:50%;
-    top:50%;
+            background:
+                rgba(255,255,255,.045);
 
-    width:340px;
-    height:250px;
+            border:
+                1px solid
+                rgba(255,255,255,.06);
 
-    transform:
-        translate(-50%,-50%);
+            margin-bottom: 10px;
+        }
 
-    z-index:60;
+        .game-status-title {
 
-}
+            font-size: 14px;
 
-.played-card{
+            font-weight: 800;
+        }
 
-    position:absolute;
+        .game-status-text {
 
-    width:66px;
-    height:94px;
+            margin-top: 4px;
 
-}
+            color: #858591;
 
+            font-size: 11px;
+        }
 
-/* =========================================================
-   CONTROLS
-========================================================= */
+        .table {
 
-.controls{
+            position: relative;
 
-    position:absolute;
+            min-height: 330px;
 
-    left:50%;
+            overflow: hidden;
 
-    bottom:17vh;
+            border-radius: 28px;
 
-    transform:
-        translateX(-50%);
+            background:
+                radial-gradient(
+                    ellipse at center,
+                    #155936 0%,
+                    #0d3d25 45%,
+                    #092619 100%
+                );
 
-    display:flex;
+            border:
+                8px solid
+                #202027;
 
-    gap:7px;
+            box-shadow:
+                inset 0 0 50px
+                rgba(0,0,0,.35),
+                0 20px 50px
+                rgba(0,0,0,.3);
+        }
 
-    z-index:400;
+        .trump {
 
-}
+            position: absolute;
 
-button{
+            top: 12px;
+            right: 12px;
 
-    border:1px solid #333;
+            padding: 6px 9px;
 
-    border-radius:10px;
+            border-radius: 10px;
 
-    background:#0c0c0c;
+            background:
+                rgba(0,0,0,.3);
 
-    color:#fff;
+            font-size: 12px;
+        }
 
-    padding:10px 16px;
+        .deck-count {
 
-    font-size:11px;
+            position: absolute;
 
-    font-weight:900;
+            top: 12px;
+            left: 12px;
 
-}
+            padding: 6px 9px;
 
-button.primary{
+            border-radius: 10px;
 
-    background:#fff;
+            background:
+                rgba(0,0,0,.3);
 
-    color:#000;
+            color: #bcbcc6;
 
-}
+            font-size: 11px;
+        }
 
-button.danger{
+        .cards-table {
 
-    background:#171717;
+            display: flex;
 
-}
+            flex-wrap: wrap;
 
-button:active{
+            justify-content: center;
 
-    transform:scale(.95);
+            align-items: center;
 
-}
+            gap: 8px;
 
+            padding: 55px 20px 20px;
 
-/* =========================================================
-   MESSAGE
-========================================================= */
+            min-height: 300px;
+        }
 
-.message{
+        .empty-table {
 
-    position:absolute;
+            color:
+                rgba(255,255,255,.25);
 
-    left:50%;
-    top:15vh;
+            font-size: 12px;
+        }
 
-    transform:
-        translateX(-50%);
+        .card {
 
-    padding:8px 13px;
+            position: relative;
 
-    border:1px solid #292929;
+            width: 64px;
+            height: 92px;
 
-    border-radius:10px;
+            flex-shrink: 0;
 
-    background:#090909;
+            border-radius: 9px;
 
-    color:#bbb;
+            background:
+                linear-gradient(
+                    145deg,
+                    #fff,
+                    #dedee2
+                );
 
-    font-size:10px;
+            color: #17171d;
 
-    z-index:500;
+            box-shadow:
+                0 8px 15px
+                rgba(0,0,0,.3);
 
-    opacity:0;
+            cursor: pointer;
 
-    transition:
-        opacity .2s ease;
+            user-select: none;
 
-}
+            transition:
+                transform .15s ease,
+                box-shadow .15s ease;
+        }
 
-.message.show{
-    opacity:1;
-}
+        .card.red {
 
+            color: #c83232;
+        }
 
-/* =========================================================
-   START
-========================================================= */
+        .card.black {
 
-.start{
+            color: #18181c;
+        }
 
-    position:absolute;
+        .card:hover {
 
-    inset:0;
+            transform:
+                translateY(-5px);
+        }
 
-    background:#050505;
+        .card-rank {
 
-    z-index:1000;
+            position: absolute;
 
-    display:flex;
+            top: 5px;
+            left: 7px;
 
-    justify-content:center;
+            font-size: 17px;
 
-    align-items:center;
+            font-weight: 900;
+        }
 
-}
+        .card-suit {
 
-.start-box{
+            position: absolute;
 
-    width:82%;
+            top: 24px;
+            left: 8px;
 
-    max-width:340px;
+            font-size: 18px;
+        }
 
-    text-align:center;
+        .card-center {
 
-}
+            position: absolute;
 
-.start-title{
+            inset: 0;
 
-    font-size:29px;
+            display: flex;
 
-    font-weight:900;
+            align-items: center;
 
-    letter-spacing:5px;
+            justify-content: center;
 
-}
+            font-size: 30px;
+        }
 
-.start-sub{
+        .card.defense-card {
 
-    margin-top:8px;
+            transform:
+                translateX(8px)
+                rotate(3deg);
+        }
 
-    color:#666;
+        .hand-title {
 
-    font-size:10px;
+            margin: 12px 2px 8px;
 
-    letter-spacing:3px;
+            color: #858591;
 
-}
+            font-size: 11px;
+        }
 
-.start-button{
+        .hand {
 
-    width:100%;
+            display: flex;
 
-    margin-top:30px;
+            gap: 7px;
 
-    padding:16px;
+            overflow-x: auto;
 
-    border:0;
+            padding:
+                4px
+                3px
+                12px;
 
-    background:#fff;
+            scrollbar-width: none;
+        }
 
-    color:#000;
+        .hand::-webkit-scrollbar {
 
-    font-size:14px;
+            display: none;
+        }
 
-}
+        .hand .card {
 
+            width: 55px;
+            height: 80px;
 
-/* =========================================================
-   ANIMATION
-========================================================= */
+            flex: 0 0 55px;
+        }
 
-@keyframes playCard{
+        .hand .card-rank {
 
-    from{
+            font-size: 15px;
+        }
 
-        opacity:0;
+        .hand .card-suit {
 
-        transform:
-            scale(.55)
-            rotate(-12deg);
+            top: 22px;
 
-    }
+            font-size: 16px;
+        }
 
-    to{
+        .hand .card-center {
 
-        opacity:1;
+            font-size: 26px;
+        }
 
-        transform:
-            scale(1)
-            rotate(0);
+        .game-actions {
 
-    }
+            display: grid;
 
-}
+            grid-template-columns:
+                1fr 1fr;
 
-.play-animation{
+            gap: 8px;
 
-    animation:
-        playCard .28s ease forwards;
+            margin-top: 3px;
+        }
 
-}
+        .game-button {
 
+            min-height: 45px;
 
-@media(max-width:390px){
+            border: none;
 
-    .card{
+            border-radius: 14px;
 
-        width:59px;
-        height:84px;
+            background:
+                rgba(255,255,255,.06);
 
-    }
+            color: #dedee4;
 
-    .played-card{
+            font-weight: 750;
 
-        width:59px;
-        height:84px;
+            cursor: pointer;
+        }
 
-    }
+        .game-button.gold {
 
-    .hand{
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffe58a,
+                    #c98d2b
+                );
 
-        height:130px;
+            color: #1b150b;
+        }
 
-    }
+        .game-button:disabled {
 
-    .attack-zone,
-    .defense-zone{
+            opacity: .35;
 
-        width:310px;
+            cursor: default;
+        }
 
-    }
+        /* =====================================================
+           PROFILE SCREEN
+        ===================================================== */
 
-}
+        .profile-large {
 
-</style>
+            padding: 20px;
+
+            border-radius: 22px;
+
+            background:
+                rgba(255,255,255,.045);
+
+            border:
+                1px solid
+                rgba(255,255,255,.06);
+
+            text-align: center;
+        }
+
+        .avatar-large {
+
+            width: 78px;
+            height: 78px;
+
+            margin: 0 auto 12px;
+
+            border-radius: 24px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #3a3a50,
+                    #1c1c28
+                );
+
+            font-size: 30px;
+
+            font-weight: 900;
+        }
+
+        .profile-name-large {
+
+            font-size: 20px;
+
+            font-weight: 850;
+        }
+
+        .profile-title-large {
+
+            margin-top: 5px;
+
+            color: #ffd76a;
+
+            font-size: 12px;
+        }
+
+        .profile-stats {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 8px;
+
+            margin-top: 15px;
+        }
+
+        /* =====================================================
+           NOTIFICATION
+        ===================================================== */
+
+        #notification {
+
+            position: fixed;
+
+            left: 14px;
+            right: 14px;
+
+            bottom:
+                calc(
+                    env(safe-area-inset-bottom) +
+                    16px
+                );
+
+            z-index: 99999;
+
+            padding: 13px 15px;
+
+            border-radius: 15px;
+
+            background:
+                rgba(25,25,32,.96);
+
+            border:
+                1px solid
+                rgba(255,255,255,.08);
+
+            box-shadow:
+                0 15px 40px
+                rgba(0,0,0,.35);
+
+            color: #fff;
+
+            font-size: 12px;
+
+            transform:
+                translateY(150px);
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            transition:
+                .25s ease;
+        }
+
+        #notification.show {
+
+            transform:
+                translateY(0);
+
+            opacity: 1;
+        }
+
+        /* =====================================================
+           ERROR
+        ===================================================== */
+
+        .error-box {
+
+            display: none;
+
+            padding: 16px;
+
+            border-radius: 18px;
+
+            background:
+                rgba(180,50,50,.12);
+
+            border:
+                1px solid
+                rgba(255,80,80,.18);
+
+            color: #ffaaaa;
+
+            font-size: 12px;
+
+            line-height: 1.5;
+        }
+
+        .error-box.show {
+
+            display: block;
+        }
+
+        /* =====================================================
+           DESKTOP
+        ===================================================== */
+
+        @media (min-width: 700px) {
+
+            .app {
+
+                padding-left: 20px;
+                padding-right: 20px;
+
+            }
+
+            .card {
+
+                width: 72px;
+                height: 104px;
+
+            }
+
+            .hand .card {
+
+                width: 62px;
+                height: 90px;
+
+                flex-basis: 62px;
+
+            }
+
+        }
+
+    </style>
 
 </head>
 
-
 <body>
 
-<div id="app">
+<!-- =========================================================
+     LOADING
+========================================================= -->
 
+<div id="loadingScreen">
 
-<!-- TOP -->
-
-<div class="topbar">
-
-    <div class="logo">
-        HEAVY LUX CARD
+    <div class="loading-logo">
+        ♠
     </div>
 
-    <div class="info">
-
-        <div class="info-item">
-            HC <b id="balance">5 000</b>
-        </div>
-
-        <div class="info-item">
-            LVL <b id="level">1</b>
-        </div>
-
-        <div class="info-item">
-            КОЗЫРЬ <b id="trumpInfo">—</b>
-        </div>
-
-        <div class="info-item">
-            КОЛОДА <b id="deckCount">0</b>
-        </div>
-
+    <div class="loading-title">
+        Heavy Lux Card
     </div>
+
+    <div class="loading-text">
+        Подключение к игре...
+    </div>
+
+    <div class="loader"></div>
 
 </div>
 
 
-<!-- PROFILE -->
-
-<div class="profile">
-
-    <div
-        id="profileAvatar"
-        class="profile-avatar"
-    >
-        HL
-    </div>
-
-    <div class="profile-info">
-
-        <div
-            id="profileName"
-            class="profile-name"
-        >
-            Авторизация...
-        </div>
-
-        <div
-            id="profileMeta"
-            class="profile-meta"
-        >
-            Heavy Lux Card
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- MESSAGE -->
+<!-- =========================================================
+     APP
+========================================================= -->
 
 <div
-    id="message"
-    class="message"
-></div>
-
-
-<!-- OPPONENT -->
-
-<div class="opponent">
-
-    <div class="avatar">
-        AI
-    </div>
-
-    <div class="opponent-name">
-        Heavy AI
-    </div>
-
-    <div class="opponent-count">
-
-        Карт:
-        <b id="opponentCount">
-            0
-        </b>
-
-    </div>
-
-</div>
-
-
-<!-- OPPONENT HAND -->
-
-<div
-    id="opponentHand"
-    class="opponent-hand"
-></div>
-
-
-<!-- TABLE -->
-
-<div class="table">
-
-    <div class="deck-area">
-
-        <div
-            id="deck"
-            class="deck"
-        >
-
-            <div class="deck-card"></div>
-            <div class="deck-card"></div>
-            <div class="deck-card"></div>
-
-        </div>
-
-        <div
-            id="trumpCard"
-            class="card trump"
-        ></div>
-
-    </div>
-
-
-    <div
-        id="attackZone"
-        class="attack-zone"
-    ></div>
-
-
-    <div
-        id="defenseZone"
-        class="defense-zone"
-    ></div>
-
-</div>
-
-
-<!-- PLAYER HAND -->
-
-<div
-    id="playerHand"
-    class="hand"
-></div>
-
-
-<!-- PLAYER INFO -->
-
-<div class="player-info">
-
-    <div
-        id="playerName"
-        class="player-name"
-    >
-        Игрок
-    </div>
-
-    <div class="player-count">
-
-        Карт:
-        <b id="playerCount">
-            0
-        </b>
-
-    </div>
-
-</div>
-
-
-<!-- CONTROLS -->
-
-<div class="controls">
-
-    <button
-        id="takeButton"
-        class="danger"
-        style="display:none"
-    >
-        ВЗЯТЬ
-    </button>
-
-    <button
-        id="beatButton"
-        class="primary"
-        style="display:none"
-    >
-        БИТО
-    </button>
-
-</div>
-
-
-<!-- START -->
-
-<div
-    id="startScreen"
-    class="start"
+    id="app"
+    class="app"
+    style="display:none;"
 >
 
-    <div class="start-box">
 
-        <div class="start-title">
-            HEAVY LUX
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="header">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                ♠
+            </div>
+
+            <div>
+
+                <div class="brand-name">
+                    Heavy Lux Card
+                </div>
+
+                <div class="brand-subtitle">
+                    CLASSIC DURAK
+                </div>
+
+            </div>
+
         </div>
 
-        <div class="start-sub">
-            CLASSIC DURAK
+
+        <div
+            id="connection"
+            class="connection"
+        >
+
+            <span
+                class="connection-dot"
+            ></span>
+
+            <span id="connectionText">
+                Подключение
+            </span>
+
         </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         PROFILE CARD
+    ====================================================== -->
+
+    <section class="profile-card">
+
+        <div class="profile-top">
+
+            <div
+                id="avatar"
+                class="avatar"
+            >
+                ?
+            </div>
+
+            <div
+                style="
+                    min-width:0;
+                    flex:1;
+                "
+            >
+
+                <div
+                    id="playerName"
+                    class="player-name"
+                >
+                    Игрок
+                </div>
+
+                <div
+                    id="playerTitle"
+                    class="player-title"
+                >
+                    Новичок
+                </div>
+
+            </div>
+
+            <div
+                id="playerLevel"
+                class="level"
+            >
+                LVL 1
+            </div>
+
+        </div>
+
+
+        <div class="balance">
+
+            <div>
+
+                <div class="balance-label">
+                    Баланс
+                </div>
+
+                <div
+                    id="balanceValue"
+                    class="balance-value"
+                >
+                    5 000
+                    <span class="coin">
+                        HC
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="xp-box">
+
+            <div class="xp-header">
+
+                <span>
+                    Опыт
+                </span>
+
+                <span id="xpText">
+                    0 / 100 XP
+                </span>
+
+            </div>
+
+            <div class="xp-bar">
+
+                <div
+                    id="xpFill"
+                    class="xp-fill"
+                ></div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         NAVIGATION
+    ====================================================== -->
+
+    <nav class="navigation">
 
         <button
-            id="startButton"
-            class="start-button"
+            class="nav-button active"
+            data-screen="home"
         >
-            НАЧАТЬ ИГРУ
+            🏠 Главная
         </button>
 
-    </div>
+        <button
+            class="nav-button"
+            data-screen="game"
+        >
+            🃏 Игра
+        </button>
+
+        <button
+            class="nav-button"
+            data-screen="profile"
+        >
+            👤 Профиль
+        </button>
+
+    </nav>
+
+
+    <!-- =====================================================
+         ERROR
+    ====================================================== -->
+
+    <div
+        id="errorBox"
+        class="error-box"
+    ></div>
+
+
+    <!-- =====================================================
+         HOME
+    ====================================================== -->
+
+    <main
+        id="screen-home"
+        class="screen active"
+    >
+
+        <section class="hero">
+
+            <div class="hero-small">
+                ДОБРО ПОЖАЛОВАТЬ
+            </div>
+
+            <div class="hero-title">
+                Сыграй в
+                <span>Дурака</span>
+            </div>
+
+            <div class="hero-text">
+                Классические правила,
+                36 карт, козырь и
+                полноценная пошаговая игра.
+            </div>
+
+            <button
+                id="startGameButton"
+                class="primary-button"
+            >
+                🃏 Начать игру
+            </button>
+
+        </section>
+
+
+        <div class="section-title">
+            Твоя статистика
+        </div>
+
+        <div class="stats-grid">
+
+            <div class="stat">
+
+                <div
+                    id="winsValue"
+                    class="stat-value"
+                >
+                    0
+                </div>
+
+                <div class="stat-label">
+                    Победы
+                </div>
+
+            </div>
+
+            <div class="stat">
+
+                <div
+                    id="lossesValue"
+                    class="stat-value"
+                >
+                    0
+                </div>
+
+                <div class="stat-label">
+                    Поражения
+                </div>
+
+            </div>
+
+            <div class="stat">
+
+                <div
+                    id="gamesValue"
+                    class="stat-value"
+                >
+                    0
+                </div>
+
+                <div class="stat-label">
+                    Игр
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- =====================================================
+         GAME
+    ====================================================== -->
+
+    <main
+        id="screen-game"
+        class="screen"
+    >
+
+        <div class="section-title">
+            Классический Дурак
+        </div>
+
+        <div
+            id="gameStatus"
+            class="game-status"
+        >
+
+            <div
+                id="gameStatusTitle"
+                class="game-status-title"
+            >
+                Игра не начата
+            </div>
+
+            <div
+                id="gameStatusText"
+                class="game-status-text"
+            >
+                Нажми «Начать игру»
+            </div>
+
+        </div>
+
+
+        <div class="table">
+
+            <div
+                id="trump"
+                class="trump"
+            >
+                ♠ Козырь
+            </div>
+
+            <div
+                id="deckCount"
+                class="deck-count"
+            >
+                Колода: 24
+            </div>
+
+            <div
+                id="cardsTable"
+                class="cards-table"
+            >
+
+                <div class="empty-table">
+                    Стол пуст
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="hand-title">
+            Твои карты
+        </div>
+
+        <div
+            id="playerHand"
+            class="hand"
+        ></div>
+
+
+        <div class="game-actions">
+
+            <button
+                id="takeButton"
+                class="game-button"
+                disabled
+            >
+                Взять
+            </button>
+
+            <button
+                id="finishButton"
+                class="game-button gold"
+                disabled
+            >
+                Закончить ход
+            </button>
+
+        </div>
+
+    </main>
+
+
+    <!-- =====================================================
+         PROFILE
+    ====================================================== -->
+
+    <main
+        id="screen-profile"
+        class="screen"
+    >
+
+        <div class="section-title">
+            Профиль
+        </div>
+
+        <section class="profile-large">
+
+            <div
+                id="largeAvatar"
+                class="avatar-large"
+            >
+                ?
+            </div>
+
+            <div
+                id="largePlayerName"
+                class="profile-name-large"
+            >
+                Игрок
+            </div>
+
+            <div
+                id="largePlayerTitle"
+                class="profile-title-large"
+            >
+                Новичок
+            </div>
+
+
+            <div class="profile-stats">
+
+                <div class="stat">
+
+                    <div
+                        id="profileBalance"
+                        class="stat-value"
+                    >
+                        5 000
+                    </div>
+
+                    <div class="stat-label">
+                        HC
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div
+                        id="profileLevel"
+                        class="stat-value"
+                    >
+                        1
+                    </div>
+
+                    <div class="stat-label">
+                        Уровень
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div
+                        id="profileWins"
+                        class="stat-value"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-label">
+                        Побед
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div
+                        id="profileLosses"
+                        class="stat-value"
+                    >
+                        0
+                    </div>
+
+                    <div class="stat-label">
+                        Поражений
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
 
 </div>
 
 
-</div>
+<!-- =========================================================
+     NOTIFICATION
+========================================================= -->
+
+<div
+    id="notification"
+></div>
 
 
 <script>
 
-/* =========================================================
-   CONFIG
-========================================================= */
-
-const BACKEND_URL =
-    "https://heavy-lux-card.onrender.com";
+"use strict";
 
 
 /* =========================================================
@@ -1207,9 +1851,11 @@ const BACKEND_URL =
 ========================================================= */
 
 const tg =
-    window.Telegram
+    window.Telegram &&
+    window.Telegram.WebApp
         ? window.Telegram.WebApp
         : null;
+
 
 if (tg) {
 
@@ -1221,80 +1867,45 @@ if (tg) {
 
 
 /* =========================================================
-   SOCKET
-========================================================= */
-
-const socket =
-    io(
-        BACKEND_URL,
-        {
-            transports:[
-                "websocket",
-                "polling"
-            ],
-
-            reconnection:true,
-
-            reconnectionAttempts:20,
-
-            timeout:10000
-        }
-    );
-
-
-/* =========================================================
    STATE
 ========================================================= */
 
-let game = null;
+let player = null;
 
-let currentPlayer = null;
+let gameState = null;
 
-let gameStarted = false;
+let socket = null;
+
+let notificationTimer = null;
 
 
 /* =========================================================
-   DOM
+   ELEMENTS
 ========================================================= */
 
-const playerHandEl =
+const loadingScreen =
     document.getElementById(
-        "playerHand"
+        "loadingScreen"
     );
 
-const opponentHandEl =
+const app =
     document.getElementById(
-        "opponentHand"
+        "app"
     );
 
-const attackZone =
+const errorBox =
     document.getElementById(
-        "attackZone"
+        "errorBox"
     );
 
-const defenseZone =
+const connection =
     document.getElementById(
-        "defenseZone"
+        "connection"
     );
 
-const trumpCardEl =
+const connectionText =
     document.getElementById(
-        "trumpCard"
-    );
-
-const messageEl =
-    document.getElementById(
-        "message"
-    );
-
-const takeButton =
-    document.getElementById(
-        "takeButton"
-    );
-
-const beatButton =
-    document.getElementById(
-        "beatButton"
+        "connectionText"
     );
 
 
@@ -1302,122 +1913,233 @@ const beatButton =
    HELPERS
 ========================================================= */
 
-function formatNumber(number){
+function formatNumber(number) {
 
-    return Number(
-        number || 0
-    ).toLocaleString(
-        "ru-RU"
-    );
+    return Number(number || 0)
+        .toLocaleString("ru-RU");
 
 }
 
 
-function sleep(ms){
+function showNotification(message) {
 
-    return new Promise(
-        resolve =>
-            setTimeout(
-                resolve,
-                ms
-            )
-    );
+    const element =
+        document.getElementById(
+            "notification"
+        );
 
-}
+    element.textContent =
+        message;
 
-
-/* =========================================================
-   MESSAGE
-========================================================= */
-
-let messageTimer = null;
-
-function showMessage(text){
-
-    messageEl.innerText =
-        text;
-
-    messageEl.classList.add(
+    element.classList.add(
         "show"
     );
 
     clearTimeout(
-        messageTimer
+        notificationTimer
     );
 
-    messageTimer =
+    notificationTimer =
         setTimeout(
             () => {
 
-                messageEl.classList.remove(
+                element.classList.remove(
                     "show"
                 );
 
             },
-            1800
+            2500
         );
 
 }
 
 
+function showError(message) {
+
+    errorBox.textContent =
+        message;
+
+    errorBox.classList.add(
+        "show"
+    );
+
+}
+
+
+function hideError() {
+
+    errorBox.classList.remove(
+        "show"
+    );
+
+}
+
+
 /* =========================================================
-   PROFILE
+   PROFILE UI
 ========================================================= */
 
-function updateProfile(
-    player
-){
+function updatePlayerUI() {
 
     if (!player) {
+
         return;
+
     }
 
-    currentPlayer =
-        player;
+
+    const fullName =
+        [
+            player.first_name,
+            player.last_name
+        ]
+            .filter(Boolean)
+            .join(" ")
+        ||
+        "Игрок";
+
+
+    const shortName =
+        player.first_name
+        ||
+        "И";
+
 
     document.getElementById(
-        "balance"
-    ).innerText =
+        "avatar"
+    ).textContent =
+        shortName
+            .charAt(0)
+            .toUpperCase();
+
+
+    document.getElementById(
+        "playerName"
+    ).textContent =
+        fullName;
+
+
+    document.getElementById(
+        "playerTitle"
+    ).textContent =
+        player.title ||
+        "Новичок";
+
+
+    document.getElementById(
+        "playerLevel"
+    ).textContent =
+        "LVL " +
+        (player.level || 1);
+
+
+    document.getElementById(
+        "balanceValue"
+    ).innerHTML =
+        formatNumber(
+            player.balance
+        ) +
+        ' <span class="coin">HC</span>';
+
+
+    const level =
+        Number(
+            player.level || 1
+        );
+
+    const xp =
+        Number(
+            player.xp || 0
+        );
+
+    const required =
+        level * 100;
+
+
+    document.getElementById(
+        "xpText"
+    ).textContent =
+        `${formatNumber(xp)} / ${formatNumber(required)} XP`;
+
+
+    document.getElementById(
+        "xpFill"
+    ).style.width =
+        Math.min(
+            100,
+            (xp / required) * 100
+        ) + "%";
+
+
+    document.getElementById(
+        "winsValue"
+    ).textContent =
+        formatNumber(
+            player.wins
+        );
+
+
+    document.getElementById(
+        "lossesValue"
+    ).textContent =
+        formatNumber(
+            player.losses
+        );
+
+
+    document.getElementById(
+        "gamesValue"
+    ).textContent =
+        formatNumber(
+            player.games
+        );
+
+
+    document.getElementById(
+        "largeAvatar"
+    ).textContent =
+        shortName
+            .charAt(0)
+            .toUpperCase();
+
+
+    document.getElementById(
+        "largePlayerName"
+    ).textContent =
+        fullName;
+
+
+    document.getElementById(
+        "largePlayerTitle"
+    ).textContent =
+        player.title ||
+        "Новичок";
+
+
+    document.getElementById(
+        "profileBalance"
+    ).textContent =
         formatNumber(
             player.balance
         );
 
+
     document.getElementById(
-        "level"
-    ).innerText =
+        "profileLevel"
+    ).textContent =
         player.level || 1;
 
-    const name =
-        player.first_name ||
-        player.username ||
-        "Игрок";
 
     document.getElementById(
-        "profileName"
-    ).innerText =
-        name;
+        "profileWins"
+    ).textContent =
+        player.wins || 0;
+
 
     document.getElementById(
-        "playerName"
-    ).innerText =
-        name;
-
-    document.getElementById(
-        "profileMeta"
-    ).innerText =
-        `LVL ${player.level || 1} • ${
-            player.title || "Новичок"
-        }`;
-
-    document.getElementById(
-        "profileAvatar"
-    ).innerText =
-        name
-            .substring(
-                0,
-                2
-            )
-            .toUpperCase();
+        "profileLosses"
+    ).textContent =
+        player.losses || 0;
 
 }
 
@@ -1426,53 +2148,86 @@ function updateProfile(
    AUTH
 ========================================================= */
 
-async function authenticate(){
+async function authenticate() {
 
-    if (
-        !tg ||
-        !tg.initData
-    ){
+    hideError();
 
-        showMessage(
-            "Открой игру через Telegram"
+
+    if (!tg) {
+
+        /*
+         * Если открыть обычным браузером,
+         * Telegram initData отсутствует.
+         */
+
+        showError(
+            "Приложение необходимо открыть внутри Telegram Mini App."
         );
 
-        return;
+        loadingScreen.style.display =
+            "none";
+
+        app.style.display =
+            "block";
+
+        return false;
 
     }
+
+
+    const initData =
+        tg.initData;
+
+
+    if (!initData) {
+
+        showError(
+            "Telegram не передал данные авторизации. Открой игру через Telegram."
+        );
+
+        loadingScreen.style.display =
+            "none";
+
+        app.style.display =
+            "block";
+
+        return false;
+
+    }
+
 
     try {
 
         const response =
             await fetch(
-                `${BACKEND_URL}/api/auth`,
+                "/api/auth",
                 {
 
-                    method:"POST",
+                    method: "POST",
 
-                    headers:{
+                    headers: {
+
                         "Content-Type":
                             "application/json"
+
                     },
 
                     body:
                         JSON.stringify({
-
-                            initData:
-                                tg.initData
-
+                            initData
                         })
 
                 }
             );
 
+
         const data =
             await response.json();
 
-        if (
-            !response.ok ||
+
+        if (!response.ok ||
             !data.success
-        ){
+        ) {
 
             throw new Error(
                 data.error ||
@@ -1481,33 +2236,39 @@ async function authenticate(){
 
         }
 
-        updateProfile(
-            data.player
-        );
 
-        /*
-         * Теперь Socket.IO тоже
-         * получает настоящий
-         * Telegram initData.
-         */
+        player =
+            data.player;
 
-        socket.emit(
-            "authenticate",
-            {
-                initData:
-                    tg.initData
-            }
-        );
 
-    } catch(error){
+        updatePlayerUI();
+
+
+        return true;
+
+
+    } catch (error) {
 
         console.error(
+            "AUTH ERROR:",
             error
         );
 
-        showMessage(
-            "Ошибка авторизации"
+
+        showError(
+            error.message ||
+            "Не удалось авторизоваться"
         );
+
+
+        loadingScreen.style.display =
+            "none";
+
+        app.style.display =
+            "block";
+
+
+        return false;
 
     }
 
@@ -1515,605 +2276,485 @@ async function authenticate(){
 
 
 /* =========================================================
-   SOCKET EVENTS
+   SOCKET
 ========================================================= */
 
-socket.on(
-    "connect",
-    () => {
+function connectSocket() {
 
-        console.log(
-            "SOCKET CONNECTED",
-            socket.id
+    socket =
+        io(
+            window.location.origin,
+            {
+                transports:
+                    [
+                        "websocket",
+                        "polling"
+                    ]
+            }
         );
 
-        if (
-            tg &&
-            tg.initData
-        ){
 
-            socket.emit(
-                "authenticate",
-                {
-                    initData:
-                        tg.initData
-                }
+    socket.on(
+        "connect",
+        () => {
+
+            connection.classList.add(
+                "online"
             );
 
+            connectionText.textContent =
+                "Онлайн";
+
+
+            if (tg && tg.initData) {
+
+                socket.emit(
+                    "authenticate",
+                    {
+                        initData:
+                            tg.initData
+                    }
+                );
+
+            }
+
         }
-
-    }
-);
+    );
 
 
-socket.on(
-    "authenticated",
-    data => {
+    socket.on(
+        "disconnect",
+        () => {
 
-        if (
-            data &&
-            data.player
-        ){
+            connection.classList.remove(
+                "online"
+            );
 
-            updateProfile(
+            connectionText.textContent =
+                "Отключено";
+
+        }
+    );
+
+
+    socket.on(
+        "connect_error",
+        error => {
+
+            console.error(
+                "SOCKET ERROR:",
+                error
+            );
+
+            connection.classList.remove(
+                "online"
+            );
+
+            connectionText.textContent =
+                "Ошибка";
+
+        }
+    );
+
+
+    socket.on(
+        "authenticated",
+        data => {
+
+            if (
+                data &&
                 data.player
+            ) {
+
+                player =
+                    data.player;
+
+                updatePlayerUI();
+
+            }
+
+        }
+    );
+
+
+    socket.on(
+        "server_error",
+        data => {
+
+            showNotification(
+                data &&
+                data.message
+                    ? data.message
+                    : "Ошибка сервера"
             );
 
         }
-
-    }
-);
+    );
 
 
-socket.on(
-    "server_error",
-    data => {
+    socket.on(
+        "action_error",
+        data => {
 
-        showMessage(
-            data &&
-            data.message
-                ? data.message
-                : "Ошибка сервера"
-        );
+            showNotification(
+                data &&
+                data.message
+                    ? data.message
+                    : "Недопустимое действие"
+            );
 
-    }
-);
-
-
-socket.on(
-    "action_error",
-    data => {
-
-        showMessage(
-            data &&
-            data.message
-                ? data.message
-                : "Недопустимое действие"
-        );
-
-    }
-);
+        }
+    );
 
 
-/* =========================================================
-   GAME STATE
-========================================================= */
+    socket.on(
+        "game_state",
+        state => {
 
-socket.on(
-    "game_state",
-    state => {
+            gameState =
+                state;
 
-        game =
-            state;
+            renderGame();
 
-        render();
-
-        updateMessageByPhase();
-
-    }
-);
+        }
+    );
 
 
-/* =========================================================
-   GAME FINISHED
-========================================================= */
+    socket.on(
+        "game_finished",
+        data => {
 
-socket.on(
-    "game_finished",
-    data => {
-
-        if (
-            data &&
-            data.player
-        ){
-
-            updateProfile(
+            if (
+                data &&
                 data.player
-            );
+            ) {
+
+                player =
+                    data.player;
+
+                updatePlayerUI();
+
+            }
+
+
+            if (data) {
+
+                showNotification(
+                    data.message ||
+                    "Игра завершена"
+                );
+
+            }
+
+
+            renderGame();
 
         }
+    );
 
-        showMessage(
-            data.message
-        );
-
-        setTimeout(
-            () => {
-
-                if (tg) {
-
-                    tg.showAlert(
-                        data.message
-                    );
-
-                } else {
-
-                    alert(
-                        data.message
-                    );
-
-                }
-
-            },
-            300
-        );
-
-    }
-);
+}
 
 
 /* =========================================================
-   PHASE MESSAGE
+   NAVIGATION
 ========================================================= */
 
-function updateMessageByPhase(){
+function openScreen(name) {
 
-    if (!game) {
-        return;
+    document
+        .querySelectorAll(
+            ".screen"
+        )
+        .forEach(
+            screen => {
+
+                screen.classList.remove(
+                    "active"
+                );
+
+            }
+        );
+
+
+    const target =
+        document.getElementById(
+            "screen-" + name
+        );
+
+
+    if (target) {
+
+        target.classList.add(
+            "active"
+        );
+
     }
+
+
+    document
+        .querySelectorAll(
+            ".nav-button"
+        )
+        .forEach(
+            button => {
+
+                button.classList.toggle(
+                    "active",
+                    button.dataset.screen ===
+                    name
+                );
+
+            }
+        );
+
 
     if (
-        game.phase ===
-        "player_attack"
-    ){
+        tg &&
+        typeof tg.HapticFeedback !==
+        "undefined"
+    ) {
 
-        showMessage(
-            game.table.length
-                ? "Твой ход — можешь подкинуть"
-                : "Твой ход"
-        );
+        try {
 
-    }
+            tg.HapticFeedback
+                .selectionChanged();
 
-    else if (
-        game.phase ===
-        "player_defense"
-    ){
-
-        showMessage(
-            "Отбей карту или забери"
-        );
-
-    }
-
-    else if (
-        game.phase ===
-        "cpu_attack"
-    ){
-
-        showMessage(
-            "Компьютер атакует"
-        );
-
-    }
-
-    else if (
-        game.phase ===
-        "cpu_defense"
-    ){
-
-        showMessage(
-            "Компьютер отбивается"
-        );
+        } catch {}
 
     }
 
 }
 
 
+document
+    .querySelectorAll(
+        ".nav-button"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    openScreen(
+                        button.dataset.screen
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
 /* =========================================================
-   CARD ELEMENT
+   START GAME
 ========================================================= */
 
-function isRed(card){
+function startGame() {
 
-    return (
-        card.suit === "♥" ||
-        card.suit === "♦"
+    hideError();
+
+
+    if (!socket) {
+
+        showNotification(
+            "Соединение с сервером ещё не установлено"
+        );
+
+        return;
+
+    }
+
+
+    if (!socket.connected) {
+
+        showNotification(
+            "Нет соединения с сервером"
+        );
+
+        return;
+
+    }
+
+
+    socket.emit(
+        "start_game"
     );
+
+
+    openScreen(
+        "game"
+    );
+
+
+    showNotification(
+        "Игра запускается..."
+    );
+
+}
+
+
+document
+    .getElementById(
+        "startGameButton"
+    )
+    .addEventListener(
+        "click",
+        startGame
+    );
+
+
+/* =========================================================
+   CARD RENDER
+========================================================= */
+
+function cardColor(suit) {
+
+    if (
+        suit === "♥" ||
+        suit === "♦"
+    ) {
+
+        return "red";
+
+    }
+
+    return "black";
 
 }
 
 
 function createCardElement(
-    card
-){
+    card,
+    clickable = false
+) {
 
-    const el =
+    const element =
         document.createElement(
             "div"
         );
 
-    el.className =
-        "card" +
-        (
-            isRed(card)
-                ? " red"
-                : ""
+
+    element.className =
+        "card " +
+        cardColor(
+            card.suit
         );
 
-    el.dataset.id =
+
+    element.dataset.cardId =
         card.id;
 
-    el.innerHTML = `
 
-        <div class="card-value">
-            ${card.rank}
+    element.innerHTML = `
+
+        <div class="card-rank">
+            ${escapeHtml(card.rank)}
         </div>
 
         <div class="card-suit">
-            ${card.suit}
+            ${escapeHtml(card.suit)}
         </div>
 
         <div class="card-center">
-            ${card.suit}
-        </div>
-
-        <div class="card-corner">
-            ${card.rank}${card.suit}
+            ${escapeHtml(card.suit)}
         </div>
 
     `;
 
-    return el;
 
-}
+    if (clickable) {
 
+        element.addEventListener(
+            "click",
+            () => {
 
-function createBackCard(){
-
-    const el =
-        document.createElement(
-            "div"
-        );
-
-    el.className =
-        "card back";
-
-    return el;
-
-}
-
-
-/* =========================================================
-   PLAYER HAND
-========================================================= */
-
-function renderPlayerHand(){
-
-    playerHandEl.innerHTML =
-        "";
-
-    if (!game) {
-        return;
-    }
-
-    const hand =
-        game.playerHand;
-
-    const count =
-        hand.length;
-
-    hand.forEach(
-        (card,index) => {
-
-            const el =
-                createCardElement(
-                    card
+                playCard(
+                    card.id
                 );
-
-            const spread =
-                Math.min(
-                    52,
-                    300 /
-                    Math.max(
-                        count,
-                        1
-                    )
-                );
-
-            const offset =
-                (
-                    index -
-                    (count - 1) / 2
-                ) * spread;
-
-            el.style.left =
-                `calc(50% + ${offset}px - 33px)`;
-
-            el.style.bottom =
-                "2px";
-
-            const rotation =
-                (
-                    index -
-                    (count - 1) / 2
-                ) * 3;
-
-            el.style.transform =
-                `rotate(${rotation}deg)`;
-
-            if (
-                canPlayCard(card)
-            ){
-
-                el.classList.add(
-                    "allowed"
-                );
-
-            } else {
-
-                if (
-                    game.phase ===
-                        "player_attack" ||
-                    game.phase ===
-                        "player_defense"
-                ){
-
-                    el.classList.add(
-                        "not-allowed"
-                    );
-
-                }
-
-            }
-
-            el.addEventListener(
-                "click",
-                () => {
-
-                    playCard(
-                        card.id
-                    );
-
-                }
-            );
-
-            playerHandEl.appendChild(
-                el
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   CAN PLAY
-========================================================= */
-
-function canPlayCard(
-    card
-){
-
-    if (!game) {
-        return false;
-    }
-
-    if (
-        game.phase ===
-        "player_attack"
-    ){
-
-        if (
-            game.table.length >=
-            game.roundLimit
-        ){
-
-            return false;
-
-        }
-
-        if (
-            game.table.length ===
-            0
-        ){
-
-            return true;
-
-        }
-
-        const ranks = [];
-
-        game.table.forEach(
-            pair => {
-
-                ranks.push(
-                    pair.attack.rank
-                );
-
-                if (
-                    pair.defense
-                ){
-
-                    ranks.push(
-                        pair.defense.rank
-                    );
-
-                }
 
             }
         );
 
-        return ranks.includes(
-            card.rank
-        );
-
     }
 
 
-    if (
-        game.phase ===
-        "player_defense"
-    ){
-
-        const pair =
-            game.table.find(
-                item =>
-                    !item.defense
-            );
-
-        if (!pair) {
-            return false;
-        }
-
-        const attack =
-            pair.attack;
-
-        const defenseTrump =
-            card.suit ===
-            game.trumpSuit;
-
-        const attackTrump =
-            attack.suit ===
-            game.trumpSuit;
-
-        if (
-            defenseTrump &&
-            !attackTrump
-        ){
-
-            return true;
-
-        }
-
-        if (
-            !defenseTrump &&
-            attackTrump
-        ){
-
-            return false;
-
-        }
-
-        return (
-            card.suit ===
-            attack.suit &&
-            card.value >
-            attack.value
-        );
-
-    }
-
-    return false;
+    return element;
 
 }
 
 
 /* =========================================================
-   PLAY CARD
+   ESCAPE
 ========================================================= */
 
-function playCard(
-    cardId
-){
+function escapeHtml(value) {
 
-    if (!game) {
-        return;
-    }
-
-    if (
-        !canPlayCard(
-            game.playerHand.find(
-                card =>
-                    card.id ===
-                    cardId
-            )
+    return String(value)
+        .replaceAll(
+            "&",
+            "&amp;"
         )
-    ){
-
-        showMessage(
-            "Эту карту сейчас нельзя использовать"
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
         );
-
-        return;
-
-    }
-
-    socket.emit(
-        "play_card",
-        {
-            cardId
-        }
-    );
 
 }
 
 
 /* =========================================================
-   OPPONENT HAND
+   GAME RENDER
 ========================================================= */
 
-function renderOpponentHand(){
+function renderGame() {
 
-    opponentHandEl.innerHTML =
-        "";
+    if (!gameState) {
 
-    if (!game) {
         return;
+
     }
 
-    const count =
-        game.cpuCount;
 
-    for (
-        let i = 0;
-        i < count;
-        i++
-    ){
-
-        const el =
-            createBackCard();
-
-        const offset =
-            (
-                i -
-                (count - 1) / 2
-            ) * 30;
-
-        el.style.left =
-            `calc(50% + ${offset}px - 29px)`;
-
-        el.style.top =
-            `${Math.abs(
-                i -
-                (count - 1) / 2
-            ) * .8}px`;
-
-        el.style.transform =
-            `rotate(${
-                (
-                    i -
-                    (count - 1) / 2
-                ) * 3
-            }deg)`;
-
-        opponentHandEl.appendChild(
-            el
+    const trump =
+        document.getElementById(
+            "trump"
         );
 
-    }
+
+    trump.textContent =
+        "Козырь: " +
+        gameState.trumpSuit;
+
+
+    document.getElementById(
+        "deckCount"
+    ).textContent =
+        "Колода: " +
+        gameState.deckCount;
+
+
+    renderTable();
+
+    renderHand();
+
+    updateGameStatus();
+
+    updateGameButtons();
 
 }
 
@@ -2122,75 +2763,110 @@ function renderOpponentHand(){
    TABLE
 ========================================================= */
 
-function renderTable(){
+function renderTable() {
 
-    attackZone.innerHTML =
-        "";
+    const table =
+        document.getElementById(
+            "cardsTable"
+        );
 
-    defenseZone.innerHTML =
-        "";
 
-    if (!game) {
+    table.innerHTML = "";
+
+
+    if (
+        !gameState.table ||
+        gameState.table.length === 0
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.className =
+            "empty-table";
+
+        empty.textContent =
+            "Стол пуст";
+
+        table.appendChild(
+            empty
+        );
+
         return;
+
     }
 
-    game.table.forEach(
-        (pair,index) => {
+
+    gameState.table.forEach(
+        pair => {
+
+            const wrapper =
+                document.createElement(
+                    "div"
+                );
+
+
+            wrapper.style.display =
+                "flex";
+
+            wrapper.style.position =
+                "relative";
+
+            wrapper.style.width =
+                "72px";
+
+            wrapper.style.height =
+                "105px";
+
 
             const attack =
                 createCardElement(
-                    pair.attack
+                    pair.attack,
+                    false
                 );
 
-            attack.classList.add(
-                "played-card"
-            );
 
-            const pos =
-                getAttackPosition(
-                    index
-                );
-
-            attack.style.left =
-                `${pos.x}px`;
-
-            attack.style.top =
-                `${pos.y}px`;
-
-            attackZone.appendChild(
+            wrapper.appendChild(
                 attack
             );
 
 
-            if (
-                pair.defense
-            ){
+            if (pair.defense) {
 
                 const defense =
                     createCardElement(
-                        pair.defense
+                        pair.defense,
+                        false
                     );
+
 
                 defense.classList.add(
-                    "played-card"
+                    "defense-card"
                 );
 
-                const dpos =
-                    getDefensePosition(
-                        index
-                    );
+
+                defense.style.position =
+                    "absolute";
 
                 defense.style.left =
-                    `${dpos.x}px`;
+                    "8px";
 
                 defense.style.top =
-                    `${dpos.y}px`;
+                    "8px";
 
-                defenseZone.appendChild(
+
+                wrapper.appendChild(
                     defense
                 );
 
             }
+
+
+            table.appendChild(
+                wrapper
+            );
 
         }
     );
@@ -2198,122 +2874,176 @@ function renderTable(){
 }
 
 
-function getAttackPosition(
-    index
-){
-
-    return {
-
-        x:
-            15 +
-            (index % 4) * 80,
-
-        y:
-            25 +
-            Math.floor(
-                index / 4
-            ) * 105
-
-    };
-
-}
-
-
-function getDefensePosition(
-    index
-){
-
-    return {
-
-        x:
-            34 +
-            (index % 4) * 80,
-
-        y:
-            5 +
-            Math.floor(
-                index / 4
-            ) * 105
-
-    };
-
-}
-
-
 /* =========================================================
-   TRUMP
+   HAND
 ========================================================= */
 
-function renderTrump(){
+function renderHand() {
+
+    const hand =
+        document.getElementById(
+            "playerHand"
+        );
+
+
+    hand.innerHTML = "";
+
 
     if (
-        !game ||
-        !game.trumpSuit
-    ){
+        !gameState.playerHand ||
+        gameState.playerHand.length === 0
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.style.color =
+            "#777784";
+
+        empty.style.fontSize =
+            "12px";
+
+        empty.textContent =
+            "Карт нет";
+
+        hand.appendChild(
+            empty
+        );
 
         return;
 
     }
 
-    /*
-     * Здесь показываем
-     * только масть козыря.
-     *
-     * Конкретная козырная
-     * карта скрыта.
-     */
 
-    trumpCardEl.className =
-        "card trump";
+    const canPlay =
+        gameState.phase ===
+            "player_attack" ||
+        gameState.phase ===
+            "player_defense";
 
-    trumpCardEl.innerHTML = `
 
-        <div class="card-value">
-            К
-        </div>
+    gameState.playerHand.forEach(
+        card => {
 
-        <div class="card-suit">
-            ${game.trumpSuit}
-        </div>
+            const element =
+                createCardElement(
+                    card,
+                    canPlay
+                );
 
-        <div class="card-center">
-            ${game.trumpSuit}
-        </div>
 
-    `;
+            hand.appendChild(
+                element
+            );
+
+        }
+    );
 
 }
 
 
 /* =========================================================
-   INFO
+   GAME STATUS
 ========================================================= */
 
-function renderInfo(){
+function updateGameStatus() {
 
-    if (!game) {
+    const title =
+        document.getElementById(
+            "gameStatusTitle"
+        );
+
+    const text =
+        document.getElementById(
+            "gameStatusText"
+        );
+
+
+    if (!gameState) {
+
+        title.textContent =
+            "Игра не начата";
+
+        text.textContent =
+            "Нажми «Начать игру»";
+
         return;
+
     }
 
-    document.getElementById(
-        "deckCount"
-    ).innerText =
-        game.deckCount;
 
-    document.getElementById(
-        "trumpInfo"
-    ).innerText =
-        game.trumpSuit;
+    switch (
+        gameState.phase
+    ) {
 
-    document.getElementById(
-        "playerCount"
-    ).innerText =
-        game.playerCount;
+        case "dealing":
 
-    document.getElementById(
-        "opponentCount"
-    ).innerText =
-        game.cpuCount;
+            title.textContent =
+                "Раздача";
+
+            text.textContent =
+                "Подготовка карт";
+
+            break;
+
+
+        case "player_attack":
+
+            title.textContent =
+                "Твой ход";
+
+            text.textContent =
+                gameState.table.length
+                    ? "Можно подкидывать карты"
+                    : "Выбери карту для атаки";
+
+            break;
+
+
+        case "cpu_defense":
+
+            title.textContent =
+                "Компьютер отбивается";
+
+            text.textContent =
+                "Подожди немного...";
+
+            break;
+
+
+        case "player_defense":
+
+            title.textContent =
+                "Твоя защита";
+
+            text.textContent =
+                "Побей карту или возьми карты";
+
+            break;
+
+
+        case "cpu_attack":
+
+            title.textContent =
+                "Атака компьютера";
+
+            text.textContent =
+                "Компьютер делает ход";
+
+            break;
+
+
+        default:
+
+            title.textContent =
+                "Игра";
+
+            text.textContent =
+                "Ожидание...";
+
+    }
 
 }
 
@@ -2322,76 +3052,90 @@ function renderInfo(){
    BUTTONS
 ========================================================= */
 
-function renderButtons(){
+function updateGameButtons() {
 
-    if (!game){
+    const take =
+        document.getElementById(
+            "takeButton"
+        );
 
-        takeButton.style.display =
-            "none";
-
-        beatButton.style.display =
-            "none";
-
-        return;
-
-    }
-
-    takeButton.style.display =
-        game.phase ===
-        "player_defense"
-            ? "block"
-            : "none";
+    const finish =
+        document.getElementById(
+            "finishButton"
+        );
 
 
-    let allBeaten =
-        game.table.length > 0;
+    take.disabled =
+        !gameState ||
+        gameState.phase !==
+        "player_defense";
 
-    for (
-        const pair of game.table
-    ){
 
-        if (
-            !pair.defense
-        ){
-
-            allBeaten =
-                false;
-
-            break;
-
-        }
-
-    }
-
-    beatButton.style.display =
-        (
-            game.phase ===
-            "player_attack" &&
-            allBeaten
-        )
-            ? "block"
-            : "none";
+    finish.disabled =
+        !gameState ||
+        gameState.phase !==
+        "player_attack" ||
+        !gameState.table ||
+        gameState.table.length === 0;
 
 }
 
 
 /* =========================================================
-   RENDER
+   PLAY CARD
 ========================================================= */
 
-function render(){
+function playCard(cardId) {
 
-    renderPlayerHand();
+    if (!socket) {
 
-    renderOpponentHand();
+        return;
 
-    renderTable();
+    }
 
-    renderTrump();
 
-    renderInfo();
+    if (!gameState) {
 
-    renderButtons();
+        return;
+
+    }
+
+
+    if (
+        gameState.phase !==
+            "player_attack" &&
+        gameState.phase !==
+            "player_defense"
+    ) {
+
+        return;
+
+    }
+
+
+    socket.emit(
+        "play_card",
+        {
+            cardId
+        }
+    );
+
+
+    if (
+        tg &&
+        tg.HapticFeedback
+    ) {
+
+        try {
+
+            tg.HapticFeedback
+                .impactOccurred(
+                    "light"
+                );
+
+        } catch {}
+
+    }
 
 }
 
@@ -2400,128 +3144,109 @@ function render(){
    TAKE
 ========================================================= */
 
-takeButton.addEventListener(
-    "click",
-    () => {
+document
+    .getElementById(
+        "takeButton"
+    )
+    .addEventListener(
+        "click",
+        () => {
 
-        if (
-            !game ||
-            game.phase !==
-            "player_defense"
-        ){
+            if (!socket) {
 
-            return;
+                return;
 
-        }
-
-        socket.emit(
-            "take_cards"
-        );
-
-    }
-);
+            }
 
 
-/* =========================================================
-   BEAT
-========================================================= */
+            socket.emit(
+                "take_cards"
+            );
 
-beatButton.addEventListener(
-    "click",
-    () => {
-
-        if (
-            !game ||
-            game.phase !==
-            "player_attack"
-        ){
-
-            return;
-
-        }
-
-        let allBeaten =
-            game.table.length > 0;
-
-        for (
-            const pair of game.table
-        ){
 
             if (
-                !pair.defense
-            ){
+                tg &&
+                tg.HapticFeedback
+            ) {
 
-                allBeaten =
-                    false;
+                try {
 
-                break;
+                    tg.HapticFeedback
+                        .impactOccurred(
+                            "medium"
+                        );
+
+                } catch {}
 
             }
 
         }
+    );
 
-        if (!allBeaten){
 
-            showMessage(
-                "Не все карты отбиты"
+/* =========================================================
+   FINISH ROUND
+========================================================= */
+
+document
+    .getElementById(
+        "finishButton"
+    )
+    .addEventListener(
+        "click",
+        () => {
+
+            if (!socket) {
+
+                return;
+
+            }
+
+
+            socket.emit(
+                "finish_round"
             );
 
-            return;
-
         }
+    );
 
-        socket.emit(
-            "finish_round"
-        );
+
+/* =========================================================
+   INIT
+========================================================= */
+
+async function init() {
+
+    const authenticated =
+        await authenticate();
+
+
+    loadingScreen.style.display =
+        "none";
+
+    app.style.display =
+        "block";
+
+
+    if (!authenticated) {
+
+        return;
 
     }
-);
+
+
+    connectSocket();
+
+}
 
 
 /* =========================================================
    START
 ========================================================= */
 
-document.getElementById(
-    "startButton"
-).addEventListener(
-    "click",
-    () => {
-
-        if (
-            gameStarted
-        ){
-
-            return;
-
-        }
-
-        gameStarted =
-            true;
-
-        document.getElementById(
-            "startScreen"
-        ).style.display =
-            "none";
-
-        socket.emit(
-            "start_game"
-        );
-
-    }
-);
-
-
-/* =========================================================
-   INITIAL
-========================================================= */
-
-authenticate();
-
-render();
+init();
 
 </script>
 
 </body>
-
 </html>
