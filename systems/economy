@@ -1,0 +1,73 @@
+const {
+  START_MONEY,
+  XP_PER_LEVEL
+} = require("../config/economy");
+
+const GAME_CONFIG = require("../config/game");
+
+function createWallet() {
+  return {
+    balance: START_MONEY
+  };
+}
+
+function addMoney(player, amount) {
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Некорректная сумма");
+  }
+
+  player.balance += amount;
+
+  return player.balance;
+}
+
+function removeMoney(player, amount) {
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("Некорректная сумма");
+  }
+
+  if (player.balance < amount) {
+    throw new Error("Недостаточно HC");
+  }
+
+  player.balance -= amount;
+
+  return player.balance;
+}
+
+function addXP(player, amount) {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return;
+  }
+
+  player.xp += amount;
+
+  while (
+    player.level < GAME_CONFIG.MAX_LEVEL &&
+    player.xp >= player.level * XP_PER_LEVEL
+  ) {
+    player.level++;
+  }
+}
+
+function getTitle(level) {
+  let title = "Новичок";
+
+  for (const [requiredLevel, value] of Object.entries(
+    GAME_CONFIG.TITLES
+  )) {
+    if (level >= Number(requiredLevel)) {
+      title = value;
+    }
+  }
+
+  return title;
+}
+
+module.exports = {
+  createWallet,
+  addMoney,
+  removeMoney,
+  addXP,
+  getTitle
+};
