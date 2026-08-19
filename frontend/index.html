@@ -20,15 +20,23 @@
 <style>
 :root {
     --bg: #070707;
+    --bg2: #0b0b0b;
     --panel: #111111;
-    --panel2: #181818;
+    --panel2: #171717;
+    --panel3: #1d1d1d;
     --border: #292929;
-    --text: #f5f5f5;
+
+    --text: #f4f4f4;
     --muted: #858585;
-    --gold: #d7ad55;
-    --gold2: #f1d38a;
-    --danger: #b94b4b;
-    --success: #54a66a;
+
+    --gold: #c89b42;
+    --gold2: #f0cf82;
+
+    --green: #55b56c;
+    --red: #d45b5b;
+    --blue: #5c8fd8;
+
+    --radius: 17px;
 }
 
 * {
@@ -40,9 +48,12 @@ html,
 body {
     margin: 0;
     padding: 0;
+
     min-height: 100%;
+
     background: var(--bg);
     color: var(--text);
+
     font-family:
         -apple-system,
         BlinkMacSystemFont,
@@ -62,18 +73,26 @@ input {
 
 button {
     border: 0;
+    outline: 0;
     cursor: pointer;
+}
+
+.hidden {
+    display: none !important;
 }
 
 #app {
     width: 100%;
-    max-width: 720px;
+    max-width: 760px;
+
     min-height: 100vh;
+
     margin: 0 auto;
+
     padding:
         env(safe-area-inset-top)
         14px
-        calc(85px + env(safe-area-inset-bottom))
+        calc(92px + env(safe-area-inset-bottom))
         14px;
 }
 
@@ -81,32 +100,55 @@ button {
    COMMON
 ========================================================= */
 
-.hidden {
-    display: none !important;
-}
-
-.screen {
-    width: 100%;
-}
-
 .header {
+    height: 64px;
+
     display: flex;
     align-items: center;
     justify-content: space-between;
+
     gap: 10px;
-    padding: 16px 2px;
 }
 
 .logo {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 2px;
+    font-size: 20px;
+    font-weight: 950;
+
+    letter-spacing: 2.5px;
 }
 
 .balance {
     color: var(--gold2);
-    font-weight: 800;
+    font-weight: 900;
     white-space: nowrap;
+}
+
+.top-title {
+    flex: 1;
+
+    text-align: center;
+
+    font-size: 18px;
+    font-weight: 950;
+}
+
+.top-spacer {
+    width: 42px;
+}
+
+.back {
+    width: 42px;
+    height: 42px;
+
+    border-radius: 13px;
+
+    background: var(--panel2);
+    border: 1px solid var(--border);
+
+    color: white;
+
+    font-size: 25px;
+    line-height: 1;
 }
 
 .card {
@@ -114,18 +156,22 @@ button {
         linear-gradient(
             145deg,
             #171717,
-            #0e0e0e
+            #0d0d0d
         );
+
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: var(--radius);
+
     padding: 16px;
+
     margin-bottom: 12px;
 }
 
 .section-title {
-    margin: 4px 0 12px;
+    margin-bottom: 12px;
+
     font-size: 17px;
-    font-weight: 900;
+    font-weight: 950;
 }
 
 .muted {
@@ -136,15 +182,26 @@ button {
     color: var(--gold2);
 }
 
+.green {
+    color: var(--green);
+}
+
+.red {
+    color: var(--red);
+}
+
 button.primary,
 button.secondary,
 button.danger,
 button.buy {
     width: 100%;
     min-height: 48px;
+
     border-radius: 13px;
-    font-weight: 900;
+
     margin-top: 10px;
+
+    font-weight: 950;
 }
 
 button.primary,
@@ -155,45 +212,66 @@ button.buy {
             var(--gold2),
             var(--gold)
         );
-    color: #080808;
+
+    color: #090909;
 }
 
 button.secondary {
     background: var(--panel2);
-    color: var(--text);
+    color: white;
+
     border: 1px solid var(--border);
 }
 
 button.danger {
-    background: #2b1111;
+    background: #291111;
     color: #ff9b9b;
-    border: 1px solid #4d1d1d;
+
+    border: 1px solid #4a1b1b;
 }
 
 button:disabled {
-    opacity: .45;
+    opacity: .4;
     cursor: default;
 }
 
-.back {
+/* =========================================================
+   LOADING
+========================================================= */
+
+.loading {
+    position: fixed;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: var(--bg);
+
+    z-index: 9999;
+
+    text-align: center;
+}
+
+.loader {
     width: 42px;
     height: 42px;
-    border-radius: 12px;
-    background: var(--panel2);
-    color: white;
-    border: 1px solid var(--border);
-    font-size: 20px;
+
+    margin: 0 auto 15px;
+
+    border-radius: 50%;
+
+    border: 3px solid #303030;
+    border-top-color: var(--gold2);
+
+    animation: spin .8s linear infinite;
 }
 
-.top-title {
-    flex: 1;
-    text-align: center;
-    font-size: 18px;
-    font-weight: 900;
-}
-
-.top-spacer {
-    width: 42px;
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* =========================================================
@@ -201,207 +279,352 @@ button:disabled {
 ========================================================= */
 
 .hero {
-    padding: 22px 18px;
-    border-radius: 22px;
+    position: relative;
+    overflow: hidden;
+
+    padding: 22px;
+
+    border-radius: 23px;
+
     background:
         radial-gradient(
-            circle at top right,
-            rgba(215,173,85,.15),
-            transparent 40%
+            circle at 100% 0%,
+            rgba(240,207,130,.16),
+            transparent 38%
         ),
         linear-gradient(
             145deg,
-            #191919,
-            #0c0c0c
+            #1a1a1a,
+            #0b0b0b
         );
+
     border: 1px solid var(--border);
+
     margin-bottom: 14px;
 }
 
+.hero::after {
+    content: "";
+
+    position: absolute;
+
+    width: 160px;
+    height: 160px;
+
+    right: -70px;
+    bottom: -80px;
+
+    border-radius: 50%;
+
+    border: 1px solid rgba(240,207,130,.12);
+}
+
 .hero-name {
-    font-size: 28px;
-    font-weight: 900;
-    margin-bottom: 4px;
+    font-size: 29px;
+    font-weight: 950;
+
+    position: relative;
+    z-index: 2;
 }
 
 .hero-title {
+    margin-top: 4px;
+
     color: var(--gold2);
-    font-weight: 700;
+
+    font-size: 14px;
+    font-weight: 800;
 }
 
 .hero-balance {
-    margin-top: 18px;
-    font-size: 27px;
-    font-weight: 900;
+    margin-top: 21px;
+
+    font-size: 29px;
+    font-weight: 950;
 }
 
 .hero-level {
     margin-top: 5px;
+
     color: var(--muted);
+    font-size: 13px;
 }
 
 .progress {
     height: 7px;
+
+    margin-top: 13px;
+
     background: #252525;
+
     border-radius: 99px;
+
     overflow: hidden;
-    margin-top: 12px;
 }
 
 .progress-fill {
     height: 100%;
-    background: var(--gold);
+
     width: 0%;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--gold),
+            var(--gold2)
+        );
+
     transition: width .3s ease;
 }
 
-.menu-grid {
+.home-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
     gap: 10px;
 }
 
-.menu-button {
-    min-height: 105px;
+.home-button {
+    min-height: 118px;
+
     padding: 15px;
+
     border-radius: 17px;
-    border: 1px solid var(--border);
+
     background: var(--panel);
+
+    border: 1px solid var(--border);
+
     color: white;
+
     text-align: left;
+
+    transition:
+        transform .15s ease,
+        background .15s ease;
 }
 
-.menu-icon {
-    font-size: 28px;
+.home-button:active {
+    transform: scale(.98);
+}
+
+.home-icon {
+    font-size: 29px;
     margin-bottom: 10px;
 }
 
-.menu-name {
-    font-size: 15px;
-    font-weight: 900;
+.home-name {
+    font-size: 14px;
+    font-weight: 950;
 }
 
-.menu-sub {
-    margin-top: 4px;
+.home-sub {
+    margin-top: 5px;
+
     color: var(--muted);
-    font-size: 12px;
+
+    font-size: 11px;
+}
+
+/* =========================================================
+   QUICK STATS
+========================================================= */
+
+.quick-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 8px;
+
+    margin-bottom: 12px;
+}
+
+.quick-stat {
+    padding: 13px 7px;
+
+    background: var(--panel);
+
+    border: 1px solid var(--border);
+
+    border-radius: 14px;
+
+    text-align: center;
+}
+
+.quick-stat-label {
+    color: var(--muted);
+    font-size: 9px;
+}
+
+.quick-stat-value {
+    margin-top: 5px;
+
+    font-size: 15px;
+    font-weight: 950;
 }
 
 /* =========================================================
    SHOP
 ========================================================= */
 
-.shop-tabs {
+.tabs {
     display: flex;
+
     gap: 7px;
+
     overflow-x: auto;
+
     padding-bottom: 8px;
+
     scrollbar-width: none;
 }
 
-.shop-tabs::-webkit-scrollbar {
+.tabs::-webkit-scrollbar {
     display: none;
 }
 
-.shop-tab {
+.tab {
     flex: 0 0 auto;
+
     padding: 11px 14px;
+
     border-radius: 12px;
+
     background: var(--panel);
+
     color: var(--muted);
+
     border: 1px solid var(--border);
-    font-weight: 800;
+
+    font-weight: 850;
 }
 
-.shop-tab.active {
-    color: #111;
+.tab.active {
     background: var(--gold2);
+    color: #111;
 }
 
 .product-grid {
     display: grid;
-    grid-template-columns: 1fr;
     gap: 10px;
 }
 
 .product {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 18px;
     padding: 15px;
+
+    border-radius: 18px;
+
+    background: var(--panel);
+
+    border: 1px solid var(--border);
 }
 
 .product-image {
-    height: 125px;
-    border-radius: 13px;
-    background:
-        radial-gradient(
-            circle at 50% 35%,
-            rgba(255,255,255,.1),
-            transparent 45%
-        ),
-        linear-gradient(
-            145deg,
-            #242424,
-            #0d0d0d
-        );
+    height: 145px;
+
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 46px;
+
     margin-bottom: 13px;
+
+    border-radius: 14px;
+
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(255,255,255,.1),
+            transparent 42%
+        ),
+        linear-gradient(
+            145deg,
+            #262626,
+            #0e0e0e
+        );
+
+    font-size: 54px;
 }
 
 .product-name {
     font-size: 17px;
-    font-weight: 900;
+    font-weight: 950;
 }
 
 .product-meta {
-    margin-top: 4px;
+    margin-top: 5px;
+
     color: var(--muted);
-    font-size: 13px;
+
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .product-price {
     margin-top: 12px;
+
     color: var(--gold2);
-    font-size: 18px;
-    font-weight: 900;
+
+    font-size: 19px;
+    font-weight: 950;
 }
 
 .color-row {
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
+
+    gap: 9px;
+
     margin-top: 12px;
 }
 
 .color {
-    width: 34px;
-    height: 34px;
+    width: 35px;
+    height: 35px;
+
     border-radius: 50%;
+
     border: 3px solid transparent;
-    box-shadow: 0 0 0 1px #444;
+
+    box-shadow:
+        0 0 0 1px #555;
 }
 
 .color.selected {
     border-color: var(--gold2);
+
+    box-shadow:
+        0 0 0 2px #111,
+        0 0 0 4px var(--gold);
 }
 
-.plate-preview {
-    font-family:
-        Arial,
-        sans-serif;
-    font-weight: 900;
-    letter-spacing: 2px;
+.plate {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 145px;
+
+    padding: 10px 14px;
+
     background: #eeeeee;
+
     color: #111;
-    border-radius: 7px;
-    padding: 10px 13px;
-    display: inline-block;
+
     border: 2px solid #777;
-    margin-bottom: 12px;
+
+    border-radius: 7px;
+
+    font-family: Arial, sans-serif;
+
+    font-size: 18px;
+    font-weight: 950;
+
+    letter-spacing: 2px;
 }
 
 /* =========================================================
@@ -411,35 +634,232 @@ button:disabled {
 .car-card {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+
+    gap: 11px;
 }
 
 .car-head {
     display: flex;
-    align-items: center;
+
+    align-items: flex-start;
     justify-content: space-between;
+
     gap: 10px;
 }
 
 .car-name {
     font-size: 18px;
-    font-weight: 900;
+    font-weight: 950;
 }
 
 .car-color {
+    margin-top: 4px;
+
     color: var(--muted);
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .car-plate {
-    display: inline-block;
-    width: fit-content;
+    display: inline-flex;
+
     padding: 6px 10px;
+
     background: #eeeeee;
     color: #111;
+
     border-radius: 5px;
-    font-weight: 900;
+
+    font-weight: 950;
+
     letter-spacing: 1px;
+}
+
+.car-actions {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 8px;
+}
+
+.car-actions button {
+    margin-top: 0;
+}
+
+/* =========================================================
+   PROPERTY / BUSINESS
+========================================================= */
+
+.asset-card {
+    padding: 16px;
+
+    background: var(--panel);
+
+    border: 1px solid var(--border);
+
+    border-radius: 17px;
+
+    margin-bottom: 10px;
+}
+
+.asset-icon {
+    font-size: 35px;
+    margin-bottom: 8px;
+}
+
+.asset-name {
+    font-size: 17px;
+    font-weight: 950;
+}
+
+.asset-meta {
+    margin-top: 5px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+}
+
+.asset-income {
+    margin-top: 12px;
+
+    color: var(--gold2);
+
+    font-weight: 900;
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.profile-header {
+    text-align: center;
+
+    padding: 20px 10px;
+}
+
+.avatar {
+    width: 82px;
+    height: 82px;
+
+    margin: 0 auto 12px;
+
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            145deg,
+            #242424,
+            #0d0d0d
+        );
+
+    border: 2px solid #393939;
+
+    font-size: 34px;
+}
+
+.profile-name {
+    font-size: 22px;
+    font-weight: 950;
+}
+
+.profile-title {
+    margin-top: 5px;
+
+    color: var(--gold2);
+
+    font-weight: 800;
+}
+
+.profile-row {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    padding: 13px 0;
+
+    border-bottom: 1px solid #242424;
+}
+
+.profile-row:last-child {
+    border-bottom: 0;
+}
+
+/* =========================================================
+   ROOMS
+========================================================= */
+
+.room-code-input {
+    width: 100%;
+    height: 52px;
+
+    border-radius: 13px;
+
+    border: 1px solid var(--border);
+
+    background: var(--panel2);
+
+    color: white;
+
+    text-align: center;
+
+    font-size: 21px;
+    font-weight: 950;
+
+    letter-spacing: 5px;
+
+    outline: none;
+}
+
+.rooms-list {
+    display: grid;
+
+    gap: 8px;
+}
+
+.room-list-item {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    padding: 13px;
+
+    border-radius: 13px;
+
+    background: var(--panel2);
+
+    border: 1px solid #242424;
+}
+
+.room-list-info {
+    min-width: 0;
+}
+
+.room-list-code {
+    color: var(--gold2);
+
+    font-weight: 950;
+
+    letter-spacing: 3px;
+}
+
+.room-list-status {
+    margin-top: 4px;
+
+    color: var(--muted);
+
+    font-size: 11px;
 }
 
 /* =========================================================
@@ -448,190 +868,333 @@ button:disabled {
 
 .room-code {
     text-align: center;
-    font-size: 34px;
-    font-weight: 900;
-    letter-spacing: 6px;
+
+    padding: 12px 0 20px;
+
     color: var(--gold2);
-    padding: 12px 0;
+
+    font-size: 35px;
+    font-weight: 950;
+
+    letter-spacing: 7px;
 }
 
-.players-list {
+.players {
     display: grid;
     gap: 8px;
 }
 
-.player-row {
+.player-item {
     display: flex;
+
     align-items: center;
     justify-content: space-between;
+
+    gap: 10px;
+
+    padding: 13px;
+
+    border-radius: 13px;
+
     background: var(--panel2);
-    padding: 12px;
-    border-radius: 12px;
 }
 
-.online {
-    color: var(--success);
+.player-left {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
 }
 
-.offline {
-    color: var(--danger);
+.player-avatar {
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #242424;
+}
+
+.player-name {
+    font-weight: 900;
+}
+
+.player-status {
+    margin-top: 3px;
+
+    font-size: 10px;
+
+    color: var(--muted);
 }
 
 /* =========================================================
    GAME
 ========================================================= */
 
-.game-info {
+.game-top {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
     gap: 7px;
-    margin-bottom: 12px;
+
+    margin-bottom: 10px;
 }
 
 .game-stat {
+    padding: 11px 5px;
+
     background: var(--panel);
+
     border: 1px solid var(--border);
+
     border-radius: 13px;
-    padding: 10px 5px;
+
     text-align: center;
 }
 
 .game-stat-label {
     color: var(--muted);
-    font-size: 10px;
+
+    font-size: 9px;
 }
 
 .game-stat-value {
     margin-top: 4px;
-    font-weight: 900;
+
+    font-size: 14px;
+    font-weight: 950;
 }
 
-.table {
-    min-height: 250px;
-    border-radius: 22px;
-    border: 1px solid var(--border);
+.game-message {
+    padding: 12px;
+
+    margin-bottom: 10px;
+
+    border-radius: 13px;
+
+    background: var(--panel2);
+
+    color: var(--muted);
+
+    text-align: center;
+
+    font-size: 13px;
+}
+
+.game-table {
+    position: relative;
+
+    min-height: 330px;
+
+    padding: 18px;
+
+    border-radius: 24px;
+
     background:
         radial-gradient(
-            circle,
-            #1d2b1f,
-            #0d130e
+            ellipse at center,
+            #1c3020,
+            #0b110d
         );
-    padding: 18px;
-    margin-bottom: 13px;
+
+    border: 1px solid #29352b;
+
+    overflow: hidden;
 }
 
-.table-title {
-    text-align: center;
-    color: #b8c5b9;
-    font-size: 12px;
-    margin-bottom: 14px;
+.game-table::before {
+    content: "";
+
+    position: absolute;
+
+    inset: 18px;
+
+    border-radius: 50%;
+
+    border: 1px solid rgba(255,255,255,.05);
+
+    pointer-events: none;
 }
 
-.table-pairs {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 15px;
-}
-
-.pair {
+.table-label {
     position: relative;
-    width: 72px;
-    height: 110px;
+
+    text-align: center;
+
+    color: #aab5ac;
+
+    font-size: 10px;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 15px;
+}
+
+.table-cards {
+    position: relative;
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 14px;
+}
+
+.card-pair {
+    position: relative;
+
+    width: 76px;
+    height: 115px;
 }
 
 .play-card {
-    width: 72px;
+    position: absolute;
+
+    width: 70px;
     height: 100px;
+
+    padding: 7px;
+
     border-radius: 9px;
+
     background: #f7f7f7;
+
     color: #111;
+
     border: 2px solid #ddd;
-    padding: 8px;
+
+    box-shadow:
+        0 6px 18px rgba(0,0,0,.4);
+
     text-align: left;
-    position: relative;
-    box-shadow: 0 5px 15px rgba(0,0,0,.35);
 }
 
 .play-card.red {
-    color: #b11d1d;
+    color: #b21e1e;
 }
 
-.play-card .value {
-    font-size: 20px;
-    font-weight: 900;
-}
+.play-card.defense {
+    top: 22px;
+    left: 22px;
 
-.play-card .suit {
-    font-size: 22px;
-}
-
-.defense-card {
-    position: absolute;
-    top: 25px;
-    left: 25px;
     z-index: 2;
+}
+
+.play-value {
+    font-size: 19px;
+    font-weight: 950;
+}
+
+.play-suit {
+    margin-top: 2px;
+
+    font-size: 21px;
+}
+
+/* =========================================================
+   HAND
+========================================================= */
+
+.hand-wrap {
+    overflow-x: auto;
+
+    scrollbar-width: none;
+
+    padding:
+        10px
+        4px
+        16px;
+}
+
+.hand-wrap::-webkit-scrollbar {
+    display: none;
 }
 
 .hand {
     display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 8px 2px 15px;
-    scrollbar-width: none;
-}
 
-.hand::-webkit-scrollbar {
-    display: none;
+    gap: 7px;
+
+    width: max-content;
+
+    min-width: 100%;
 }
 
 .hand-card {
-    flex: 0 0 64px;
-    height: 92px;
-    border-radius: 9px;
-    background: #f7f7f7;
-    color: #111;
-    border: 2px solid #ddd;
+    position: relative;
+
+    flex: 0 0 65px;
+
+    height: 94px;
+
     padding: 7px;
+
+    border-radius: 9px;
+
+    background: #f7f7f7;
+
+    color: #111;
+
+    border: 2px solid #ddd;
+
+    box-shadow:
+        0 5px 14px rgba(0,0,0,.35);
+
     text-align: left;
-    box-shadow: 0 5px 14px rgba(0,0,0,.3);
+
+    transition:
+        transform .15s ease,
+        border-color .15s ease;
 }
 
 .hand-card.red {
-    color: #b11d1d;
+    color: #b21e1e;
 }
 
-.hand-card .value {
+.hand-card.selected {
+    transform: translateY(-8px);
+
+    border-color: var(--gold);
+}
+
+.hand-card.disabled {
+    opacity: .45;
+}
+
+.hand-value {
     font-size: 18px;
-    font-weight: 900;
+    font-weight: 950;
 }
 
-.hand-card .suit {
+.hand-suit {
     font-size: 20px;
 }
 
-.hand-card.active {
-    transform: translateY(-7px);
-    border-color: var(--gold2);
-}
+/* =========================================================
+   GAME ACTIONS
+========================================================= */
 
 .game-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+
+    grid-template-columns:
+        1fr 1fr;
+
     gap: 8px;
 }
 
 .game-actions button {
-    margin: 0;
-}
-
-.message {
-    padding: 12px;
-    border-radius: 12px;
-    background: var(--panel2);
-    color: var(--muted);
-    text-align: center;
-    margin-bottom: 10px;
+    margin-top: 0;
 }
 
 /* =========================================================
@@ -641,108 +1204,157 @@ button:disabled {
 .modal {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,.72);
+
+    z-index: 5000;
+
     display: flex;
+
     align-items: flex-end;
     justify-content: center;
-    z-index: 1000;
+
     padding: 12px;
+
+    background:
+        rgba(0,0,0,.75);
 }
 
 .modal-box {
     width: 100%;
     max-width: 700px;
+
     max-height: 85vh;
+
     overflow-y: auto;
-    background: #101010;
-    border: 1px solid var(--border);
+
+    padding: 19px;
+
     border-radius: 22px;
-    padding: 18px;
+
+    background: #111;
+
+    border: 1px solid var(--border);
 }
 
 .modal-title {
     font-size: 20px;
-    font-weight: 900;
+    font-weight: 950;
 }
 
 .modal-text {
-    margin-top: 8px;
-    color: var(--muted);
-    line-height: 1.45;
-}
+    margin-top: 9px;
 
-.close-modal {
-    width: 100%;
-    margin-top: 12px;
+    color: var(--muted);
+
+    line-height: 1.5;
 }
 
 /* =========================================================
-   NAV
+   BOTTOM NAV
 ========================================================= */
 
 .bottom-nav {
     position: fixed;
-    z-index: 500;
+
     left: 0;
     right: 0;
     bottom: 0;
+
+    z-index: 1000;
+
     padding:
         8px
         10px
         calc(8px + env(safe-area-inset-bottom));
-    background: rgba(8,8,8,.94);
+
+    background:
+        rgba(8,8,8,.95);
+
     border-top: 1px solid var(--border);
-    backdrop-filter: blur(14px);
+
+    backdrop-filter: blur(15px);
 }
 
 .bottom-nav-inner {
-    max-width: 720px;
+    max-width: 760px;
+
     margin: 0 auto;
+
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
     gap: 5px;
 }
 
 .nav-button {
     min-height: 52px;
-    background: transparent;
-    color: var(--muted);
+
     border-radius: 12px;
-    font-size: 11px;
-    font-weight: 800;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    font-size: 10px;
+    font-weight: 850;
 }
 
 .nav-button.active {
     background: var(--panel2);
+
     color: var(--gold2);
 }
 
 /* =========================================================
-   LOADING
+   TOAST
 ========================================================= */
 
-.loading {
-    min-height: 70vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.toast {
+    position: fixed;
+
+    left: 50%;
+    bottom: 95px;
+
+    transform:
+        translateX(-50%)
+        translateY(20px);
+
+    z-index: 7000;
+
+    width: calc(100% - 30px);
+    max-width: 500px;
+
+    padding: 13px 16px;
+
+    border-radius: 14px;
+
+    background: #1c1c1c;
+
+    border: 1px solid #333;
+
+    color: white;
+
     text-align: center;
+
+    font-size: 13px;
+    font-weight: 750;
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transition:
+        opacity .2s ease,
+        transform .2s ease;
 }
 
-.loader {
-    width: 38px;
-    height: 38px;
-    border: 3px solid #333;
-    border-top-color: var(--gold2);
-    border-radius: 50%;
-    animation: spin .8s linear infinite;
-    margin: 0 auto 14px;
-}
+.toast.show {
+    opacity: 1;
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    transform:
+        translateX(-50%)
+        translateY(0);
 }
 </style>
 </head>
@@ -751,23 +1363,35 @@ button:disabled {
 
 <div id="app">
 
+    <!-- LOADING -->
+
     <div id="loading" class="loading">
         <div>
             <div class="loader"></div>
+
             <div class="muted">
                 Загрузка Heavy Lux...
             </div>
         </div>
     </div>
 
+
+    <!-- MAIN -->
+
     <div id="main" class="hidden">
 
-        <!-- HOME -->
+
+        <!-- =================================================
+             HOME
+        ================================================== -->
+
         <section
             id="screen-home"
             class="screen"
         >
+
             <div class="header">
+
                 <div class="logo">
                     HEAVY LUX
                 </div>
@@ -778,7 +1402,9 @@ button:disabled {
                 >
                     0 HC
                 </div>
+
             </div>
+
 
             <div class="hero">
 
@@ -819,120 +1445,182 @@ button:disabled {
 
             </div>
 
-            <div class="menu-grid">
+
+            <div class="quick-stats">
+
+                <div class="quick-stat">
+
+                    <div class="quick-stat-label">
+                        АВТО
+                    </div>
+
+                    <div
+                        id="quickCars"
+                        class="quick-stat-value"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+                <div class="quick-stat">
+
+                    <div class="quick-stat-label">
+                        НЕДВИЖИМОСТЬ
+                    </div>
+
+                    <div
+                        id="quickEstate"
+                        class="quick-stat-value"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+                <div class="quick-stat">
+
+                    <div class="quick-stat-label">
+                        БИЗНЕСЫ
+                    </div>
+
+                    <div
+                        id="quickBusiness"
+                        class="quick-stat-value"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="home-grid">
 
                 <button
-                    class="menu-button"
+                    class="home-button"
                     onclick="openScreen('rooms')"
                 >
-                    <div class="menu-icon">
+                    <div class="home-icon">
                         🎴
                     </div>
 
-                    <div class="menu-name">
+                    <div class="home-name">
                         ONLINE ИГРА
                     </div>
 
-                    <div class="menu-sub">
+                    <div class="home-sub">
                         Дурак 1 × 1
                     </div>
                 </button>
 
+
                 <button
-                    class="menu-button"
+                    class="home-button"
                     onclick="openShop()"
                 >
-                    <div class="menu-icon">
+                    <div class="home-icon">
                         🛒
                     </div>
 
-                    <div class="menu-name">
+                    <div class="home-name">
                         МАГАЗИН
                     </div>
 
-                    <div class="menu-sub">
-                        Авто и имущество
+                    <div class="home-sub">
+                        Автомобили и имущество
                     </div>
                 </button>
 
+
                 <button
-                    class="menu-button"
+                    class="home-button"
                     onclick="openScreen('garage')"
                 >
-                    <div class="menu-icon">
-                        🚗
+                    <div class="home-icon">
+                        🚘
                     </div>
 
-                    <div class="menu-name">
+                    <div class="home-name">
                         ГАРАЖ
                     </div>
 
-                    <div class="menu-sub">
+                    <div class="home-sub">
                         Мои автомобили
                     </div>
                 </button>
 
+
                 <button
-                    class="menu-button"
+                    class="home-button"
                     onclick="openScreen('estate')"
                 >
-                    <div class="menu-icon">
+                    <div class="home-icon">
                         🏠
                     </div>
 
-                    <div class="menu-name">
+                    <div class="home-name">
                         НЕДВИЖИМОСТЬ
                     </div>
 
-                    <div class="menu-sub">
-                        Моя недвижимость
+                    <div class="home-sub">
+                        Мои объекты
                     </div>
                 </button>
 
+
                 <button
-                    class="menu-button"
+                    class="home-button"
                     onclick="openScreen('business')"
                 >
-                    <div class="menu-icon">
+                    <div class="home-icon">
                         💼
                     </div>
 
-                    <div class="menu-name">
+                    <div class="home-name">
                         БИЗНЕСЫ
                     </div>
 
-                    <div class="menu-sub">
+                    <div class="home-sub">
                         Доход и управление
                     </div>
                 </button>
 
+
                 <button
-                    class="menu-button"
+                    class="home-button"
                     onclick="openScreen('profile')"
                 >
-                    <div class="menu-icon">
+                    <div class="home-icon">
                         👤
                     </div>
 
-                    <div class="menu-name">
+                    <div class="home-name">
                         ПРОФИЛЬ
                     </div>
 
-                    <div class="menu-sub">
-                        Статистика
+                    <div class="home-sub">
+                        Статистика игрока
                     </div>
                 </button>
 
             </div>
+
         </section>
 
-        <!-- SHOP -->
+
+        <!-- =================================================
+             SHOP
+        ================================================== -->
+
         <section
             id="screen-shop"
             class="screen hidden"
         >
 
             <div class="header">
+
                 <button
                     class="back"
                     onclick="openScreen('home')"
@@ -950,64 +1638,72 @@ button:disabled {
                 >
                     0 HC
                 </div>
-            </div>
-
-            <div
-                id="shopTabs"
-                class="shop-tabs"
-            >
-
-                <button
-                    class="shop-tab active"
-                    onclick="shopTab('cars',this)"
-                >
-                    Авто
-                </button>
-
-                <button
-                    class="shop-tab"
-                    onclick="shopTab('exclusive',this)"
-                >
-                    Exclusive
-                </button>
-
-                <button
-                    class="shop-tab"
-                    onclick="shopTab('plates',this)"
-                >
-                    Номера
-                </button>
-
-                <button
-                    class="shop-tab"
-                    onclick="shopTab('realEstate',this)"
-                >
-                    Недвижимость
-                </button>
-
-                <button
-                    class="shop-tab"
-                    onclick="shopTab('businesses',this)"
-                >
-                    Бизнесы
-                </button>
 
             </div>
 
-            <div
-                id="shopContent"
-                class="product-grid"
-            ></div>
+
+            <div class="tabs">
+
+                <button
+                    class="tab active"
+                    data-tab="cars"
+                    onclick="shopTab('cars')"
+                >
+                    🚘 Авто
+                </button>
+
+                <button
+                    class="tab"
+                    data-tab="exclusive"
+                    onclick="shopTab('exclusive')"
+                >
+                    👑 Exclusive
+                </button>
+
+                <button
+                    class="tab"
+                    data-tab="plates"
+                    onclick="shopTab('plates')"
+                >
+                    🔢 Номера
+                </button>
+
+                <button
+                    class="tab"
+                    data-tab="realEstate"
+                    onclick="shopTab('realEstate')"
+                >
+                    🏠 Недвижимость
+                </button>
+
+                <button
+                    class="tab"
+                    data-tab="businesses"
+                    onclick="shopTab('businesses')"
+                >
+                    💼 Бизнесы
+                </button>
+
+            </div>
+
+
+            <div id="shopContent">
+            </div>
 
         </section>
 
-        <!-- GARAGE -->
+
+        <!-- =================================================
+             GARAGE
+        ================================================== -->
+
         <section
             id="screen-garage"
             class="screen hidden"
         >
 
             <div class="header">
+
                 <button
                     class="back"
                     onclick="openScreen('home')"
@@ -1020,19 +1716,26 @@ button:disabled {
                 </div>
 
                 <div class="top-spacer"></div>
+
             </div>
 
-            <div id="garageContent"></div>
+            <div id="garageContent">
+            </div>
 
         </section>
 
-        <!-- ESTATE -->
+
+        <!-- =================================================
+             ESTATE
+        ================================================== -->
+
         <section
             id="screen-estate"
             class="screen hidden"
         >
 
             <div class="header">
+
                 <button
                     class="back"
                     onclick="openScreen('home')"
@@ -1045,19 +1748,26 @@ button:disabled {
                 </div>
 
                 <div class="top-spacer"></div>
+
             </div>
 
-            <div id="estateContent"></div>
+            <div id="estateContent">
+            </div>
 
         </section>
 
-        <!-- BUSINESS -->
+
+        <!-- =================================================
+             BUSINESS
+        ================================================== -->
+
         <section
             id="screen-business"
             class="screen hidden"
         >
 
             <div class="header">
+
                 <button
                     class="back"
                     onclick="openScreen('home')"
@@ -1070,19 +1780,26 @@ button:disabled {
                 </div>
 
                 <div class="top-spacer"></div>
+
             </div>
 
-            <div id="businessContent"></div>
+            <div id="businessContent">
+            </div>
 
         </section>
 
-        <!-- PROFILE -->
+
+        <!-- =================================================
+             PROFILE
+        ================================================== -->
+
         <section
             id="screen-profile"
             class="screen hidden"
         >
 
             <div class="header">
+
                 <button
                     class="back"
                     onclick="openScreen('home')"
@@ -1095,19 +1812,26 @@ button:disabled {
                 </div>
 
                 <div class="top-spacer"></div>
+
             </div>
 
-            <div id="profileContent"></div>
+            <div id="profileContent">
+            </div>
 
         </section>
 
-        <!-- ROOMS -->
+
+        <!-- =================================================
+             ROOMS
+        ================================================== -->
+
         <section
             id="screen-rooms"
             class="screen hidden"
         >
 
             <div class="header">
+
                 <button
                     class="back"
                     onclick="openScreen('home')"
@@ -1116,16 +1840,23 @@ button:disabled {
                 </button>
 
                 <div class="top-title">
-                    ONLINE ИГРА
+                    ONLINE
                 </div>
 
                 <div class="top-spacer"></div>
+
             </div>
+
 
             <div class="card">
 
                 <div class="section-title">
                     Дурак 1 × 1
+                </div>
+
+                <div class="muted">
+                    Создай комнату и пригласи второго
+                    игрока либо присоединись к существующей.
                 </div>
 
                 <button
@@ -1138,31 +1869,19 @@ button:disabled {
                 <div
                     style="
                         text-align:center;
-                        margin:14px 0;
-                        color:#777;
+                        margin:15px 0;
+                        color:#666;
                     "
                 >
-                    или
+                    ИЛИ
                 </div>
 
                 <input
                     id="roomCodeInput"
+                    class="room-code-input"
                     maxlength="6"
-                    placeholder="КОД КОМНАТЫ"
+                    placeholder="КОД"
                     autocomplete="off"
-                    style="
-                        width:100%;
-                        height:48px;
-                        border-radius:12px;
-                        border:1px solid #292929;
-                        background:#181818;
-                        color:white;
-                        text-align:center;
-                        font-size:20px;
-                        font-weight:900;
-                        letter-spacing:4px;
-                        outline:none;
-                    "
                 >
 
                 <button
@@ -1174,13 +1893,17 @@ button:disabled {
 
             </div>
 
+
             <div class="card">
 
                 <div class="section-title">
                     Открытые комнаты
                 </div>
 
-                <div id="roomsList">
+                <div
+                    id="roomsList"
+                    class="rooms-list"
+                >
                     <div class="muted">
                         Загрузка...
                     </div>
@@ -1190,13 +1913,18 @@ button:disabled {
 
         </section>
 
-        <!-- ROOM -->
+
+        <!-- =================================================
+             ROOM
+        ================================================== -->
+
         <section
             id="screen-room"
             class="screen hidden"
         >
 
             <div class="header">
+
                 <button
                     class="back"
                     onclick="leaveRoom()"
@@ -1209,7 +1937,9 @@ button:disabled {
                 </div>
 
                 <div class="top-spacer"></div>
+
             </div>
+
 
             <div class="card">
 
@@ -1222,8 +1952,9 @@ button:disabled {
 
                 <div
                     id="roomPlayers"
-                    class="players-list"
-                ></div>
+                    class="players"
+                >
+                </div>
 
                 <button
                     id="readyButton"
@@ -1235,16 +1966,21 @@ button:disabled {
 
             </div>
 
+
             <div
                 id="roomMessage"
-                class="message"
+                class="game-message"
             >
                 Ожидание второго игрока...
             </div>
 
         </section>
 
-        <!-- GAME -->
+
+        <!-- =================================================
+             GAME
+        ================================================== -->
+
         <section
             id="screen-game"
             class="screen hidden"
@@ -1265,9 +2001,11 @@ button:disabled {
 
             </div>
 
-            <div class="game-info">
+
+            <div class="game-top">
 
                 <div class="game-stat">
+
                     <div class="game-stat-label">
                         КОЗЫРЬ
                     </div>
@@ -1278,9 +2016,12 @@ button:disabled {
                     >
                         —
                     </div>
+
                 </div>
 
+
                 <div class="game-stat">
+
                     <div class="game-stat-label">
                         КОЛОДА
                     </div>
@@ -1291,9 +2032,12 @@ button:disabled {
                     >
                         0
                     </div>
+
                 </div>
 
+
                 <div class="game-stat">
+
                     <div class="game-stat-label">
                         ФАЗА
                     </div>
@@ -1304,49 +2048,55 @@ button:disabled {
                     >
                         —
                     </div>
+
                 </div>
 
             </div>
 
+
             <div
                 id="gameMessage"
-                class="message"
+                class="game-message"
             >
-                Ожидание...
+                Ожидание игры...
             </div>
+
 
             <div class="card">
 
                 <div class="section-title">
-                    Стол
+                    ИГРОВОЙ СТОЛ
                 </div>
 
-                <div
-                    id="gameTable"
-                    class="table"
-                >
-                    <div class="table-title">
+                <div class="game-table">
+
+                    <div class="table-label">
                         КАРТЫ НА СТОЛЕ
                     </div>
 
                     <div
                         id="gamePairs"
-                        class="table-pairs"
-                    ></div>
+                        class="table-cards"
+                    >
+                    </div>
+
                 </div>
 
             </div>
 
+
             <div class="card">
 
                 <div class="section-title">
-                    Твои карты
+                    ТВОИ КАРТЫ
                 </div>
 
                 <div
                     id="myHand"
-                    class="hand"
-                ></div>
+                    class="hand-wrap"
+                >
+                </div>
+
 
                 <div class="game-actions">
 
@@ -1370,6 +2120,7 @@ button:disabled {
 
             </div>
 
+
             <button
                 class="secondary"
                 onclick="leaveRoom()"
@@ -1383,7 +2134,10 @@ button:disabled {
 
 </div>
 
-<!-- MODAL -->
+
+<!-- =========================================================
+     MODAL
+========================================================= -->
 
 <div
     id="modal"
@@ -1399,15 +2153,17 @@ button:disabled {
         <div
             id="modalTitle"
             class="modal-title"
-        ></div>
+        >
+        </div>
 
         <div
             id="modalText"
             class="modal-text"
-        ></div>
+        >
+        </div>
 
         <button
-            class="secondary close-modal"
+            class="secondary"
             onclick="hideModal()"
         >
             ЗАКРЫТЬ
@@ -1417,7 +2173,21 @@ button:disabled {
 
 </div>
 
-<!-- BOTTOM NAV -->
+
+<!-- =========================================================
+     TOAST
+========================================================= -->
+
+<div
+    id="toast"
+    class="toast"
+>
+</div>
+
+
+<!-- =========================================================
+     BOTTOM NAV
+========================================================= -->
 
 <div
     id="bottomNav"
@@ -1466,6 +2236,7 @@ button:disabled {
 
 </div>
 
+
 <script>
 "use strict";
 
@@ -1473,16 +2244,8 @@ button:disabled {
    CONFIG
 ========================================================= */
 
-/*
- * Если frontend находится на том же домене,
- * оставь пустую строку.
- *
- * Если frontend размещён отдельно,
- * укажи адрес backend:
- *
- * const API_BASE = "https://YOUR-BACKEND-DOMAIN";
- */
 const API_BASE = "";
+
 
 /* =========================================================
    TELEGRAM
@@ -1495,32 +2258,22 @@ if (tg) {
     try {
         tg.ready();
         tg.expand();
+
         tg.setHeaderColor("#070707");
         tg.setBackgroundColor("#070707");
+
     } catch {}
 }
 
 const initData =
     tg?.initData || "";
 
+
 /* =========================================================
    STATE
 ========================================================= */
 
 let player = null;
-
-let shopData = {
-    cars: [],
-    exclusive: [],
-    plates: [],
-    realEstate: [],
-    businesses: [],
-    colors: []
-};
-
-let selectedShopTab = "cars";
-
-let selectedColors = {};
 
 let socket = null;
 
@@ -1530,21 +2283,41 @@ let game = null;
 
 let currentScreen = "home";
 
+let selectedShopTab = "cars";
+
+let selectedColors = {};
+
+let reconnectTimer = null;
+
+
+/* =========================================================
+   DATA
+========================================================= */
+
+const shopData = {
+    cars: [],
+    exclusive: [],
+    plates: [],
+    realEstate: [],
+    businesses: [],
+    colors: []
+};
+
+
 /* =========================================================
    HELPERS
 ========================================================= */
 
-function apiUrl(path) {
-    return `${API_BASE}${path}`;
-}
-
 function money(value) {
+
     return Number(value || 0)
         .toLocaleString("ru-RU")
         .replace(/\u00A0/g, " ");
 }
 
+
 function escapeHtml(value) {
+
     return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -1553,40 +2326,70 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
-function getName(p) {
-    if (!p) return "Игрок";
+
+function getName(user) {
+
+    if (!user) {
+        return "Игрок";
+    }
 
     const full =
-        `${p.first_name || ""} ${p.last_name || ""}`
+        `${user.first_name || ""} ${user.last_name || ""}`
             .trim();
 
-    return full ||
-        p.username ||
-        "Игрок";
+    return (
+        full ||
+        user.username ||
+        user.name ||
+        "Игрок"
+    );
 }
 
+
+function apiUrl(path) {
+    return `${API_BASE}${path}`;
+}
+
+
+function sleep(ms) {
+    return new Promise(
+        resolve => setTimeout(resolve, ms)
+    );
+}
+
+
+/* =========================================================
+   MODAL / TOAST
+========================================================= */
+
 function showModal(title, text) {
+
     document.getElementById(
         "modalTitle"
     ).textContent = title;
 
     document.getElementById(
         "modalText"
-    ).innerHTML = escapeHtml(text)
-        .replace(/\n/g, "<br>");
+    ).innerHTML =
+        escapeHtml(text)
+            .replace(/\n/g, "<br>");
 
     document.getElementById(
         "modal"
     ).classList.remove("hidden");
 }
 
+
 function hideModal() {
+
     document.getElementById(
         "modal"
     ).classList.add("hidden");
 }
 
+
 function closeModal(event) {
+
     if (
         event.target.id === "modal"
     ) {
@@ -1594,17 +2397,36 @@ function closeModal(event) {
     }
 }
 
+
+let toastTimer = null;
+
+function toast(text) {
+
+    const element =
+        document.getElementById("toast");
+
+    element.textContent = text;
+
+    element.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer =
+        setTimeout(() => {
+            element.classList.remove("show");
+        }, 2500);
+}
+
+
 function notify(text) {
+
     if (tg?.showAlert) {
         tg.showAlert(text);
-        return;
+    } else {
+        toast(text);
     }
-
-    showModal(
-        "HEAVY LUX",
-        text
-    );
 }
+
 
 /* =========================================================
    HTTP
@@ -1614,40 +2436,44 @@ async function api(
     path,
     options = {}
 ) {
-    const headers = {
+
+    const config = {
+        ...options
+    };
+
+    config.headers = {
         ...(options.headers || {})
     };
 
     if (initData) {
-        headers[
+
+        config.headers[
             "x-telegram-init-data"
         ] = initData;
     }
 
     if (
-        options.body &&
-        typeof options.body !== "string"
+        config.body &&
+        typeof config.body !== "string"
     ) {
-        headers[
+
+        config.headers[
             "Content-Type"
         ] = "application/json";
 
-        options.body =
+        config.body =
             JSON.stringify(
-                options.body
+                config.body
             );
     }
 
     const response =
         await fetch(
             apiUrl(path),
-            {
-                ...options,
-                headers
-            }
+            config
         );
 
-    let data;
+    let data = null;
 
     try {
         data =
@@ -1659,23 +2485,28 @@ async function api(
     }
 
     if (!response.ok) {
+
         throw new Error(
-            data.error ||
-            `Ошибка HTTP ${response.status}`
+            data?.error ||
+            data?.message ||
+            `HTTP ${response.status}`
         );
     }
 
     return data;
 }
 
+
 /* =========================================================
    AUTH
 ========================================================= */
 
 async function authenticate() {
+
     if (!initData) {
+
         throw new Error(
-            "Telegram initData отсутствует. Открой игру через Telegram."
+            "Открой Heavy Lux через Telegram."
         );
     }
 
@@ -1684,6 +2515,7 @@ async function authenticate() {
             "/api/auth",
             {
                 method: "POST",
+
                 body: {
                     initData
                 }
@@ -1691,12 +2523,13 @@ async function authenticate() {
         );
 
     if (
-        !result.success ||
-        !result.player
+        !result?.success ||
+        !result?.player
     ) {
+
         throw new Error(
-            result.error ||
-            "Ошибка авторизации"
+            result?.error ||
+            "Не удалось авторизоваться."
         );
     }
 
@@ -1706,15 +2539,42 @@ async function authenticate() {
     updatePlayerUI();
 }
 
+
+async function refreshPlayer() {
+
+    const result =
+        await api("/api/player");
+
+    if (
+        result?.success &&
+        result.player
+    ) {
+
+        player =
+            result.player;
+
+        updatePlayerUI();
+    }
+
+    return player;
+}
+
+
 /* =========================================================
-   PLAYER
+   PLAYER UI
 ========================================================= */
 
 function updatePlayerUI() {
-    if (!player) return;
+
+    if (!player) {
+        return;
+    }
 
     const name =
         getName(player);
+
+    const balance =
+        money(player.balance);
 
     document.getElementById(
         "playerName"
@@ -1728,22 +2588,17 @@ function updatePlayerUI() {
     document.getElementById(
         "heroBalance"
     ).textContent =
-        `${money(player.balance)} HC`;
+        `${balance} HC`;
 
     document.getElementById(
         "topBalance"
     ).textContent =
-        `${money(player.balance)} HC`;
+        `${balance} HC`;
 
     document.getElementById(
         "shopBalance"
     ).textContent =
-        `${money(player.balance)} HC`;
-
-    document.getElementById(
-        "heroLevel"
-    ).textContent =
-        `Уровень ${player.level || 1}`;
+        `${balance} HC`;
 
     const level =
         Number(player.level || 1);
@@ -1751,61 +2606,472 @@ function updatePlayerUI() {
     const xp =
         Number(player.xp || 0);
 
+    document.getElementById(
+        "heroLevel"
+    ).textContent =
+        `Уровень ${level}`;
+
     const required =
-        level * 100;
+        Math.max(
+            100,
+            level * 100
+        );
 
     const percent =
         level >= 100
             ? 100
             : Math.min(
                 100,
-                (xp / required) * 100
+                xp / required * 100
             );
 
     document.getElementById(
         "xpProgress"
     ).style.width =
         `${percent}%`;
+
+
+    document.getElementById(
+        "quickCars"
+    ).textContent =
+        (player.cars || []).length;
+
+
+    document.getElementById(
+        "quickEstate"
+    ).textContent =
+        (player.realEstate || []).length;
+
+
+    document.getElementById(
+        "quickBusiness"
+    ).textContent =
+        (player.businesses || []).length;
 }
 
-async function refreshPlayer() {
-    const result =
-        await api(
-            "/api/player"
-        );
-
-    if (
-        result.success &&
-        result.player
-    ) {
-        player =
-            result.player;
-
-        updatePlayerUI();
-    }
-
-    return player;
-}
 
 /* =========================================================
-   SHOP DATA
+   SOCKET
 ========================================================= */
+
+function connectSocket() {
+
+    if (
+        typeof io !== "function"
+    ) {
+        console.warn(
+            "Socket.IO unavailable"
+        );
+
+        return;
+    }
+
+    if (socket) {
+        try {
+            socket.disconnect();
+        } catch {}
+    }
+
+    socket =
+        io(
+            API_BASE || undefined,
+            {
+                transports: [
+                    "websocket",
+                    "polling"
+                ],
+
+                auth: {
+                    initData
+                }
+            }
+        );
+
+
+    socket.on(
+        "connect",
+        () => {
+
+            console.log(
+                "Socket connected:",
+                socket.id
+            );
+
+            if (room?.code) {
+
+                socket.emit(
+                    "room:rejoin",
+                    {
+                        code: room.code
+                    }
+                );
+            }
+        }
+    );
+
+
+    socket.on(
+        "disconnect",
+        () => {
+
+            console.log(
+                "Socket disconnected"
+            );
+        }
+    );
+
+
+    socket.on(
+        "connect_error",
+        error => {
+
+            console.error(
+                "Socket error:",
+                error
+            );
+        }
+    );
+
+
+    /*
+     * Универсальные события.
+     *
+     * Мы поддерживаем несколько названий,
+     * чтобы frontend нормально переживал
+     * изменения backend.
+     */
+
+    socket.on(
+        "room:update",
+        data => {
+            handleRoomUpdate(data);
+        }
+    );
+
+    socket.on(
+        "room:state",
+        data => {
+            handleRoomUpdate(data);
+        }
+    );
+
+    socket.on(
+        "room:joined",
+        data => {
+            handleRoomUpdate(data);
+        }
+    );
+
+
+    socket.on(
+        "game:update",
+        data => {
+            handleGameUpdate(data);
+        }
+    );
+
+    socket.on(
+        "game:state",
+        data => {
+            handleGameUpdate(data);
+        }
+    );
+
+    socket.on(
+        "game:started",
+        data => {
+            handleGameUpdate(data);
+        }
+    );
+
+
+    socket.on(
+        "error",
+        error => {
+
+            const message =
+                typeof error === "string"
+                    ? error
+                    : error?.message ||
+                      error?.error ||
+                      "Ошибка сервера.";
+
+            notify(message);
+        }
+    );
+
+
+    socket.on(
+        "room:error",
+        error => {
+
+            const message =
+                error?.message ||
+                error?.error ||
+                "Ошибка комнаты.";
+
+            notify(message);
+        }
+    );
+
+
+    socket.on(
+        "game:error",
+        error => {
+
+            const message =
+                error?.message ||
+                error?.error ||
+                "Ошибка игры.";
+
+            notify(message);
+        }
+    );
+}
+
+
+/* =========================================================
+   SOCKET EMIT
+========================================================= */
+
+function socketEmit(
+    event,
+    data = {}
+) {
+
+    if (!socket) {
+
+        notify(
+            "Соединение с сервером отсутствует."
+        );
+
+        return false;
+    }
+
+    if (!socket.connected) {
+
+        notify(
+            "Соединение с сервером восстанавливается."
+        );
+
+        return false;
+    }
+
+    socket.emit(
+        event,
+        data
+    );
+
+    return true;
+}
+
+
+/* =========================================================
+   SCREEN
+========================================================= */
+
+const screens = [
+    "home",
+    "shop",
+    "garage",
+    "estate",
+    "business",
+    "profile",
+    "rooms",
+    "room",
+    "game"
+];
+
+
+function openScreen(screen) {
+
+    if (
+        !screens.includes(screen)
+    ) {
+        return;
+    }
+
+    screens.forEach(
+        id => {
+
+            const element =
+                document.getElementById(
+                    `screen-${id}`
+                );
+
+            if (element) {
+
+                element.classList.toggle(
+                    "hidden",
+                    id !== screen
+                );
+            }
+        }
+    );
+
+
+    currentScreen =
+        screen;
+
+
+    document
+        .querySelectorAll(
+            ".nav-button"
+        )
+        .forEach(
+            button => {
+
+                button.classList.toggle(
+                    "active",
+                    button.dataset.screen === screen
+                );
+            }
+        );
+
+
+    const showNav =
+        [
+            "home",
+            "shop",
+            "garage",
+            "profile"
+        ].includes(screen);
+
+
+    document
+        .getElementById(
+            "bottomNav"
+        )
+        .classList.toggle(
+            "hidden",
+            !showNav
+        );
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: "instant"
+    });
+
+
+    if (
+        screen === "garage"
+    ) {
+        renderGarage();
+    }
+
+
+    if (
+        screen === "estate"
+    ) {
+        renderEstate();
+    }
+
+
+    if (
+        screen === "business"
+    ) {
+        renderBusinesses();
+    }
+
+
+    if (
+        screen === "profile"
+    ) {
+        renderProfile();
+    }
+
+
+    if (
+        screen === "rooms"
+    ) {
+        loadRooms();
+    }
+}
+
+
+/* =========================================================
+   SHOP
+========================================================= */
+
+async function openShop() {
+
+    openScreen("shop");
+
+    document.getElementById(
+        "shopContent"
+    ).innerHTML =
+        `
+        <div class="card">
+            <div class="muted">
+                Загружаем магазин...
+            </div>
+        </div>
+        `;
+
+    try {
+
+        await loadShop();
+
+    } catch (error) {
+
+        document.getElementById(
+            "shopContent"
+        ).innerHTML =
+            `
+            <div class="card">
+                <div class="red">
+                    ${escapeHtml(error.message)}
+                </div>
+            </div>
+            `;
+    }
+}
+
 
 async function loadShop() {
 
-    const [
-        dealership,
-        exclusive,
-        plates,
-        estate,
-        businesses
-    ] = await Promise.all([
-        api("/api/dealership"),
-        api("/api/exclusive-cars"),
-        api("/api/plates"),
-        api("/api/real-estate"),
-        api("/api/businesses")
-    ]);
+    const responses =
+        await Promise.allSettled([
+
+            api("/api/dealership"),
+
+            api("/api/exclusive-cars"),
+
+            api("/api/plates"),
+
+            api("/api/real-estate"),
+
+            api("/api/businesses")
+
+        ]);
+
+
+    const dealership =
+        responses[0].status === "fulfilled"
+            ? responses[0].value
+            : {};
+
+    const exclusive =
+        responses[1].status === "fulfilled"
+            ? responses[1].value
+            : {};
+
+    const plates =
+        responses[2].status === "fulfilled"
+            ? responses[2].value
+            : {};
+
+    const estate =
+        responses[3].status === "fulfilled"
+            ? responses[3].value
+            : {};
+
+    const businesses =
+        responses[4].status === "fulfilled"
+            ? responses[4].value
+            : {};
+
 
     shopData.cars =
         dealership.cars || [];
@@ -1825,156 +3091,35 @@ async function loadShop() {
     shopData.businesses =
         businesses.businesses || [];
 
+
     renderShop();
 }
 
-/* =========================================================
-   SCREEN
-========================================================= */
 
-function openScreen(screen) {
+function shopTab(tab) {
 
-    const ids = [
-        "home",
-        "shop",
-        "garage",
-        "estate",
-        "business",
-        "profile",
-        "rooms",
-        "room",
-        "game"
-    ];
-
-    ids.forEach(id => {
-        const element =
-            document.getElementById(
-                `screen-${id}`
-            );
-
-        if (element) {
-            element.classList.toggle(
-                "hidden",
-                id !== screen
-            );
-        }
-    });
-
-    currentScreen =
-        screen;
-
-    document
-        .querySelectorAll(
-            ".nav-button"
-        )
-        .forEach(button => {
-            button.classList.toggle(
-                "active",
-                button.dataset.screen ===
-                screen
-            );
-        });
-
-    const showNav =
-        [
-            "home",
-            "shop",
-            "garage",
-            "profile"
-        ].includes(screen);
-
-    document
-        .getElementById(
-            "bottomNav"
-        )
-        .classList.toggle(
-            "hidden",
-            !showNav
-        );
-
-    window.scrollTo({
-        top: 0,
-        behavior: "instant"
-    });
-
-    if (screen === "garage") {
-        renderGarage();
-    }
-
-    if (screen === "estate") {
-        renderEstate();
-    }
-
-    if (screen === "business") {
-        renderBusinesses();
-    }
-
-    if (screen === "profile") {
-        renderProfile();
-    }
-}
-
-/* =========================================================
-   SHOP
-========================================================= */
-
-async function openShop() {
-
-    openScreen("shop");
-
-    document.getElementById(
-        "shopContent"
-    ).innerHTML =
-        `
-        <div class="card">
-            <div class="muted">
-                Загрузка магазина...
-            </div>
-        </div>
-        `;
-
-    try {
-        await loadShop();
-    } catch (error) {
-        document.getElementById(
-            "shopContent"
-        ).innerHTML =
-            `
-            <div class="card">
-                <div style="color:#ff8b8b">
-                    ${escapeHtml(error.message)}
-                </div>
-            </div>
-            `;
-    }
-}
-
-function shopTab(
-    tab,
-    button
-) {
     selectedShopTab =
         tab;
 
+
     document
         .querySelectorAll(
-            ".shop-tab"
+            ".tab"
         )
         .forEach(
-            item =>
-                item.classList.remove(
-                    "active"
-                )
+            button => {
+
+                button.classList.toggle(
+                    "active",
+                    button.dataset.tab === tab
+                );
+            }
         );
 
-    if (button) {
-        button.classList.add(
-            "active"
-        );
-    }
 
     renderShop();
 }
+
 
 function renderShop() {
 
@@ -1983,10 +3128,11 @@ function renderShop() {
             "shopContent"
         );
 
+
     if (
-        selectedShopTab ===
-        "cars"
+        selectedShopTab === "cars"
     ) {
+
         renderCars(
             container,
             shopData.cars,
@@ -1996,10 +3142,11 @@ function renderShop() {
         return;
     }
 
+
     if (
-        selectedShopTab ===
-        "exclusive"
+        selectedShopTab === "exclusive"
     ) {
+
         renderCars(
             container,
             shopData.exclusive,
@@ -2009,37 +3156,35 @@ function renderShop() {
         return;
     }
 
+
     if (
-        selectedShopTab ===
-        "plates"
+        selectedShopTab === "plates"
     ) {
-        renderPlates(
-            container
-        );
+
+        renderPlates(container);
 
         return;
     }
 
+
     if (
-        selectedShopTab ===
-        "realEstate"
+        selectedShopTab === "realEstate"
     ) {
-        renderRealEstate(
-            container
-        );
+
+        renderRealEstate(container);
 
         return;
     }
 
+
     if (
-        selectedShopTab ===
-        "businesses"
+        selectedShopTab === "businesses"
     ) {
-        renderBusinessShop(
-            container
-        );
+
+        renderBusinessShop(container);
     }
 }
+
 
 /* =========================================================
    CARS
@@ -2052,11 +3197,12 @@ function renderCars(
 ) {
 
     if (!cars.length) {
+
         container.innerHTML =
             `
             <div class="card">
                 <div class="muted">
-                    Каталог пуст.
+                    В этом разделе пока ничего нет.
                 </div>
             </div>
             `;
@@ -2064,113 +3210,116 @@ function renderCars(
         return;
     }
 
+
     container.innerHTML =
-        cars.map(car => {
+        cars.map(
+            car => {
 
-            const selected =
-                selectedColors[
-                    car.id
-                ] ||
-                shopData.colors[0]?.id ||
-                "";
+                const selected =
+                    selectedColors[car.id] ||
+                    shopData.colors[0]?.id ||
+                    "";
 
-            const colors =
-                shopData.colors
-                    .map(color => `
-                        <button
-                            class="color ${
-                                selected === color.id
-                                    ? "selected"
+
+                const colors =
+                    shopData.colors
+                        .map(
+                            color => `
+
+                            <button
+                                class="color ${
+                                    selected === color.id
+                                        ? "selected"
+                                        : ""
+                                }"
+                                title="${escapeHtml(color.name)}"
+                                style="background:${escapeHtml(color.hex)}"
+                                onclick="selectColor('${escapeHtml(car.id)}','${escapeHtml(color.id)}')"
+                            ></button>
+
+                            `
+                        )
+                        .join("");
+
+
+                return `
+
+                    <div class="product">
+
+                        <div class="product-image">
+                            🚘
+                        </div>
+
+                        <div class="product-name">
+                            ${escapeHtml(car.name)}
+                        </div>
+
+                        <div class="product-meta">
+                            ${escapeHtml(car.category || "")}
+
+                            ${
+                                car.tuning
+                                    ? ` • ${escapeHtml(car.tuning)}`
                                     : ""
-                            }"
-                            title="${escapeHtml(color.name)}"
-                            style="
-                                background:${color.hex}
-                            "
-                            onclick="
-                                selectColor(
-                                    '${escapeHtml(car.id)}',
-                                    '${escapeHtml(color.id)}'
-                                )
-                            "
-                        ></button>
-                    `)
-                    .join("");
+                            }
+                        </div>
 
-            return `
-                <div class="product">
+                        <div class="product-price">
+                            ${money(car.price)} HC
+                        </div>
 
-                    <div class="product-image">
-                        🚘
-                    </div>
-
-                    <div class="product-name">
-                        ${escapeHtml(car.name)}
-                    </div>
-
-                    <div class="product-meta">
-                        ${escapeHtml(
-                            car.category ||
-                            ""
-                        )}
 
                         ${
-                            car.tuning
-                                ? ` • ${escapeHtml(car.tuning)}`
-                                : ""
+                            exclusive
+                                ? `
+
+                                    <div class="product-meta">
+                                        👑 Exclusive Tuning Atelier
+                                    </div>
+
+                                  `
+
+                                : `
+
+                                    <div class="product-meta">
+                                        Выберите цвет
+                                    </div>
+
+                                    <div class="color-row">
+                                        ${colors}
+                                    </div>
+
+                                  `
                         }
+
+
+                        <button
+                            class="buy"
+                            onclick="buyCar('${escapeHtml(car.id)}',${exclusive})"
+                        >
+                            КУПИТЬ
+                        </button>
+
                     </div>
 
-                    <div class="product-price">
-                        ${money(car.price)} HC
-                    </div>
-
-                    ${
-                        !exclusive
-                            ? `
-                            <div class="product-meta">
-                                Цвет автомобиля
-                            </div>
-
-                            <div class="color-row">
-                                ${colors}
-                            </div>
-                            `
-                            : `
-                            <div class="product-meta">
-                                Exclusive Tuning Atelier
-                            </div>
-                            `
-                    }
-
-                    <button
-                        class="buy"
-                        onclick="
-                            buyCar(
-                                '${escapeHtml(car.id)}',
-                                ${exclusive}
-                            )
-                        "
-                    >
-                        КУПИТЬ
-                    </button>
-
-                </div>
-            `;
-        })
+                `;
+            }
+        )
         .join("");
 }
+
 
 function selectColor(
     carId,
     colorId
 ) {
-    selectedColors[
-        carId
-    ] = colorId;
+
+    selectedColors[carId] =
+        colorId;
 
     renderShop();
 }
+
 
 /* =========================================================
    BUY CAR
@@ -2182,26 +3331,28 @@ async function buyCar(
 ) {
 
     const colorId =
-        selectedColors[
-            carId
-        ] ||
+        selectedColors[carId] ||
         shopData.colors[0]?.id;
+
 
     if (
         !exclusive &&
         !colorId
     ) {
+
         notify(
-            "Сначала выберите цвет автомобиля."
+            "Выберите цвет автомобиля."
         );
 
         return;
     }
 
+
     const endpoint =
         exclusive
             ? "/api/exclusive-cars/buy"
             : "/api/cars/buy";
+
 
     try {
 
@@ -2210,6 +3361,7 @@ async function buyCar(
                 endpoint,
                 {
                     method: "POST",
+
                     body: {
                         carId,
                         colorId
@@ -2217,26 +3369,33 @@ async function buyCar(
                 }
             );
 
+
         if (result.player) {
             player =
                 result.player;
         }
 
-        updatePlayerUI();
+
+        await refreshPlayer();
+
 
         notify(
             result.message ||
             "Автомобиль приобретён."
         );
 
+
         await loadShop();
 
+
     } catch (error) {
+
         notify(
             error.message
         );
     }
 }
+
 
 /* =========================================================
    PLATES
@@ -2247,11 +3406,12 @@ function renderPlates(
 ) {
 
     if (!shopData.plates.length) {
+
         container.innerHTML =
             `
             <div class="card">
                 <div class="muted">
-                    Номера отсутствуют.
+                    Красивых номеров пока нет.
                 </div>
             </div>
             `;
@@ -2259,47 +3419,55 @@ function renderPlates(
         return;
     }
 
+
     container.innerHTML =
         shopData.plates
-            .map(plate => `
-                <div class="product">
+            .map(
+                plate => `
 
-                    <div class="plate-preview">
-                        ${escapeHtml(
-                            plate.number
-                        )}
+                    <div class="product">
+
+                        <div class="plate">
+                            ${escapeHtml(
+                                plate.number ||
+                                plate.plate ||
+                                "A000AA"
+                            )}
+                        </div>
+
+                        <div
+                            class="product-name"
+                            style="margin-top:13px"
+                        >
+                            ${escapeHtml(
+                                plate.rarity ||
+                                plate.name ||
+                                "Красивый номер"
+                            )}
+                        </div>
+
+                        <div class="product-meta">
+                            Государственный красивый номер
+                        </div>
+
+                        <div class="product-price">
+                            ${money(plate.price)} HC
+                        </div>
+
+                        <button
+                            class="buy"
+                            onclick="buyPlate('${escapeHtml(plate.id)}')"
+                        >
+                            КУПИТЬ
+                        </button>
+
                     </div>
 
-                    <div class="product-name">
-                        ${escapeHtml(
-                            plate.rarity ||
-                            "Красивый номер"
-                        )}
-                    </div>
-
-                    <div class="product-meta">
-                        Государственный красивый номер
-                    </div>
-
-                    <div class="product-price">
-                        ${money(plate.price)} HC
-                    </div>
-
-                    <button
-                        class="buy"
-                        onclick="
-                            buyPlate(
-                                '${escapeHtml(plate.id)}'
-                            )
-                        "
-                    >
-                        КУПИТЬ
-                    </button>
-
-                </div>
-            `)
+                `
+            )
             .join("");
 }
+
 
 async function buyPlate(
     plateId
@@ -2312,87 +3480,106 @@ async function buyPlate(
                 "/api/beautiful-plates/buy",
                 {
                     method: "POST",
+
                     body: {
                         plateId
                     }
                 }
             );
 
+
         if (result.player) {
             player =
                 result.player;
         }
 
-        updatePlayerUI();
+
+        await refreshPlayer();
+
 
         notify(
             result.message ||
             "Номер приобретён."
         );
 
+
         await loadShop();
 
     } catch (error) {
+
         notify(
             error.message
         );
     }
 }
 
+
 /* =========================================================
-   REAL ESTATE
+   REAL ESTATE SHOP
 ========================================================= */
 
 function renderRealEstate(
     container
 ) {
 
+    if (!shopData.realEstate.length) {
+
+        container.innerHTML =
+            `
+            <div class="card">
+                <div class="muted">
+                    Недвижимость пока отсутствует.
+                </div>
+            </div>
+            `;
+
+        return;
+    }
+
+
     container.innerHTML =
         shopData.realEstate
-            .map(item => `
-                <div class="product">
+            .map(
+                item => `
 
-                    <div class="product-image">
-                        🏠
+                    <div class="product">
+
+                        <div class="product-image">
+                            🏠
+                        </div>
+
+                        <div class="product-name">
+                            ${escapeHtml(item.name)}
+                        </div>
+
+                        <div class="product-meta">
+                            ${escapeHtml(item.type || "")}
+
+                            ${
+                                item.category
+                                    ? ` • ${escapeHtml(item.category)}`
+                                    : ""
+                            }
+                        </div>
+
+                        <div class="product-price">
+                            ${money(item.price)} HC
+                        </div>
+
+                        <button
+                            class="buy"
+                            onclick="buyEstate('${escapeHtml(item.id)}')"
+                        >
+                            КУПИТЬ
+                        </button>
+
                     </div>
 
-                    <div class="product-name">
-                        ${escapeHtml(
-                            item.name
-                        )}
-                    </div>
-
-                    <div class="product-meta">
-                        ${escapeHtml(
-                            item.type ||
-                            ""
-                        )}
-                        •
-                        ${escapeHtml(
-                            item.category ||
-                            ""
-                        )}
-                    </div>
-
-                    <div class="product-price">
-                        ${money(item.price)} HC
-                    </div>
-
-                    <button
-                        class="buy"
-                        onclick="
-                            buyEstate(
-                                '${escapeHtml(item.id)}'
-                            )
-                        "
-                    >
-                        КУПИТЬ
-                    </button>
-
-                </div>
-            `)
+                `
+            )
             .join("");
 }
+
 
 async function buyEstate(
     estateId
@@ -2405,33 +3592,39 @@ async function buyEstate(
                 "/api/real-estate/buy",
                 {
                     method: "POST",
+
                     body: {
                         estateId
                     }
                 }
             );
 
+
         if (result.player) {
             player =
                 result.player;
         }
 
-        updatePlayerUI();
+
+        await refreshPlayer();
+
 
         notify(
             result.message ||
             "Недвижимость приобретена."
         );
 
-        await refreshPlayer();
+
         renderEstate();
 
     } catch (error) {
+
         notify(
             error.message
         );
     }
 }
+
 
 /* =========================================================
    BUSINESS SHOP
@@ -2441,55 +3634,63 @@ function renderBusinessShop(
     container
 ) {
 
+    if (!shopData.businesses.length) {
+
+        container.innerHTML =
+            `
+            <div class="card">
+                <div class="muted">
+                    Бизнесы пока отсутствуют.
+                </div>
+            </div>
+            `;
+
+        return;
+    }
+
+
     container.innerHTML =
         shopData.businesses
-            .map(item => `
-                <div class="product">
+            .map(
+                item => `
 
-                    <div class="product-image">
-                        💼
+                    <div class="product">
+
+                        <div class="product-image">
+                            💼
+                        </div>
+
+                        <div class="product-name">
+                            ${escapeHtml(item.name)}
+                        </div>
+
+                        <div class="product-meta">
+                            ${escapeHtml(item.category || "")}
+                        </div>
+
+                        <div class="product-meta">
+                            Доход:
+                            ${money(item.incomePerHour)} HC / час
+                        </div>
+
+                        <div class="product-price">
+                            ${money(item.price)} HC
+                        </div>
+
+                        <button
+                            class="buy"
+                            onclick="buyBusiness('${escapeHtml(item.id)}')"
+                        >
+                            КУПИТЬ
+                        </button>
+
                     </div>
 
-                    <div class="product-name">
-                        ${escapeHtml(
-                            item.name
-                        )}
-                    </div>
-
-                    <div class="product-meta">
-                        ${escapeHtml(
-                            item.category ||
-                            ""
-                        )}
-                    </div>
-
-                    <div class="product-meta">
-                        Доход:
-                        ${money(
-                            item.incomePerHour
-                        )}
-                        HC / час
-                    </div>
-
-                    <div class="product-price">
-                        ${money(item.price)} HC
-                    </div>
-
-                    <button
-                        class="buy"
-                        onclick="
-                            buyBusiness(
-                                '${escapeHtml(item.id)}'
-                            )
-                        "
-                    >
-                        КУПИТЬ
-                    </button>
-
-                </div>
-            `)
+                `
+            )
             .join("");
 }
+
 
 async function buyBusiness(
     businessId
@@ -2502,32 +3703,39 @@ async function buyBusiness(
                 "/api/businesses/buy",
                 {
                     method: "POST",
+
                     body: {
                         businessId
                     }
                 }
             );
 
+
         if (result.player) {
             player =
                 result.player;
         }
 
-        updatePlayerUI();
+
+        await refreshPlayer();
+
 
         notify(
             result.message ||
             "Бизнес приобретён."
         );
 
+
         renderBusinesses();
 
     } catch (error) {
+
         notify(
             error.message
         );
     }
 }
+
 
 /* =========================================================
    GARAGE
@@ -2540,117 +3748,145 @@ function renderGarage() {
             "garageContent"
         );
 
+
     const cars =
         player?.cars || [];
+
 
     if (!cars.length) {
 
         container.innerHTML =
             `
             <div class="card">
+
+                <div class="asset-icon">
+                    🚘
+                </div>
+
                 <div class="section-title">
                     Гараж пуст
                 </div>
 
                 <div class="muted">
-                    Купите первый автомобиль
-                    в магазине.
+                    Купи первый автомобиль
+                    в автосалоне.
                 </div>
 
                 <button
                     class="primary"
-                    onclick="openShop()"
+                    onclick="openShop();setShop('cars')"
                 >
-                    ОТКРЫТЬ МАГАЗИН
+                    ОТКРЫТЬ АВТОСАЛОН
                 </button>
+
             </div>
             `;
 
         return;
     }
 
-    container.innerHTML =
-        cars.map(car => `
-            <div class="card car-card">
 
-                <div class="car-head">
+    container.innerHTML =
+        cars.map(
+            car => `
+
+                <div class="card car-card">
+
+                    <div class="car-head">
+
+                        <div>
+
+                            <div class="car-name">
+                                ${escapeHtml(car.name)}
+                            </div>
+
+                            <div class="car-color">
+                                ${escapeHtml(
+                                    car.colorName ||
+                                    car.color ||
+                                    ""
+                                )}
+
+                                ${
+                                    car.tuning
+                                        ? ` • ${escapeHtml(car.tuning)}`
+                                        : ""
+                                }
+                            </div>
+
+                        </div>
+
+                        <div class="gold">
+                            ${money(car.price)} HC
+                        </div>
+
+                    </div>
+
 
                     <div>
-                        <div class="car-name">
-                            ${escapeHtml(
-                                car.name
-                            )}
-                        </div>
 
-                        <div class="car-color">
-                            ${escapeHtml(
-                                car.colorName ||
-                                ""
-                            )}
+                        ${
+                            car.displayPlate ||
+                            car.plate
+                                ? `
 
-                            ${
-                                car.tuning
-                                    ? ` • ${escapeHtml(car.tuning)}`
-                                    : ""
-                            }
-                        </div>
+                                    <span class="car-plate">
+                                        ${escapeHtml(
+                                            car.displayPlate ||
+                                            car.plate
+                                        )}
+                                    </span>
+
+                                  `
+                                : `
+
+                                    <span class="muted">
+                                        Без номера
+                                    </span>
+
+                                  `
+                        }
+
                     </div>
 
-                    <div class="gold">
-                        ${money(car.price)} HC
+
+                    <div class="muted">
+
+                        ${
+                            car.registered
+                                ? "✓ Автомобиль зарегистрирован"
+                                : "⚠ Автомобиль не зарегистрирован"
+                        }
+
                     </div>
 
-                </div>
 
-                <div>
                     ${
-                        car.displayPlate ||
-                        car.plate
+                        !car.registered
                             ? `
-                            <span class="car-plate">
-                                ${escapeHtml(
-                                    car.displayPlate ||
-                                    car.plate
-                                )}
-                            </span>
-                            `
-                            : `
-                            <span class="muted">
-                                Без номера
-                            </span>
-                            `
+
+                                <button
+                                    class="secondary"
+                                    onclick="registerCar('${escapeHtml(car.id)}')"
+                                >
+                                    ЗАРЕГИСТРИРОВАТЬ — 25 000 HC
+                                </button>
+
+                              `
+                            : ""
                     }
+
                 </div>
 
-                <div class="muted">
-                    ${
-                        car.registered
-                            ? "✓ Зарегистрирован в ГИБДД"
-                            : "⚠ Не зарегистрирован в ГИБДД"
-                    }
-                </div>
-
-                ${
-                    !car.registered
-                        ? `
-                        <button
-                            class="secondary"
-                            onclick="
-                                registerCar(
-                                    '${escapeHtml(car.id)}'
-                                )
-                            "
-                        >
-                            ЗАРЕГИСТРИРОВАТЬ — 25 000 HC
-                        </button>
-                        `
-                        : ""
-                }
-
-            </div>
-        `)
+            `
+        )
         .join("");
 }
+
+
+/* =========================================================
+   REGISTER CAR
+========================================================= */
 
 async function registerCar(
     carId
@@ -2663,31 +3899,42 @@ async function registerCar(
                 "/api/gibdd/register",
                 {
                     method: "POST",
+
                     body: {
                         carId
                     }
                 }
             );
 
+
         if (result.player) {
             player =
                 result.player;
         }
 
-        updatePlayerUI();
+
+        await refreshPlayer();
+
         renderGarage();
+
 
         notify(
             result.message ||
-            `Автомобиль зарегистрирован. Номер: ${result.plate || ""}`
+            (
+                result.plate
+                    ? `Автомобиль зарегистрирован. Номер: ${result.plate}`
+                    : "Автомобиль зарегистрирован."
+            )
         );
 
     } catch (error) {
+
         notify(
             error.message
         );
     }
 }
+
 
 /* =========================================================
    ESTATE OWNED
@@ -2700,8 +3947,10 @@ function renderEstate() {
             "estateContent"
         );
 
+
     const items =
         player?.realEstate || [];
+
 
     if (!items.length) {
 
@@ -2709,35 +3958,24 @@ function renderEstate() {
             `
             <div class="card">
 
+                <div class="asset-icon">
+                    🏠
+                </div>
+
                 <div class="section-title">
-                    У вас пока нет недвижимости
+                    Недвижимости нет
                 </div>
 
                 <div class="muted">
-                    Откройте магазин и приобретите
-                    первый объект.
+                    Купи квартиру, дом или другой объект
+                    в разделе недвижимости.
                 </div>
 
                 <button
                     class="primary"
-                    onclick="
-                        openShop();
-                        setTimeout(
-                            () => {
-                                const buttons =
-                                    document.querySelectorAll(
-                                        '.shop-tab'
-                                    );
-
-                                if (buttons[3]) {
-                                    buttons[3].click();
-                                }
-                            },
-                            50
-                        )
-                    "
+                    onclick="openShop();setShop('realEstate')"
                 >
-                    НЕДВИЖИМОСТЬ В МАГАЗИНЕ
+                    ОТКРЫТЬ НЕДВИЖИМОСТЬ
                 </button>
 
             </div>
@@ -2746,42 +3984,46 @@ function renderEstate() {
         return;
     }
 
+
     container.innerHTML =
-        items.map(item => `
-            <div class="card">
+        items.map(
+            item => `
 
-                <div class="section-title">
-                    🏠
-                    ${escapeHtml(
-                        item.name
-                    )}
+                <div class="asset-card">
+
+                    <div class="asset-icon">
+                        🏠
+                    </div>
+
+                    <div class="asset-name">
+                        ${escapeHtml(item.name)}
+                    </div>
+
+                    <div class="asset-meta">
+                        ${escapeHtml(item.type || "")}
+
+                        ${
+                            item.category
+                                ? ` • ${escapeHtml(item.category)}`
+                                : ""
+                        }
+                    </div>
+
+                    <div class="asset-income">
+                        Стоимость:
+                        ${money(item.price)} HC
+                    </div>
+
                 </div>
 
-                <div class="muted">
-                    ${escapeHtml(
-                        item.type ||
-                        ""
-                    )}
-                    •
-                    ${escapeHtml(
-                        item.category ||
-                        ""
-                    )}
-                </div>
-
-                <div class="gold"
-                     style="margin-top:10px">
-                    Стоимость:
-                    ${money(item.price)} HC
-                </div>
-
-            </div>
-        `)
+            `
+        )
         .join("");
 }
 
+
 /* =========================================================
-   BUSINESSES
+   BUSINESS OWNED
 ========================================================= */
 
 async function renderBusinesses() {
@@ -2791,14 +4033,16 @@ async function renderBusinesses() {
             "businessContent"
         );
 
+
     container.innerHTML =
         `
         <div class="card">
             <div class="muted">
-                Загрузка бизнеса...
+                Загружаем бизнесы...
             </div>
         </div>
         `;
+
 
     try {
 
@@ -2807,8 +4051,10 @@ async function renderBusinesses() {
                 "/api/businesses/owned"
             );
 
+
         const businesses =
             result.businesses || [];
+
 
         if (!businesses.length) {
 
@@ -2816,33 +4062,21 @@ async function renderBusinesses() {
                 `
                 <div class="card">
 
+                    <div class="asset-icon">
+                        💼
+                    </div>
+
                     <div class="section-title">
-                        У вас нет бизнеса
+                        Бизнесов нет
                     </div>
 
                     <div class="muted">
-                        Приобретите предприятие
-                        в магазине.
+                        Приобрети своё первое предприятие.
                     </div>
 
                     <button
                         class="primary"
-                        onclick="
-                            openShop();
-                            setTimeout(
-                                () => {
-                                    const buttons =
-                                        document.querySelectorAll(
-                                            '.shop-tab'
-                                        );
-
-                                    if (buttons[4]) {
-                                        buttons[4].click();
-                                    }
-                                },
-                                50
-                            )
-                        "
+                        onclick="openShop();setShop('businesses')"
                     >
                         ОТКРЫТЬ БИЗНЕСЫ
                     </button>
@@ -2853,65 +4087,75 @@ async function renderBusinesses() {
             return;
         }
 
+
         container.innerHTML =
-            businesses.map(item => `
-                <div class="card">
+            businesses.map(
+                item => {
 
-                    <div class="section-title">
-                        💼
-                        ${escapeHtml(
-                            item.name
-                        )}
-                    </div>
+                    const catalog =
+                        item.catalog || item;
 
-                    <div class="muted">
-                        Доход:
-                        ${money(
-                            item.catalog?.incomePerHour ||
-                            item.incomePerHour
-                        )}
-                        HC / час
-                    </div>
 
-                    <div
-                        class="gold"
-                        style="margin-top:10px"
-                    >
-                        Доступно:
-                        ${money(
-                            item.availableIncome
-                        )} HC
-                    </div>
+                    return `
 
-                    <button
-                        class="primary"
-                        onclick="
-                            collectBusiness(
-                                '${escapeHtml(item.id)}'
-                            )
-                        "
-                    >
-                        ЗАБРАТЬ ДОХОД
-                    </button>
+                        <div class="asset-card">
 
-                </div>
-            `)
+                            <div class="asset-icon">
+                                💼
+                            </div>
+
+                            <div class="asset-name">
+                                ${escapeHtml(item.name)}
+                            </div>
+
+                            <div class="asset-meta">
+                                Доход:
+                                ${money(
+                                    catalog.incomePerHour ||
+                                    item.incomePerHour
+                                )}
+                                HC / час
+                            </div>
+
+                            <div class="asset-income">
+                                Доступно:
+                                ${money(
+                                    item.availableIncome
+                                )} HC
+                            </div>
+
+                            <button
+                                class="primary"
+                                onclick="collectBusiness('${escapeHtml(item.id)}')"
+                            >
+                                ЗАБРАТЬ ДОХОД
+                            </button>
+
+                        </div>
+
+                    `;
+                }
+            )
             .join("");
+
 
     } catch (error) {
 
         container.innerHTML =
             `
             <div class="card">
-                <div style="color:#ff8b8b">
-                    ${escapeHtml(
-                        error.message
-                    )}
+                <div class="red">
+                    ${escapeHtml(error.message)}
                 </div>
             </div>
             `;
     }
 }
+
+
+/* =========================================================
+   COLLECT BUSINESS
+========================================================= */
 
 async function collectBusiness(
     businessId
@@ -2924,31 +4168,38 @@ async function collectBusiness(
                 "/api/businesses/collect",
                 {
                     method: "POST",
+
                     body: {
                         businessId
                     }
                 }
             );
 
+
         if (result.player) {
             player =
                 result.player;
         }
 
-        updatePlayerUI();
+
+        await refreshPlayer();
+
 
         notify(
-            `Получено ${money(result.income)} HC`
+            `Получено ${money(result.income || 0)} HC`
         );
+
 
         renderBusinesses();
 
     } catch (error) {
+
         notify(
             error.message
         );
     }
 }
+
 
 /* =========================================================
    PROFILE
@@ -2961,127 +4212,155 @@ function renderProfile() {
             "profileContent"
         );
 
+
+    const stats =
+        player?.stats ||
+        player?.statistics ||
+        {};
+
+
     container.innerHTML =
         `
-        <div class="card">
 
-            <div class="section-title">
+        <div class="card profile-header">
+
+            <div class="avatar">
+                👤
+            </div>
+
+            <div class="profile-name">
                 ${escapeHtml(
                     getName(player)
                 )}
             </div>
 
-            <div class="gold">
+            <div class="profile-title">
                 ${escapeHtml(
-                    player.title ||
+                    player?.title ||
                     "Новичок"
                 )}
             </div>
 
         </div>
 
+
         <div class="card">
 
             <div class="section-title">
-                Статистика
+                Личная информация
             </div>
 
-            <div class="players-list">
+            <div class="profile-row">
+                <span class="muted">
+                    Уровень
+                </span>
 
-                <div class="player-row">
-                    <span>
-                        Баланс
-                    </span>
-                    <strong class="gold">
-                        ${money(
-                            player.balance
-                        )} HC
-                    </strong>
-                </div>
+                <strong>
+                    ${player?.level || 1}
+                </strong>
+            </div>
 
-                <div class="player-row">
-                    <span>
-                        Уровень
-                    </span>
-                    <strong>
-                        ${player.level}
-                    </strong>
-                </div>
 
-                <div class="player-row">
-                    <span>
-                        XP
-                    </span>
-                    <strong>
-                        ${player.xp}
-                    </strong>
-                </div>
+            <div class="profile-row">
+                <span class="muted">
+                    Опыт
+                </span>
 
-                <div class="player-row">
-                    <span>
-                        Игр
-                    </span>
-                    <strong>
-                        ${player.games}
-                    </strong>
-                </div>
+                <strong>
+                    ${money(player?.xp || 0)} XP
+                </strong>
+            </div>
 
-                <div class="player-row">
-                    <span>
-                        Побед
-                    </span>
-                    <strong class="online">
-                        ${player.wins}
-                    </strong>
-                </div>
 
-                <div class="player-row">
-                    <span>
-                        Поражений
-                    </span>
-                    <strong class="offline">
-                        ${player.losses}
-                    </strong>
-                </div>
+            <div class="profile-row">
+                <span class="muted">
+                    Баланс
+                </span>
 
-                <div class="player-row">
-                    <span>
-                        Автомобилей
-                    </span>
-                    <strong>
-                        ${
-                            player.cars?.length || 0
-                        }
-                    </strong>
-                </div>
+                <strong class="gold">
+                    ${money(player?.balance)} HC
+                </strong>
+            </div>
 
-                <div class="player-row">
-                    <span>
-                        Недвижимость
-                    </span>
-                    <strong>
-                        ${
-                            player.realEstate?.length || 0
-                        }
-                    </strong>
-                </div>
 
-                <div class="player-row">
-                    <span>
-                        Бизнесов
-                    </span>
-                    <strong>
-                        ${
-                            player.businesses?.length || 0
-                        }
-                    </strong>
-                </div>
+            <div class="profile-row">
+                <span class="muted">
+                    Автомобили
+                </span>
 
+                <strong>
+                    ${(player?.cars || []).length}
+                </strong>
+            </div>
+
+
+            <div class="profile-row">
+                <span class="muted">
+                    Недвижимость
+                </span>
+
+                <strong>
+                    ${(player?.realEstate || []).length}
+                </strong>
+            </div>
+
+
+            <div class="profile-row">
+                <span class="muted">
+                    Бизнесы
+                </span>
+
+                <strong>
+                    ${(player?.businesses || []).length}
+                </strong>
             </div>
 
         </div>
+
+
+        <div class="card">
+
+            <div class="section-title">
+                Игровая статистика
+            </div>
+
+            <div class="profile-row">
+                <span class="muted">
+                    Победы
+                </span>
+
+                <strong>
+                    ${stats.wins || player?.wins || 0}
+                </strong>
+            </div>
+
+
+            <div class="profile-row">
+                <span class="muted">
+                    Поражения
+                </span>
+
+                <strong>
+                    ${stats.losses || player?.losses || 0}
+                </strong>
+            </div>
+
+
+            <div class="profile-row">
+                <span class="muted">
+                    Игр
+                </span>
+
+                <strong>
+                    ${stats.games || player?.games || 0}
+                </strong>
+            </div>
+
+        </div>
+
         `;
 }
+
 
 /* =========================================================
    ROOMS
@@ -3094,6 +4373,15 @@ async function loadRooms() {
             "roomsList"
         );
 
+
+    container.innerHTML =
+        `
+        <div class="muted">
+            Загрузка комнат...
+        </div>
+        `;
+
+
     try {
 
         const result =
@@ -3101,97 +4389,144 @@ async function loadRooms() {
                 "/api/rooms"
             );
 
+
         const rooms =
             result.rooms || [];
+
 
         if (!rooms.length) {
 
             container.innerHTML =
                 `
                 <div class="muted">
-                    Сейчас открытых комнат нет.
+                    Сейчас нет открытых комнат.
                 </div>
                 `;
 
             return;
         }
 
+
         container.innerHTML =
-            rooms.map(item => `
-                <div class="player-row">
+            rooms.map(
+                item => `
 
-                    <div>
-                        <strong>
-                            ${escapeHtml(
-                                item.code
-                            )}
-                        </strong>
+                    <div class="room-list-item">
 
-                        <div class="muted">
-                            Игроков:
-                            ${item.players}/2
+                        <div class="room-list-info">
+
+                            <div class="room-list-code">
+                                ${escapeHtml(
+                                    item.code ||
+                                    item.roomCode
+                                )}
+                            </div>
+
+                            <div class="room-list-status">
+                                ${item.players || 1} / 2 игрока
+                            </div>
+
                         </div>
+
+                        <button
+                            class="secondary"
+                            style="width:auto;margin:0;padding:0 15px"
+                            onclick="joinRoom('${escapeHtml(
+                                item.code ||
+                                item.roomCode
+                            )}')"
+                        >
+                            ВОЙТИ
+                        </button>
+
                     </div>
 
-                    <button
-                        class="secondary"
-                        style="
-                            width:auto;
-                            padding:8px 13px;
-                            margin:0;
-                        "
-                        onclick="
-                            joinRoomByCode(
-                                '${escapeHtml(item.code)}'
-                            )
-                        "
-                    >
-                        ВОЙТИ
-                    </button>
-
-                </div>
-            `)
+                `
+            )
             .join("");
+
 
     } catch (error) {
 
+        /*
+         * Некоторые версии backend
+         * не имеют HTTP endpoint списка комнат.
+         * В таком случае просто оставляем возможность
+         * создать/войти по коду.
+         */
+
         container.innerHTML =
             `
-            <div style="color:#ff8b8b">
-                ${escapeHtml(
-                    error.message
-                )}
+            <div class="muted">
+                Открытые комнаты недоступны.
+                Создай комнату или введи её код.
             </div>
             `;
     }
 }
 
+
+/* =========================================================
+   CREATE ROOM
+========================================================= */
+
 function createRoom() {
 
-    if (!socket) {
-        connectSocket();
+    if (
+        !socket ||
+        !socket.connected
+    ) {
+
+        notify(
+            "Соединение с сервером отсутствует."
+        );
+
+        return;
     }
 
-    socket.emit(
-        "room:create"
+
+    socketEmit(
+        "room:create",
+        {}
+    );
+
+
+    /*
+     * Поддержка альтернативного названия
+     * события backend.
+     */
+
+    socketEmit(
+        "createRoom",
+        {}
     );
 }
 
-function joinRoom() {
+
+/* =========================================================
+   JOIN ROOM
+========================================================= */
+
+function joinRoom(code = null) {
 
     const input =
         document.getElementById(
             "roomCodeInput"
         );
 
-    const code =
-        String(
-            input.value || ""
-        )
-            .trim()
-            .toUpperCase();
 
-    if (!code) {
+    const roomCode =
+        (
+            code ||
+            input?.value ||
+            ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+    if (!roomCode) {
+
         notify(
             "Введите код комнаты."
         );
@@ -3199,270 +4534,111 @@ function joinRoom() {
         return;
     }
 
-    joinRoomByCode(code);
-}
 
-function joinRoomByCode(code) {
-
-    if (!socket) {
-        connectSocket();
+    if (input) {
+        input.value =
+            roomCode;
     }
 
-    socket.emit(
-        "room:join",
-        {
-            roomCode: code
-        }
-    );
-}
 
-/* =========================================================
-   SOCKET
-========================================================= */
+    if (
+        !socket ||
+        !socket.connected
+    ) {
 
-function connectSocket() {
+        notify(
+            "Соединение с сервером отсутствует."
+        );
 
-    if (socket) {
         return;
     }
 
-    socket =
-        io(
-            API_BASE || undefined,
-            {
-                transports: [
-                    "websocket",
-                    "polling"
-                ],
 
-                auth: {
-                    initData
-                },
-
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000
-            }
-        );
-
-    socket.on(
-        "connect",
-        () => {
-
-            if (room) {
-                socket.emit(
-                    "room:state"
-                );
-            }
+    socketEmit(
+        "room:join",
+        {
+            code: roomCode
         }
     );
 
-    socket.on(
-        "auth:error",
-        data => {
-            notify(
-                data?.error ||
-                "Ошибка авторизации Socket.IO"
-            );
-        }
-    );
 
-    socket.on(
-        "auth:success",
-        data => {
-
-            if (
-                data?.player
-            ) {
-                player =
-                    data.player;
-
-                updatePlayerUI();
-            }
-        }
-    );
-
-    socket.on(
-        "room:created",
-        data => {
-
-            room =
-                data;
-
-            renderRoom();
-
-            openScreen(
-                "room"
-            );
-        }
-    );
-
-    socket.on(
-        "room:joined",
-        data => {
-
-            room =
-                data;
-
-            renderRoom();
-
-            openScreen(
-                "room"
-            );
-        }
-    );
-
-    socket.on(
-        "room:reconnected",
-        data => {
-
-            room =
-                data;
-
-            renderRoom();
-
-            if (
-                room?.game?.status ===
-                "playing"
-            ) {
-                openScreen(
-                    "game"
-                );
-            } else {
-                openScreen(
-                    "room"
-                );
-            }
-        }
-    );
-
-    socket.on(
-        "room:update",
-        data => {
-
-            room =
-                data;
-
-            renderRoom();
-
-            if (
-                room?.game?.status ===
-                "playing"
-            ) {
-                openScreen(
-                    "game"
-                );
-            }
-        }
-    );
-
-    socket.on(
-        "room:error",
-        data => {
-
-            notify(
-                data?.error ||
-                "Ошибка комнаты"
-            );
-        }
-    );
-
-    socket.on(
-        "game:started",
-        data => {
-
-            game =
-                data;
-
-            openScreen(
-                "game"
-            );
-
-            renderGame();
-        }
-    );
-
-    socket.on(
-        "game:state",
-        data => {
-
-            game =
-                data;
-
-            if (
-                data?.status ===
-                "playing"
-            ) {
-                openScreen(
-                    "game"
-                );
-            }
-
-            renderGame();
-        }
-    );
-
-    socket.on(
-        "game:error",
-        data => {
-
-            notify(
-                data?.error ||
-                "Ошибка игры"
-            );
-        }
-    );
-
-    socket.on(
-        "game:finished",
-        data => {
-
-            if (game) {
-                game.status =
-                    "finished";
-
-                game.winnerId =
-                    data?.winnerId ||
-                    null;
-
-                game.loserId =
-                    data?.loserId ||
-                    null;
-            }
-
-            renderGame();
-
-            refreshPlayer()
-                .catch(() => {});
-
-            const myId =
-                game?.myId;
-
-            if (
-                data?.winnerId ===
-                myId
-            ) {
-                notify(
-                    "Победа! Вы выиграли партию."
-                );
-            } else {
-                notify(
-                    "Партия завершена."
-                );
-            }
-        }
-    );
-
-    socket.on(
-        "disconnect",
-        () => {
-            /*
-             * Backend сам оставляет игрока
-             * в комнате на время reconnect.
-             */
+    socketEmit(
+        "joinRoom",
+        {
+            code: roomCode
         }
     );
 }
+
+
+/* =========================================================
+   ROOM UPDATE
+========================================================= */
+
+function handleRoomUpdate(
+    data
+) {
+
+    if (!data) {
+        return;
+    }
+
+
+    room =
+        data.room ||
+        data;
+
+
+    const code =
+        room.code ||
+        room.roomCode ||
+        data.code ||
+        "";
+
+
+    if (code) {
+
+        document.getElementById(
+            "roomCode"
+        ).textContent =
+            code;
+    }
+
+
+    renderRoom();
+
+
+    const status =
+        room.status ||
+        data.status ||
+        "";
+
+
+    if (
+        status === "playing" ||
+        status === "game" ||
+        data.game
+    ) {
+
+        if (data.game) {
+
+            game =
+                data.game;
+        }
+
+        openScreen("game");
+
+        if (game) {
+            renderGame();
+        }
+
+        return;
+    }
+
+
+    openScreen("room");
+}
+
 
 /* =========================================================
    ROOM RENDER
@@ -3474,188 +4650,256 @@ function renderRoom() {
         return;
     }
 
-    document.getElementById(
-        "roomCode"
-    ).textContent =
-        room.code || "------";
 
     const players =
-        room.players || [];
+        room.players ||
+        [];
 
-    document.getElementById(
-        "roomPlayers"
-    ).innerHTML =
-        players.map(item => `
-            <div class="player-row">
 
-                <div>
-                    <strong>
-                        ${escapeHtml(
-                            getName(item)
-                        )}
-                    </strong>
+    const container =
+        document.getElementById(
+            "roomPlayers"
+        );
 
-                    <div class="muted">
-                        ${
-                            item.ready
-                                ? "Готов"
-                                : "Ожидание"
-                        }
+
+    container.innerHTML =
+        players.map(
+            item => {
+
+                const ready =
+                    item.ready ||
+                    item.isReady;
+
+
+                const isMe =
+                    String(item.id) ===
+                    String(
+                        player?.id ||
+                        player?.telegramId
+                    );
+
+
+                return `
+
+                    <div class="player-item">
+
+                        <div class="player-left">
+
+                            <div class="player-avatar">
+                                👤
+                            </div>
+
+                            <div>
+
+                                <div class="player-name">
+                                    ${escapeHtml(
+                                        getName(item)
+                                    )}
+
+                                    ${
+                                        isMe
+                                            ? " · Вы"
+                                            : ""
+                                    }
+                                </div>
+
+                                <div class="player-status">
+                                    ${
+                                        ready
+                                            ? "✓ Готов"
+                                            : "Ожидает"
+                                    }
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="${
+                            ready
+                                ? "green"
+                                : "muted"
+                        }">
+                            ${
+                                ready
+                                    ? "●"
+                                    : "○"
+                            }
+                        </div>
+
                     </div>
-                </div>
 
-                <div class="${
-                    item.connected
-                        ? "online"
-                        : "offline"
-                }">
-                    ${
-                        item.connected
-                            ? "●"
-                            : "○"
-                    }
-                </div>
-
-            </div>
-        `)
+                `;
+            }
+        )
         .join("");
 
-    const count =
-        players.length;
-
-    document.getElementById(
-        "roomMessage"
-    ).textContent =
-        count < 2
-            ? "Отправь код комнаты второму игроку."
-            : "Два игрока подключены.";
 
     const me =
         players.find(
             item =>
+                String(item.id) ===
                 String(
-                    item.telegram_id
-                ) ===
-                String(
-                    player?.telegram_id
+                    player?.id ||
+                    player?.telegramId
                 )
         );
 
-    document.getElementById(
-        "readyButton"
-    ).textContent =
-        me?.ready
-            ? "НЕ ГОТОВ"
-            : "ГОТОВ";
+
+    const readyButton =
+        document.getElementById(
+            "readyButton"
+        );
+
+
+    if (me) {
+
+        const ready =
+            me.ready ||
+            me.isReady;
+
+
+        readyButton.textContent =
+            ready
+                ? "НЕ ГОТОВ"
+                : "ГОТОВ";
+
+
+        readyButton.className =
+            ready
+                ? "secondary"
+                : "primary";
+    }
+
+
+    const message =
+        document.getElementById(
+            "roomMessage"
+        );
+
+
+    if (
+        players.length < 2
+    ) {
+
+        message.textContent =
+            "Ожидание второго игрока...";
+
+    } else {
+
+        message.textContent =
+            "Оба игрока в комнате. Нажмите «Готов».";
+    }
 }
+
+
+/* =========================================================
+   READY
+========================================================= */
 
 function toggleReady() {
 
-    if (!socket) {
+    if (!room) {
         return;
     }
 
-    const me =
-        room?.players?.find(
-            item =>
-                String(
-                    item.telegram_id
-                ) ===
-                String(
-                    player?.telegram_id
-                )
-        );
 
-    socket.emit(
+    socketEmit(
         "room:ready",
         {
-            ready:
-                !me?.ready
+            code:
+                room.code ||
+                room.roomCode
+        }
+    );
+
+
+    socketEmit(
+        "toggleReady",
+        {
+            code:
+                room.code ||
+                room.roomCode
         }
     );
 }
 
+
+/* =========================================================
+   LEAVE ROOM
+========================================================= */
+
 function leaveRoom() {
 
+    const code =
+        room?.code ||
+        room?.roomCode;
+
+
     if (socket) {
-        socket.emit(
-            "room:leave"
+
+        socketEmit(
+            "room:leave",
+            {
+                code
+            }
+        );
+
+
+        socketEmit(
+            "leaveRoom",
+            {
+                code
+            }
         );
     }
+
 
     room = null;
     game = null;
 
-    openScreen(
-        "rooms"
-    );
 
-    loadRooms();
+    openScreen("home");
 }
+
 
 /* =========================================================
-   GAME
+   GAME UPDATE
 ========================================================= */
 
-const SUITS = {
-    hearts: {
-        symbol: "♥",
-        red: true
-    },
-
-    diamonds: {
-        symbol: "♦",
-        red: true
-    },
-
-    clubs: {
-        symbol: "♣",
-        red: false
-    },
-
-    spades: {
-        symbol: "♠",
-        red: false
-    }
-};
-
-function cardHtml(
-    card,
-    extraClass = ""
+function handleGameUpdate(
+    data
 ) {
 
-    if (!card) {
-        return "";
+    if (!data) {
+        return;
     }
 
-    const suit =
-        SUITS[
-            card.suit
-        ] || {
-            symbol: "?",
-            red: false
-        };
 
-    return `
-        <div
-            class="
-                play-card
-                ${suit.red ? "red" : ""}
-                ${extraClass}
-            "
-        >
-            <div class="value">
-                ${escapeHtml(
-                    card.value
-                )}
-            </div>
+    game =
+        data.game ||
+        data.state ||
+        data;
 
-            <div class="suit">
-                ${suit.symbol}
-            </div>
-        </div>
-    `;
+
+    if (
+        data.room
+    ) {
+
+        room =
+            data.room;
+    }
+
+
+    openScreen("game");
+
+    renderGame();
 }
+
+
+/* =========================================================
+   GAME RENDER
+========================================================= */
 
 function renderGame() {
 
@@ -3663,154 +4907,172 @@ function renderGame() {
         return;
     }
 
-    document.getElementById(
-        "gameRound"
-    ).textContent =
-        `Раунд ${game.roundNumber || 1}`;
-
-    const trump =
-        SUITS[
-            game.trump
-        ];
 
     document.getElementById(
         "gameTrump"
     ).textContent =
-        trump
-            ? trump.symbol
-            : "—";
+        formatSuit(
+            game.trump ||
+            game.trumpSuit ||
+            game.trumpCard?.suit
+        );
+
 
     document.getElementById(
         "gameDeck"
     ).textContent =
-        game.deckCount ?? 0;
+        game.deckCount ??
+        game.deck?.length ??
+        0;
 
-    const phaseNames = {
-        attack: "АТАКА",
-        defense: "ЗАЩИТА"
-    };
+
+    document.getElementById(
+        "gameRound"
+    ).textContent =
+        `Раунд ${game.round || 1}`;
+
 
     document.getElementById(
         "gamePhase"
     ).textContent =
-        phaseNames[
-            game.phase
-        ] ||
-        String(
+        formatPhase(
             game.phase ||
-            "—"
-        ).toUpperCase();
-
-    const myId =
-        game.myId;
-
-    const myPlayer =
-        game.players?.find(
-            p =>
-                p.id === myId
+            game.status
         );
 
-    const isMyTurn =
-        game.turnId ===
-        myId;
-
-    const isAttacker =
-        game.attackerId ===
-        myId;
-
-    const isDefender =
-        game.defenderId ===
-        myId;
-
-    let message =
-        "Ожидание...";
-
-    if (
-        game.status ===
-        "finished"
-    ) {
-
-        if (
-            game.winnerId ===
-            myId
-        ) {
-            message =
-                "🏆 Ты победил!";
-        } else if (
-            game.loserId ===
-            myId
-        ) {
-            message =
-                "Поражение.";
-        } else {
-            message =
-                "Партия завершена.";
-        }
-
-    } else if (
-        isMyTurn
-    ) {
-
-        if (
-            game.phase ===
-            "attack"
-        ) {
-            message =
-                isAttacker
-                    ? "Твой ход. Атакуй."
-                    : "Твой ход.";
-        } else {
-            message =
-                isDefender
-                    ? "Твой ход. Защищайся или забирай карты."
-                    : "Ожидание защиты.";
-        }
-
-    } else {
-
-        message =
-            "Ход соперника...";
-    }
 
     document.getElementById(
         "gameMessage"
     ).textContent =
-        message;
+        game.message ||
+        getGameMessage();
+
 
     renderTable();
+
     renderHand();
 
-    const take =
-        document.getElementById(
-            "takeButton"
-        );
-
-    const end =
-        document.getElementById(
-            "endAttackButton"
-        );
-
-    take.disabled =
-        !(
-            game.status ===
-            "playing" &&
-            game.phase ===
-            "defense" &&
-            isDefender &&
-            isMyTurn
-        );
-
-    end.disabled =
-        !(
-            game.status ===
-            "playing" &&
-            game.phase ===
-            "attack" &&
-            isAttacker &&
-            isMyTurn &&
-            game.table?.length
-        );
+    updateGameButtons();
 }
+
+
+/* =========================================================
+   SUITS
+========================================================= */
+
+function formatSuit(
+    suit
+) {
+
+    if (!suit) {
+        return "—";
+    }
+
+
+    const map = {
+        hearts: "♥",
+        heart: "♥",
+        "♥": "♥",
+
+        diamonds: "♦",
+        diamond: "♦",
+        "♦": "♦",
+
+        clubs: "♣",
+        club: "♣",
+        "♣": "♣",
+
+        spades: "♠",
+        spade: "♠",
+        "♠": "♠"
+    };
+
+
+    return (
+        map[String(suit).toLowerCase()] ||
+        suit
+    );
+}
+
+
+/* =========================================================
+   PHASE
+========================================================= */
+
+function formatPhase(
+    phase
+) {
+
+    if (!phase) {
+        return "—";
+    }
+
+
+    const map = {
+
+        attack:
+            "Атака",
+
+        defending:
+            "Защита",
+
+        defense:
+            "Защита",
+
+        throw:
+            "Подкид",
+
+        waiting:
+            "Ожидание",
+
+        finished:
+            "Конец",
+
+        over:
+            "Конец"
+    };
+
+
+    return (
+        map[String(phase).toLowerCase()] ||
+        phase
+    );
+}
+
+
+function getGameMessage() {
+
+    if (!game) {
+        return "Ожидание...";
+    }
+
+
+    const attacker =
+        game.attacker ||
+        game.currentPlayer;
+
+
+    const myId =
+        player?.id ||
+        player?.telegramId;
+
+
+    if (
+        String(attacker) ===
+        String(myId)
+    ) {
+
+        return "Твой ход.";
+    }
+
+
+    return "Ход соперника.";
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
 
 function renderTable() {
 
@@ -3819,14 +5081,25 @@ function renderTable() {
             "gamePairs"
         );
 
+
     const table =
-        game?.table || [];
+        game?.table ||
+        game?.cardsOnTable ||
+        [];
+
 
     if (!table.length) {
 
         container.innerHTML =
             `
-            <div class="muted">
+            <div
+                class="muted"
+                style="
+                    width:100%;
+                    text-align:center;
+                    padding:50px 0;
+                "
+            >
                 Стол пуст
             </div>
             `;
@@ -3834,42 +5107,128 @@ function renderTable() {
         return;
     }
 
-    container.innerHTML =
-        table.map(pair => `
-            <div
-                class="pair"
-                onclick="
-                    selectDefensePair(
-                        '${escapeHtml(pair.id)}'
-                    )
-                "
-            >
-                ${cardHtml(pair.attack)}
 
-                ${
-                    pair.defense
-                        ? cardHtml(
-                            pair.defense,
-                            "defense-card"
-                        )
-                        : ""
-                }
-            </div>
-        `)
+    /*
+     * Поддерживаем как:
+     *
+     * [
+     *   {
+     *      attack: {...},
+     *      defense: {...}
+     *   }
+     * ]
+     *
+     * так и:
+     *
+     * [
+     *   {
+     *      card: {...},
+     *      defendedBy: {...}
+     *   }
+     * ]
+     */
+
+
+    container.innerHTML =
+        table.map(
+            pair => {
+
+                const attack =
+                    pair.attack ||
+                    pair.card ||
+                    pair.attacking ||
+                    pair;
+
+
+                const defense =
+                    pair.defense ||
+                    pair.defendedBy ||
+                    pair.defending ||
+                    null;
+
+
+                return `
+
+                    <div class="card-pair">
+
+                        ${renderPlayCard(
+                            attack
+                        )}
+
+                        ${
+                            defense
+                                ? renderPlayCard(
+                                    defense,
+                                    true
+                                )
+                                : ""
+                        }
+
+                    </div>
+
+                `;
+            }
+        )
         .join("");
 }
 
-let selectedDefensePairId =
-    null;
 
-function selectDefensePair(
-    pairId
+/* =========================================================
+   PLAY CARD
+========================================================= */
+
+function renderPlayCard(
+    card,
+    defense = false
 ) {
-    selectedDefensePairId =
-        pairId;
 
-    renderGame();
+    if (!card) {
+        return "";
+    }
+
+
+    const suit =
+        formatSuit(
+            card.suit
+        );
+
+
+    const red =
+        suit === "♥" ||
+        suit === "♦";
+
+
+    return `
+
+        <div
+            class="
+                play-card
+                ${red ? "red" : ""}
+                ${defense ? "defense" : ""}
+            "
+        >
+
+            <div class="play-value">
+                ${escapeHtml(
+                    card.value ??
+                    card.rank ??
+                    ""
+                )}
+            </div>
+
+            <div class="play-suit">
+                ${suit}
+            </div>
+
+        </div>
+
+    `;
 }
+
+
+/* =========================================================
+   HAND
+========================================================= */
 
 function renderHand() {
 
@@ -3878,228 +5237,339 @@ function renderHand() {
             "myHand"
         );
 
+
     const hand =
-        game?.myHand || [];
+        game?.hand ||
+        game?.myHand ||
+        game?.playerHand ||
+        [];
+
 
     if (!hand.length) {
 
         container.innerHTML =
             `
-            <div class="muted">
-                В руке нет карт
+            <div
+                class="muted"
+                style="
+                    width:100%;
+                    text-align:center;
+                    padding:20px 0;
+                "
+            >
+                Карт нет
             </div>
             `;
 
         return;
     }
 
-    const myTurn =
-        game.turnId ===
-        game.myId;
 
     container.innerHTML =
-        hand.map(card => {
+        `
+        <div class="hand">
 
-            const suit =
-                SUITS[
-                    card.suit
-                ] || {
-                    red: false
-                };
+            ${
+                hand.map(
+                    (card, index) => {
 
-            return `
-                <button
-                    class="
-                        hand-card
-                        ${suit.red ? "red" : ""}
-                        ${
-                            selectedDefensePairId
-                                ? "active"
-                                : ""
-                        }
-                    "
-                    onclick="
-                        playCard(
-                            '${escapeHtml(card.id)}'
-                        )
-                    "
-                >
-
-                    <div class="value">
-                        ${escapeHtml(
-                            card.value
-                        )}
-                    </div>
-
-                    <div class="suit">
-                        ${
-                            SUITS[
+                        const suit =
+                            formatSuit(
                                 card.suit
-                            ]?.symbol ||
-                            "?"
-                        }
-                    </div>
+                            );
 
-                </button>
-            `;
-        })
-        .join("");
+
+                        const red =
+                            suit === "♥" ||
+                            suit === "♦";
+
+
+                        return `
+
+                            <button
+                                class="
+                                    hand-card
+                                    ${red ? "red" : ""}
+                                "
+                                data-card-index="${index}"
+                                onclick="playCard(${index})"
+                            >
+
+                                <div class="hand-value">
+                                    ${escapeHtml(
+                                        card.value ??
+                                        card.rank ??
+                                        ""
+                                    )}
+                                </div>
+
+                                <div class="hand-suit">
+                                    ${suit}
+                                </div>
+
+                            </button>
+
+                        `;
+                    }
+                ).join("")
+            }
+
+        </div>
+        `;
 }
 
+
 /* =========================================================
-   GAME ACTIONS
+   PLAY CARD
 ========================================================= */
 
 function playCard(
-    cardId
+    index
 ) {
 
-    if (!socket || !game) {
+    const hand =
+        game?.hand ||
+        game?.myHand ||
+        game?.playerHand ||
+        [];
+
+
+    const card =
+        hand[index];
+
+
+    if (!card) {
         return;
     }
 
-    if (
-        game.turnId !==
-        game.myId
-    ) {
-        notify(
-            "Сейчас не твой ход."
-        );
 
-        return;
-    }
-
-    if (
-        game.phase ===
-        "attack"
-    ) {
-
-        socket.emit(
-            "game:attack",
-            {
-                cardId
-            }
-        );
-
-        return;
-    }
-
-    if (
-        game.phase ===
-        "defense"
-    ) {
-
-        if (
-            !selectedDefensePairId
-        ) {
-            notify(
-                "Сначала выбери атакующую карту на столе."
-            );
-
-            return;
+    socketEmit(
+        "game:playCard",
+        {
+            cardIndex: index,
+            cardId: card.id,
+            card
         }
+    );
 
-        socket.emit(
-            "game:defend",
-            {
-                pairId:
-                    selectedDefensePairId,
 
-                cardId
-            }
-        );
+    /*
+     * Альтернативные названия
+     * для backend.
+     */
 
-        selectedDefensePairId =
-            null;
-    }
+    socketEmit(
+        "game:play",
+        {
+            cardIndex: index,
+            cardId: card.id
+        }
+    );
+
+
+    socketEmit(
+        "playCard",
+        {
+            cardIndex: index,
+            cardId: card.id
+        }
+    );
 }
+
+
+/* =========================================================
+   TAKE CARDS
+========================================================= */
 
 function takeCards() {
 
-    if (!socket) {
-        return;
-    }
+    socketEmit(
+        "game:take",
+        {}
+    );
 
-    socket.emit(
-        "game:take"
+
+    socketEmit(
+        "takeCards",
+        {}
     );
 }
+
+
+/* =========================================================
+   END ATTACK
+========================================================= */
 
 function endAttack() {
 
-    if (!socket) {
-        return;
-    }
+    socketEmit(
+        "game:endAttack",
+        {}
+    );
 
-    socket.emit(
-        "game:endAttack"
+
+    socketEmit(
+        "endAttack",
+        {}
     );
 }
 
+
 /* =========================================================
-   STARTUP
+   GAME BUTTONS
 ========================================================= */
 
-async function startup() {
+function updateGameButtons() {
+
+    const take =
+        document.getElementById(
+            "takeButton"
+        );
+
+
+    const end =
+        document.getElementById(
+            "endAttackButton"
+        );
+
+
+    if (!game) {
+
+        take.disabled = true;
+        end.disabled = true;
+
+        return;
+    }
+
+
+    const phase =
+        String(
+            game.phase ||
+            ""
+        ).toLowerCase();
+
+
+    const isDefending =
+        phase === "defense" ||
+        phase === "defending";
+
+
+    const isAttacking =
+        phase === "attack";
+
+
+    take.disabled =
+        !isDefending;
+
+
+    end.disabled =
+        !isAttacking;
+}
+
+
+/* =========================================================
+   SHOP HELPER
+========================================================= */
+
+function setShop(
+    tab
+) {
+
+    selectedShopTab =
+        tab;
+
+
+    openShop();
+
+
+    setTimeout(
+        () => {
+
+            document
+                .querySelectorAll(
+                    ".tab"
+                )
+                .forEach(
+                    button => {
+
+                        button.classList.toggle(
+                            "active",
+                            button.dataset.tab === tab
+                        );
+                    }
+                );
+
+            renderShop();
+
+        },
+        100
+    );
+}
+
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+async function boot() {
 
     try {
 
         await authenticate();
 
-        document.getElementById(
-            "loading"
-        ).classList.add(
-            "hidden"
-        );
-
-        document.getElementById(
-            "main"
-        ).classList.remove(
-            "hidden"
-        );
-
-        document.getElementById(
-            "bottomNav"
-        ).classList.remove(
-            "hidden"
-        );
-
-        updatePlayerUI();
-
-        openScreen(
-            "home"
-        );
-
-        /*
-         * Подключаем Socket.IO только
-         * после успешной Telegram auth.
-         */
         connectSocket();
 
-        /*
-         * Каталог грузим заранее.
-         * Это позволяет открыть магазин
-         * мгновенно после первого клика.
-         */
-        loadShop()
-            .catch(error => {
-                console.error(
-                    "SHOP LOAD:",
-                    error
-                );
-            });
+        try {
+            await loadShop();
+        } catch {}
+
+        try {
+            await refreshPlayer();
+        } catch {}
+
+        openScreen("home");
+
+
+        document
+            .getElementById(
+                "loading"
+            )
+            .classList.add("hidden");
+
+
+        document
+            .getElementById(
+                "main"
+            )
+            .classList.remove("hidden");
+
+
+        document
+            .getElementById(
+                "bottomNav"
+            )
+            .classList.remove("hidden");
+
 
     } catch (error) {
 
-        document.getElementById(
-            "loading"
-        ).innerHTML =
+        console.error(
+            error
+        );
+
+
+        document
+            .getElementById(
+                "loading"
+            )
+            .innerHTML =
             `
-            <div class="card">
+            <div style="padding:25px">
+
                 <div
                     style="
-                        font-size:20px;
-                        font-weight:900;
+                        font-size:25px;
+                        font-weight:950;
                         margin-bottom:10px;
                     "
                 >
@@ -4108,7 +5578,7 @@ async function startup() {
 
                 <div
                     style="
-                        color:#ff9292;
+                        color:#ff9b9b;
                         line-height:1.5;
                     "
                 >
@@ -4119,51 +5589,153 @@ async function startup() {
 
                 <button
                     class="primary"
-                    onclick="
-                        location.reload()
-                    "
+                    style="margin-top:20px"
+                    onclick="location.reload()"
                 >
                     ПОВТОРИТЬ
                 </button>
+
             </div>
             `;
     }
 }
 
-document.addEventListener(
-    "DOMContentLoaded",
-    startup
-);
 
 /* =========================================================
-   AUTO ROOM REFRESH
+   TELEGRAM BACK BUTTON
 ========================================================= */
 
-setInterval(
-    () => {
+if (tg) {
+
+    try {
+
+        tg.BackButton.onClick(
+            () => {
+
+                if (
+                    currentScreen ===
+                    "home"
+                ) {
+
+                    tg.BackButton.hide();
+
+                    return;
+                }
+
+
+                if (
+                    currentScreen ===
+                    "game"
+                ) {
+
+                    return;
+                }
+
+
+                openScreen("home");
+            }
+        );
+
+    } catch {}
+}
+
+
+/* =========================================================
+   UPDATE TELEGRAM BACK BUTTON
+========================================================= */
+
+function updateTelegramBackButton() {
+
+    if (!tg?.BackButton) {
+        return;
+    }
+
+
+    if (
+        currentScreen ===
+        "home"
+    ) {
+
+        tg.BackButton.hide();
+
+    } else {
+
+        tg.BackButton.show();
+    }
+}
+
+
+const originalOpenScreen =
+    openScreen;
+
+
+openScreen =
+    function(screen) {
+
+        originalOpenScreen(screen);
+
+        updateTelegramBackButton();
+    };
+
+
+/* =========================================================
+   ROOM INPUT
+========================================================= */
+
+document
+    .getElementById(
+        "roomCodeInput"
+    )
+    ?.addEventListener(
+        "input",
+        event => {
+
+            event.target.value =
+                event.target.value
+                    .toUpperCase()
+                    .replace(
+                        /[^A-Z0-9]/g,
+                        ""
+                    )
+                    .slice(0, 6);
+        }
+    );
+
+
+/* =========================================================
+   VISIBILITY
+========================================================= */
+
+document.addEventListener(
+    "visibilitychange",
+    async () => {
 
         if (
-            currentScreen ===
-            "rooms"
+            document.visibilityState ===
+            "visible"
         ) {
-            loadRooms();
+
+            try {
+                await refreshPlayer();
+            } catch {}
+
+            if (
+                currentScreen ===
+                "rooms"
+            ) {
+
+                loadRooms();
+            }
         }
-
-    },
-    5000
+    }
 );
 
-/*
- * При открытии страницы сразу
- * готовим список комнат.
- */
-setTimeout(
-    () => {
-        loadRooms()
-            .catch(() => {});
-    },
-    2500
-);
+
+/* =========================================================
+   START
+========================================================= */
+
+boot();
 
 </script>
 
