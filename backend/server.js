@@ -10,38 +10,54 @@ const { Server } = require("socket.io");
 =========================================================
 HEAVY LUX CARD
 SERVER.JS
-VERSION 5.1
+VERSION 6.0.0
+
 PLAYER VS PLAYER
 NO AI
 NO FACTIONS
-FULL DURAK ROUND LOGIC
+
+SYSTEMS:
+- Telegram WebApp Auth
+- Players
+- HC Economy
+- XP / Levels / Titles
+- Cars
+- Heavy Exclusive Cars
+- Tuning Atelier
+- License Plates
+- Beautiful Plates
+- GIBDD
+- Real Estate
+- Businesses
+- Business Income
+- PvP Rooms
+- Durak 1v1
+- Socket.IO
+- Reconnect
+- Room Cleanup
 =========================================================
 */
 
 const app = express();
+const server = http.createServer(app);
 
-const server =
-    http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
-const io =
-    new Server(server, {
-        cors: {
-            origin: "*",
-            methods: ["GET", "POST"]
-        }
-    });
-
-const PORT =
-    process.env.PORT || 3000;
-
-const BOT_TOKEN =
-    process.env.BOT_TOKEN || "";
+const PORT = process.env.PORT || 3000;
+const BOT_TOKEN = process.env.BOT_TOKEN || "";
 
 /*
 =========================================================
 CONFIG
 =========================================================
 */
+
+const GAME_VERSION = "6.0.0";
 
 const START_MONEY = 5000;
 
@@ -50,6 +66,8 @@ const MAX_LEVEL = 100;
 const MAX_HAND = 6;
 
 const MAX_CHAT_MESSAGES = 100;
+
+const MAX_ROOM_CHAT_MESSAGES = 50;
 
 const GIBDD_REGISTRATION_PRICE = 25000;
 
@@ -63,11 +81,42 @@ const BUSINESS_MAX_STORAGE_MS =
 
 const ROOM_CODE_LENGTH = 6;
 
-const ROOM_RECONNECT_TIMEOUT =
-    60 * 1000;
+const ROOM_RECONNECT_TIMEOUT = 60 * 1000;
 
-const ROOM_CLEANUP_TIMEOUT =
-    30 * 60 * 1000;
+const ROOM_CLEANUP_TIMEOUT = 30 * 60 * 1000;
+
+const MAX_ROOMS = 10000;
+
+const DECK_SUITS = [
+    "hearts",
+    "diamonds",
+    "clubs",
+    "spades"
+];
+
+const DECK_VALUES = [
+    6,
+    7,
+    8,
+    9,
+    10,
+    "J",
+    "Q",
+    "K",
+    "A"
+];
+
+const VALUE_POWER = {
+    6: 6,
+    7: 7,
+    8: 8,
+    9: 9,
+    10: 10,
+    J: 11,
+    Q: 12,
+    K: 13,
+    A: 14
+};
 
 /*
 =========================================================
@@ -75,35 +124,37 @@ DATABASE
 =========================================================
 */
 
-const DATA_FILE =
-    path.join(
-        __dirname,
-        "players.json"
-    );
+const DATA_FILE = path.join(
+    __dirname,
+    "players.json"
+);
 
 let players = {};
 
 function loadPlayers() {
     try {
-        if (
-            fs.existsSync(
-                DATA_FILE
-            )
-        ) {
-            const data =
-                fs.readFileSync(
-                    DATA_FILE,
-                    "utf8"
-                );
+        if (!fs.existsSync(DATA_FILE)) {
+            players = {};
+            return;
+        }
 
-            players =
-                JSON.parse(
-                    data
-                ) || {};
+        const raw = fs.readFileSync(
+            DATA_FILE,
+            "utf8"
+        );
+
+        players = JSON.parse(raw) || {};
+
+        if (
+            !players ||
+            typeof players !== "object" ||
+            Array.isArray(players)
+        ) {
+            players = {};
         }
     } catch (error) {
         console.error(
-            "LOAD PLAYERS ERROR:",
+            "[DATABASE] LOAD ERROR:",
             error
         );
 
@@ -113,8 +164,11 @@ function loadPlayers() {
 
 function savePlayers() {
     try {
+        const tempFile =
+            `${DATA_FILE}.tmp`;
+
         fs.writeFileSync(
-            DATA_FILE,
+            tempFile,
             JSON.stringify(
                 players,
                 null,
@@ -122,9 +176,14 @@ function savePlayers() {
             ),
             "utf8"
         );
+
+        fs.renameSync(
+            tempFile,
+            DATA_FILE
+        );
     } catch (error) {
         console.error(
-            "SAVE PLAYERS ERROR:",
+            "[DATABASE] SAVE ERROR:",
             error
         );
     }
@@ -138,9 +197,7 @@ MIDDLEWARE
 =========================================================
 */
 
-app.use(
-    cors()
-);
+app.use(cors());
 
 app.use(
     express.json({
@@ -150,16 +207,74 @@ app.use(
 
 /*
 =========================================================
+UTILITY
+=========================================================
+*/
+
+function now() {
+    return Date.now();
+}
+
+function randomId(prefix = "") {
+    return (
+        prefix +
+        crypto.randomUUID()
+    );
+}
+
+function randomInt(min, max) {
+    return Math.floor(
+        Math.random() *
+        (max - min + 1)
+    ) + min;
+}
+
+function shuffle(array) {
+    const result = [...array];
+
+    for (
+        let i = result.length - 1;
+        i > 0;
+        i--
+    ) {
+        const j = randomInt(0, i);
+
+        [
+            result[i],
+            result[j]
+        ] = [
+            result[j],
+            result[i]
+        ];
+    }
+
+    return result;
+}
+
+function safeNumber(value, fallback = 0) {
+    const number = Number(value);
+
+    return Number.isFinite(number)
+        ? number
+        : fallback;
+}
+
+function normalizeString(value) {
+    return String(
+        value || ""
+    ).trim();
+}
+
+/*
+=========================================================
 TELEGRAM AUTH
 =========================================================
 */
 
-function validateTelegramInitData(
-    initData
-) {
+function validateTelegramInitData(initData) {
     if (!BOT_TOKEN) {
         console.warn(
-            "BOT_TOKEN is not configured"
+            "[AUTH] BOT_TOKEN is not configured"
         );
 
         return null;
@@ -167,19 +282,16 @@ function validateTelegramInitData(
 
     if (
         !initData ||
-        typeof initData !==
-            "string"
+        typeof initData !== "string"
     ) {
         return null;
     }
 
-    const params =
-        new URLSearchParams(
-            initData
-        );
+    const params = new URLSearchParams(
+        initData
+    );
 
-    const hash =
-        params.get("hash");
+    const hash = params.get("hash");
 
     if (!hash) {
         return null;
@@ -187,10 +299,6 @@ function validateTelegramInitData(
 
     params.delete("hash");
 
-    /*
-     * Telegram WebApp data-check-string:
-     * fields sorted alphabetically.
-     */
     const dataCheckString =
         [...params.entries()]
             .sort(
@@ -203,27 +311,21 @@ function validateTelegramInitData(
             )
             .join("\n");
 
-    const secretKey =
-        crypto
-            .createHmac(
-                "sha256",
-                "WebAppData"
-            )
-            .update(
-                BOT_TOKEN
-            )
-            .digest();
+    const secretKey = crypto
+        .createHmac(
+            "sha256",
+            "WebAppData"
+        )
+        .update(BOT_TOKEN)
+        .digest();
 
-    const calculatedHash =
-        crypto
-            .createHmac(
-                "sha256",
-                secretKey
-            )
-            .update(
-                dataCheckString
-            )
-            .digest("hex");
+    const calculatedHash = crypto
+        .createHmac(
+            "sha256",
+            secretKey
+        )
+        .update(dataCheckString)
+        .digest("hex");
 
     if (
         calculatedHash.length !==
@@ -251,20 +353,14 @@ function validateTelegramInitData(
         return null;
     }
 
-    const authDate =
-        Number(
-            params.get(
-                "auth_date"
-            ) || 0
-        );
+    const authDate = Number(
+        params.get("auth_date") || 0
+    );
 
     if (!authDate) {
         return null;
     }
 
-    /*
-     * InitData не старше 24 часов.
-     */
     const age =
         Date.now() / 1000 -
         authDate;
@@ -279,12 +375,9 @@ function validateTelegramInitData(
     let user;
 
     try {
-        user =
-            JSON.parse(
-                params.get(
-                    "user"
-                ) || "{}"
-            );
+        user = JSON.parse(
+            params.get("user") || "{}"
+        );
     } catch {
         return null;
     }
@@ -299,12 +392,6 @@ function validateTelegramInitData(
     return user;
 }
 
-/*
-=========================================================
-HTTP TELEGRAM AUTH
-=========================================================
-*/
-
 function getHttpInitData(req) {
     const headerValue =
         req.headers[
@@ -312,8 +399,7 @@ function getHttpInitData(req) {
         ];
 
     if (
-        typeof headerValue ===
-        "string" &&
+        typeof headerValue === "string" &&
         headerValue.trim()
     ) {
         return headerValue;
@@ -336,43 +422,38 @@ function getHttpInitData(req) {
     return "";
 }
 
-function requirePlayer(
-    req,
-    res
-) {
-    const initData =
-        getHttpInitData(req);
-
-    const user =
-        validateTelegramInitData(
-            initData
-        );
-
-    if (!user) {
-        res.status(401).json({
-            success: false,
-            error:
-                "Telegram authorization required"
-        });
-
-        return null;
-    }
-
-    const player =
-        createPlayer(user);
-
-    return player;
-}
-
 /*
 =========================================================
-PLAYER
+PLAYER / TITLES
 =========================================================
 */
 
+function getTitle(level) {
+    if (level >= 100) {
+        return "Легенда";
+    }
+
+    if (level >= 80) {
+        return "Император";
+    }
+
+    if (level >= 60) {
+        return "Магнат";
+    }
+
+    if (level >= 40) {
+        return "Мастер";
+    }
+
+    if (level >= 20) {
+        return "Ветеран";
+    }
+
+    return "Новичок";
+}
+
 function createPlayer(user) {
-    const id =
-        String(user.id);
+    const id = String(user.id);
 
     if (!players[id]) {
         players[id] = {
@@ -393,41 +474,29 @@ function createPlayer(user) {
             balance:
                 START_MONEY,
 
-            level:
-                1,
+            level: 1,
 
-            xp:
-                0,
+            xp: 0,
 
-            title:
-                "Новичок",
+            title: "Новичок",
 
-            wins:
-                0,
+            wins: 0,
 
-            losses:
-                0,
+            losses: 0,
 
-            games:
-                0,
+            games: 0,
 
-            cars:
-                [],
+            cars: [],
 
-            beautifulPlates:
-                [],
+            beautifulPlates: [],
 
-            realEstate:
-                [],
+            realEstate: [],
 
-            businesses:
-                [],
+            businesses: [],
 
-            created_at:
-                Date.now(),
+            created_at: now(),
 
-            updated_at:
-                Date.now()
+            updated_at: now()
         };
 
         savePlayers();
@@ -435,8 +504,7 @@ function createPlayer(user) {
         return players[id];
     }
 
-    const player =
-        players[id];
+    const player = players[id];
 
     player.first_name =
         user.first_name ||
@@ -453,11 +521,7 @@ function createPlayer(user) {
         player.username ||
         "";
 
-    if (
-        !Array.isArray(
-            player.cars
-        )
-    ) {
+    if (!Array.isArray(player.cars)) {
         player.cars = [];
     }
 
@@ -485,76 +549,73 @@ function createPlayer(user) {
         player.businesses = [];
     }
 
-    if (
-        typeof player.balance !==
-        "number"
-    ) {
-        player.balance =
-            Number(
-                player.balance
-            ) || 0;
-    }
+    player.balance =
+        safeNumber(
+            player.balance,
+            START_MONEY
+        );
 
-    if (
-        typeof player.level !==
-        "number"
-    ) {
-        player.level = 1;
-    }
+    player.level =
+        Math.max(
+            1,
+            Math.min(
+                MAX_LEVEL,
+                safeNumber(
+                    player.level,
+                    1
+                )
+            )
+        );
 
-    if (
-        typeof player.xp !==
-        "number"
-    ) {
-        player.xp = 0;
-    }
+    player.xp =
+        Math.max(
+            0,
+            safeNumber(
+                player.xp,
+                0
+            )
+        );
 
-    if (
-        typeof player.wins !==
-        "number"
-    ) {
-        player.wins =
-            Number(
-                player.wins
-            ) || 0;
-    }
+    player.wins =
+        Math.max(
+            0,
+            safeNumber(
+                player.wins,
+                0
+            )
+        );
 
-    if (
-        typeof player.losses !==
-        "number"
-    ) {
-        player.losses =
-            Number(
-                player.losses
-            ) || 0;
-    }
+    player.losses =
+        Math.max(
+            0,
+            safeNumber(
+                player.losses,
+                0
+            )
+        );
 
-    if (
-        typeof player.games !==
-        "number"
-    ) {
-        player.games =
-            Number(
-                player.games
-            ) || 0;
-    }
+    player.games =
+        Math.max(
+            0,
+            safeNumber(
+                player.games,
+                0
+            )
+        );
 
     player.title =
         getTitle(
             player.level
         );
 
-    player.updated_at =
-        Date.now();
+    player.updated_at = now();
 
     savePlayers();
 
     return player;
 }
 
-function publicPlayer(
-    player
-) {
+function publicPlayer(player) {
     if (!player) {
         return null;
     }
@@ -597,106 +658,145 @@ function publicPlayer(
             player.cars || [],
 
         beautifulPlates:
-            player.beautifulPlates ||
-            [],
+            player.beautifulPlates || [],
 
         realEstate:
-            player.realEstate ||
-            [],
+            player.realEstate || [],
 
         businesses:
-            player.businesses ||
-            []
+            player.businesses || []
     };
 }
 
-/*
-=========================================================
-LEVELS
-=========================================================
-*/
-
-function getTitle(level) {
-    if (
-        level >= 100
-    ) {
-        return "Легенда";
-    }
-
-    if (
-        level >= 80
-    ) {
-        return "Император";
-    }
-
-    if (
-        level >= 60
-    ) {
-        return "Магнат";
-    }
-
-    if (
-        level >= 40
-    ) {
-        return "Мастер";
-    }
-
-    if (
-        level >= 20
-    ) {
-        return "Ветеран";
-    }
-
-    return "Новичок";
-}
-
-function addXP(
-    player,
-    amount
-) {
+function addXP(player, amount) {
     if (!player) {
         return;
     }
 
-    player.xp =
-        Number(
-            player.xp || 0
-        ) +
-        Number(
-            amount || 0
-        );
+    let xp = Math.max(
+        0,
+        safeNumber(
+            player.xp,
+            0
+        )
+    );
+
+    let level = Math.max(
+        1,
+        Math.min(
+            MAX_LEVEL,
+            safeNumber(
+                player.level,
+                1
+            )
+        )
+    );
+
+    xp += Math.max(
+        0,
+        safeNumber(
+            amount,
+            0
+        )
+    );
 
     while (
-        player.level <
-            MAX_LEVEL &&
-        player.xp >=
-            player.level * 100
+        level < MAX_LEVEL &&
+        xp >= level * 100
     ) {
-        player.xp -=
-            player.level * 100;
-
-        player.level++;
+        xp -= level * 100;
+        level++;
     }
 
-    if (
-        player.level >=
-        MAX_LEVEL
-    ) {
-        player.level =
-            MAX_LEVEL;
-
-        player.xp = 0;
+    if (level >= MAX_LEVEL) {
+        level = MAX_LEVEL;
+        xp = 0;
     }
 
-    player.title =
-        getTitle(
-            player.level
-        );
-
-    player.updated_at =
-        Date.now();
+    player.level = level;
+    player.xp = xp;
+    player.title = getTitle(level);
+    player.updated_at = now();
 
     savePlayers();
+}
+
+function addMoney(player, amount) {
+    if (!player) {
+        return false;
+    }
+
+    amount = safeNumber(
+        amount,
+        0
+    );
+
+    if (amount <= 0) {
+        return false;
+    }
+
+    player.balance += amount;
+
+    player.updated_at = now();
+
+    return true;
+}
+
+function removeMoney(player, amount) {
+    if (!player) {
+        return false;
+    }
+
+    amount = safeNumber(
+        amount,
+        0
+    );
+
+    if (
+        amount <= 0 ||
+        player.balance < amount
+    ) {
+        return false;
+    }
+
+    player.balance -= amount;
+
+    player.updated_at = now();
+
+    return true;
+}
+
+function getPlayerById(id) {
+    if (!id) {
+        return null;
+    }
+
+    return (
+        players[String(id)] ||
+        null
+    );
+}
+
+function requirePlayer(req, res) {
+    const initData =
+        getHttpInitData(req);
+
+    const user =
+        validateTelegramInitData(
+            initData
+        );
+
+    if (!user) {
+        res.status(401).json({
+            success: false,
+            error:
+                "Telegram authorization required"
+        });
+
+        return null;
+    }
+
+    return createPlayer(user);
 }
 
 /*
@@ -753,19 +853,16 @@ const CAR_COLORS = [
     }
 ];
 
-function getColor(
-    colorId
-) {
+function getColor(colorId) {
     return CAR_COLORS.find(
         color =>
-            color.id ===
-            colorId
+            color.id === colorId
     );
 }
 
 /*
 =========================================================
-CARS
+CAR CATALOG
 =========================================================
 */
 
@@ -835,12 +932,6 @@ const CARS = [
         category: "VIP"
     }
 ];
-
-/*
-=========================================================
-HEAVY EXCLUSIVE CARS
-=========================================================
-*/
 
 const EXCLUSIVE_CARS = [
     {
@@ -916,6 +1007,26 @@ const EXCLUSIVE_CARS = [
         category: "Ultra Exclusive"
     }
 ];
+
+function getCatalogCar(carId) {
+    return CARS.find(
+        car => car.id === carId
+    );
+}
+
+function getExclusiveCar(carId) {
+    return EXCLUSIVE_CARS.find(
+        car => car.id === carId
+    );
+}
+
+function findPlayerCar(player, carId) {
+    return (
+        player.cars || []
+    ).find(
+        car => car.id === carId
+    );
+}
 
 /*
 =========================================================
@@ -1024,6 +1135,124 @@ const BEAUTIFUL_PLATES = [
     }
 ];
 
+function normalizePlate(number) {
+    return String(number || "")
+        .replace(/\s/g, "")
+        .toUpperCase();
+}
+
+function isPlateUsed(number) {
+    const normalized =
+        normalizePlate(number);
+
+    for (
+        const player
+        of Object.values(players)
+    ) {
+        for (
+            const car
+            of player.cars || []
+        ) {
+            if (
+                normalizePlate(
+                    car.plate
+                ) === normalized
+            ) {
+                return true;
+            }
+
+            if (
+                normalizePlate(
+                    car.beautifulPlate
+                ) === normalized
+            ) {
+                return true;
+            }
+        }
+
+        for (
+            const plate
+            of player.beautifulPlates || []
+        ) {
+            if (
+                normalizePlate(
+                    plate.number
+                ) === normalized
+            ) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function generatePlate() {
+    let plate = "";
+    let attempts = 0;
+
+    do {
+        const first =
+            LETTERS[
+                randomInt(
+                    0,
+                    LETTERS.length - 1
+                )
+            ];
+
+        const digits =
+            String(
+                randomInt(
+                    0,
+                    999
+                )
+            ).padStart(
+                3,
+                "0"
+            );
+
+        const second =
+            LETTERS[
+                randomInt(
+                    0,
+                    LETTERS.length - 1
+                )
+            ];
+
+        const third =
+            LETTERS[
+                randomInt(
+                    0,
+                    LETTERS.length - 1
+                )
+            ];
+
+        const region =
+            REGIONS[
+                randomInt(
+                    0,
+                    REGIONS.length - 1
+                )
+            ];
+
+        plate =
+            `${first}${digits}${second}${third}${region}`;
+
+        attempts++;
+    } while (
+        isPlateUsed(plate) &&
+        attempts < 10000
+    );
+
+    if (isPlateUsed(plate)) {
+        throw new Error(
+            "No free plate available"
+        );
+    }
+
+    return plate;
+}
+
 /*
 =========================================================
 REAL ESTATE
@@ -1075,6 +1304,12 @@ const REAL_ESTATE = [
     }
 ];
 
+function getCatalogEstate(estateId) {
+    return REAL_ESTATE.find(
+        item => item.id === estateId
+    );
+}
+
 /*
 =========================================================
 BUSINESSES
@@ -1124,217 +1359,1938 @@ const BUSINESSES = [
     }
 ];
 
-/*
-=========================================================
-HELPERS
-=========================================================
-*/
-
-function getPlayerById(id) {
-    if (!id) {
-        return null;
-    }
-
-    return (
-        players[
-            String(id)
-        ] || null
+function getCatalogBusiness(businessId) {
+    return BUSINESSES.find(
+        item => item.id === businessId
     );
 }
 
-function normalizePlate(
-    number
+function calculateBusinessIncome(business) {
+    if (!business) {
+        return 0;
+    }
+
+    const catalog =
+        getCatalogBusiness(
+            business.catalogId
+        );
+
+    if (!catalog) {
+        return 0;
+    }
+
+    const last =
+        safeNumber(
+            business.lastCollection,
+            business.purchasedAt || now()
+        );
+
+    const elapsed =
+        Math.max(
+            0,
+            now() - last
+        );
+
+    const cappedElapsed =
+        Math.min(
+            elapsed,
+            BUSINESS_MAX_STORAGE_MS
+        );
+
+    return Math.floor(
+        (
+            cappedElapsed /
+            3600000
+        ) *
+        catalog.incomePerHour
+    );
+}
+
+function collectBusinessIncome(
+    player,
+    businessId
 ) {
-    return String(
-        number || ""
-    )
-        .replace(/\s/g, "")
-        .toUpperCase();
+    const business =
+        (
+            player.businesses ||
+            []
+        ).find(
+            item =>
+                item.id ===
+                businessId
+        );
+
+    if (!business) {
+        return {
+            success: false,
+            error:
+                "Бизнес не найден"
+        };
+    }
+
+    const income =
+        calculateBusinessIncome(
+            business
+        );
+
+    business.lastCollection =
+        now();
+
+    business.totalCollected =
+        safeNumber(
+            business.totalCollected,
+            0
+        ) + income;
+
+    if (income > 0) {
+        addMoney(
+            player,
+            income
+        );
+    }
+
+    player.updated_at = now();
+
+    savePlayers();
+
+    return {
+        success: true,
+        income,
+        business
+    };
 }
 
 /*
 =========================================================
-PLATE REGISTRY
+ROOMS
 =========================================================
 */
 
-function isPlateUsed(
-    number
-) {
-    const normalized =
-        normalizePlate(
-            number
+const rooms = new Map();
+
+function generateRoomCode() {
+    const chars =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    for (
+        let attempt = 0;
+        attempt < 10000;
+        attempt++
+    ) {
+        let code = "";
+
+        for (
+            let i = 0;
+            i < ROOM_CODE_LENGTH;
+            i++
+        ) {
+            code +=
+                chars[
+                    randomInt(
+                        0,
+                        chars.length - 1
+                    )
+                ];
+        }
+
+        if (!rooms.has(code)) {
+            return code;
+        }
+    }
+
+    throw new Error(
+        "Unable to generate room code"
+    );
+}
+
+function roomPlayerView(room, player) {
+    if (!player) {
+        return null;
+    }
+
+    return {
+        id:
+            player.id,
+
+        telegram_id:
+            player.telegram_id,
+
+        first_name:
+            player.first_name,
+
+        last_name:
+            player.last_name,
+
+        username:
+            player.username,
+
+        connected:
+            !!player.connected,
+
+        ready:
+            !!player.ready
+    };
+}
+
+function createRoom(owner) {
+    if (rooms.size >= MAX_ROOMS) {
+        throw new Error(
+            "Maximum rooms reached"
         );
+    }
+
+    const code =
+        generateRoomCode();
+
+    const room = {
+        code,
+
+        createdAt:
+            now(),
+
+        updatedAt:
+            now(),
+
+        lastActivity:
+            now(),
+
+        status:
+            "waiting",
+
+        hostId:
+            owner.id,
+
+        players: [
+            owner
+        ],
+
+        game:
+            null,
+
+        chat: []
+    };
+
+    rooms.set(
+        code,
+        room
+    );
+
+    return room;
+}
+
+function getRoom(code) {
+    if (!code) {
+        return null;
+    }
+
+    return rooms.get(
+        String(code).toUpperCase()
+    ) || null;
+}
+
+function broadcastRoom(room) {
+    if (!room) {
+        return;
+    }
+
+    io.to(
+        `room:${room.code}`
+    ).emit(
+        "room:update",
+        publicRoom(room)
+    );
+}
+
+function publicRoom(room) {
+    if (!room) {
+        return null;
+    }
+
+    return {
+        code:
+            room.code,
+
+        createdAt:
+            room.createdAt,
+
+        status:
+            room.status,
+
+        hostId:
+            room.hostId,
+
+        players:
+            room.players.map(
+                player =>
+                    roomPlayerView(
+                        room,
+                        player
+                    )
+            ),
+
+        game:
+            publicGameState(
+                room
+            ),
+
+        chat:
+            room.chat || []
+    };
+}
+
+function findRoomByPlayer(
+    telegramId
+) {
+    const id =
+        String(telegramId);
+
+    for (
+        const room
+        of rooms.values()
+    ) {
+        if (
+            room.players.some(
+                player =>
+                    String(
+                        player.telegram_id
+                    ) === id
+            )
+        ) {
+            return room;
+        }
+    }
+
+    return null;
+}
+
+function removeRoomPlayer(
+    room,
+    telegramId
+) {
+    const index =
+        room.players.findIndex(
+            player =>
+                String(
+                    player.telegram_id
+                ) ===
+                String(
+                    telegramId
+                )
+        );
+
+    if (index === -1) {
+        return null;
+    }
+
+    const removed =
+        room.players.splice(
+            index,
+            1
+        )[0];
+
+    if (
+        room.hostId ===
+        removed.id &&
+        room.players.length
+    ) {
+        room.hostId =
+            room.players[0].id;
+    }
+
+    return removed;
+}
+
+/*
+=========================================================
+DURAK DECK
+=========================================================
+*/
+
+function createDeck() {
+    const deck = [];
+
+    for (
+        const suit
+        of DECK_SUITS
+    ) {
+        for (
+            const value
+            of DECK_VALUES
+        ) {
+            deck.push({
+                id:
+                    randomId("card_"),
+
+                suit,
+
+                value,
+
+                power:
+                    VALUE_POWER[value]
+            });
+        }
+    }
+
+    return shuffle(deck);
+}
+
+function cardName(card) {
+    if (!card) {
+        return "";
+    }
+
+    const value =
+        String(card.value);
+
+    const suitMap = {
+        hearts: "♥",
+        diamonds: "♦",
+        clubs: "♣",
+        spades: "♠"
+    };
+
+    return (
+        value +
+        (suitMap[
+            card.suit
+        ] || "")
+    );
+}
+
+function publicCard(card) {
+    if (!card) {
+        return null;
+    }
+
+    return {
+        id: card.id,
+        suit: card.suit,
+        value: card.value,
+        power: card.power,
+        name: cardName(card)
+    };
+}
+
+function findCardInHand(
+    hand,
+    cardId
+) {
+    return hand.find(
+        card =>
+            card.id === cardId
+    );
+}
+
+function removeCardFromHand(
+    hand,
+    cardId
+) {
+    const index =
+        hand.findIndex(
+            card =>
+                card.id === cardId
+        );
+
+    if (index === -1) {
+        return null;
+    }
+
+    return hand.splice(
+        index,
+        1
+    )[0];
+}
+
+/*
+=========================================================
+DURAK RULES
+=========================================================
+*/
+
+function canBeat(
+    attack,
+    defense,
+    trump
+) {
+    if (
+        !attack ||
+        !defense
+    ) {
+        return false;
+    }
+
+    if (
+        attack.suit ===
+        defense.suit
+    ) {
+        return (
+            defense.power >
+            attack.power
+        );
+    }
+
+    if (
+        defense.suit ===
+        trump
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+function highestTrump(cards, trump) {
+    return cards
+        .filter(
+            card =>
+                card.suit ===
+                trump
+        )
+        .sort(
+            (a, b) =>
+                a.power -
+                b.power
+        )[0] || null;
+}
+
+function determineFirstAttacker(
+    p1,
+    p2,
+    trump
+) {
+    const p1Trumps =
+        p1.hand.filter(
+            card =>
+                card.suit ===
+                trump
+        );
+
+    const p2Trumps =
+        p2.hand.filter(
+            card =>
+                card.suit ===
+                trump
+        );
+
+    if (
+        p1Trumps.length &&
+        p2Trumps.length
+    ) {
+        const p1Min =
+            highestTrump(
+                p1Trumps,
+                trump
+            );
+
+        const p2Min =
+            highestTrump(
+                p2Trumps,
+                trump
+            );
+
+        return (
+            p1Min.power <=
+            p2Min.power
+        )
+            ? p1.id
+            : p2.id;
+    }
+
+    if (p1Trumps.length) {
+        return p1.id;
+    }
+
+    if (p2Trumps.length) {
+        return p2.id;
+    }
+
+    /*
+     * В нестандартном случае,
+     * когда у обоих нет козыря,
+     * первый ход определяется
+     * случайно.
+     */
+    return Math.random() < 0.5
+        ? p1.id
+        : p2.id;
+}
+
+function getAttackCards(
+    game
+) {
+    return game.table
+        .map(
+            pair =>
+                pair.attack
+        )
+        .filter(Boolean);
+}
+
+function getAllTableValues(game) {
+    const values = [];
+
+    for (
+        const pair
+        of game.table
+    ) {
+        if (pair.attack) {
+            values.push(
+                pair.attack.value
+            );
+        }
+
+        if (pair.defense) {
+            values.push(
+                pair.defense.value
+            );
+        }
+    }
+
+    return values;
+}
+
+function canAddAttackCard(
+    game,
+    card
+) {
+    if (!card) {
+        return false;
+    }
+
+    if (!game.table.length) {
+        return true;
+    }
+
+    const values =
+        getAllTableValues(game);
+
+    return values.includes(
+        card.value
+    );
+}
+
+function allAttacksDefended(game) {
+    return game.table.every(
+        pair =>
+            pair.attack &&
+            pair.defense
+    );
+}
+
+function tableHasUncoveredAttack(game) {
+    return game.table.some(
+        pair =>
+            pair.attack &&
+            !pair.defense
+    );
+}
+
+/*
+=========================================================
+DRAW CARDS
+=========================================================
+*/
+
+function drawUpToSix(
+    game,
+    room
+) {
+    const playersInGame =
+        game.players;
 
     for (
         const player
-        of Object.values(
-            players
-        )
+        of playersInGame
     ) {
-        for (
-            const car
-            of player.cars || []
+        while (
+            player.hand.length <
+                MAX_HAND &&
+            game.deck.length
         ) {
-            if (
-                normalizePlate(
-                    car.plate
-                ) === normalized
-            ) {
-                return true;
-            }
+            player.hand.push(
+                game.deck.shift()
+            );
+        }
+    }
 
-            if (
-                normalizePlate(
-                    car.beautifulPlate
-                ) === normalized
-            ) {
-                return true;
-            }
+    /*
+     * После добора первый игрок
+     * в порядке Дурака меняется.
+     * Это определяется отдельно
+     * в завершении хода.
+     */
+    room.updatedAt = now();
+}
+
+/*
+=========================================================
+GAME STATE
+=========================================================
+*/
+
+function createGame(
+    room
+) {
+    if (
+        room.players.length !== 2
+    ) {
+        throw new Error(
+            "Exactly two players required"
+        );
+    }
+
+    const p1 = {
+        id:
+            room.players[0].id,
+
+        telegram_id:
+            room.players[0].telegram_id,
+
+        first_name:
+            room.players[0].first_name,
+
+        last_name:
+            room.players[0].last_name,
+
+        username:
+            room.players[0].username,
+
+        hand: [],
+
+        connected:
+            room.players[0].connected
+    };
+
+    const p2 = {
+        id:
+            room.players[1].id,
+
+        telegram_id:
+            room.players[1].telegram_id,
+
+        first_name:
+            room.players[1].first_name,
+
+        last_name:
+            room.players[1].last_name,
+
+        username:
+            room.players[1].username,
+
+        hand: [],
+
+        connected:
+            room.players[1].connected
+    };
+
+    let deck = createDeck();
+
+    /*
+     * Последняя карта колоды
+     * определяет козырь.
+     */
+    const trumpCard =
+        deck[deck.length - 1];
+
+    const trump =
+        trumpCard.suit;
+
+    const game = {
+        status:
+            "playing",
+
+        deck,
+
+        trump,
+
+        trumpCard,
+
+        players: [
+            p1,
+            p2
+        ],
+
+        attackerId:
+            null,
+
+        defenderId:
+            null,
+
+        turnId:
+            null,
+
+        phase:
+            "attack",
+
+        table: [],
+
+        lastAction:
+            null,
+
+        winnerId:
+            null,
+
+        loserId:
+            null,
+
+        startedAt:
+            now(),
+
+        updatedAt:
+            now(),
+
+        finishedAt:
+            null,
+
+        roundNumber:
+            1
+    };
+
+    /*
+     * Первоначальный добор.
+     */
+    drawUpToSix(
+        game,
+        room
+    );
+
+    game.attackerId =
+        determineFirstAttacker(
+            p1,
+            p2,
+            trump
+        );
+
+    game.defenderId =
+        game.players.find(
+            player =>
+                player.id !==
+                game.attackerId
+        ).id;
+
+    game.turnId =
+        game.attackerId;
+
+    room.game = game;
+    room.status = "playing";
+    room.updatedAt = now();
+
+    return game;
+}
+
+function getGamePlayer(
+    game,
+    playerId
+) {
+    return game.players.find(
+        player =>
+            player.id ===
+            playerId
+    );
+}
+
+function getOpponent(
+    game,
+    playerId
+) {
+    return game.players.find(
+        player =>
+            player.id !==
+            playerId
+    );
+}
+
+function publicGameState(room) {
+    const game = room?.game;
+
+    if (!game) {
+        return null;
+    }
+
+    return {
+        status:
+            game.status,
+
+        trump:
+            game.trump,
+
+        trumpCard:
+            publicCard(
+                game.trumpCard
+            ),
+
+        deckCount:
+            game.deck.length,
+
+        attackerId:
+            game.attackerId,
+
+        defenderId:
+            game.defenderId,
+
+        turnId:
+            game.turnId,
+
+        phase:
+            game.phase,
+
+        table:
+            game.table.map(
+                pair => ({
+                    id:
+                        pair.id,
+
+                    attack:
+                        publicCard(
+                            pair.attack
+                        ),
+
+                    defense:
+                        publicCard(
+                            pair.defense
+                        )
+                })
+            ),
+
+        players:
+            game.players.map(
+                player => ({
+                    id:
+                        player.id,
+
+                    telegram_id:
+                        player.telegram_id,
+
+                    first_name:
+                        player.first_name,
+
+                    last_name:
+                        player.last_name,
+
+                    username:
+                        player.username,
+
+                    handCount:
+                        player.hand.length,
+
+                    connected:
+                        !!player.connected
+                })
+            ),
+
+        winnerId:
+            game.winnerId,
+
+        loserId:
+            game.loserId,
+
+        lastAction:
+            game.lastAction,
+
+        roundNumber:
+            game.roundNumber,
+
+        startedAt:
+            game.startedAt,
+
+        finishedAt:
+            game.finishedAt
+    };
+}
+
+function privateGameState(
+    room,
+    playerId
+) {
+    const state =
+        publicGameState(room);
+
+    if (!state) {
+        return null;
+    }
+
+    const game = room.game;
+
+    const player =
+        getGamePlayer(
+            game,
+            playerId
+        );
+
+    if (!player) {
+        return state;
+    }
+
+    return {
+        ...state,
+
+        myId:
+            playerId,
+
+        myHand:
+            player.hand.map(
+                publicCard
+            )
+    };
+}
+
+function emitGameState(room) {
+    if (!room) {
+        return;
+    }
+
+    for (
+        const roomPlayer
+        of room.players
+    ) {
+        if (!roomPlayer.socketId) {
+            continue;
         }
 
-        for (
-            const plate
-            of player.beautifulPlates ||
-            []
+        io.to(
+            roomPlayer.socketId
+        ).emit(
+            "game:state",
+            privateGameState(
+                room,
+                roomPlayer.id
+            )
+        );
+    }
+}
+
+/*
+=========================================================
+GAME FINISH
+=========================================================
+*/
+
+function finishGame(
+    room,
+    winnerId,
+    loserId,
+    reason
+) {
+    const game = room.game;
+
+    if (
+        !game ||
+        game.status === "finished"
+    ) {
+        return;
+    }
+
+    game.status = "finished";
+
+    game.winnerId =
+        winnerId;
+
+    game.loserId =
+        loserId;
+
+    game.finishedAt =
+        now();
+
+    game.lastAction = {
+        type:
+            "game_finished",
+
+        reason:
+            reason || "normal",
+
+        winnerId,
+
+        loserId,
+
+        timestamp:
+            now()
+    };
+
+    room.status = "finished";
+    room.updatedAt = now();
+
+    const winnerPlayer =
+        getPlayerById(
+            winnerId
+        );
+
+    const loserPlayer =
+        getPlayerById(
+            loserId
+        );
+
+    if (winnerPlayer) {
+        winnerPlayer.wins =
+            safeNumber(
+                winnerPlayer.wins,
+                0
+            ) + 1;
+
+        winnerPlayer.games =
+            safeNumber(
+                winnerPlayer.games,
+                0
+            ) + 1;
+
+        addXP(
+            winnerPlayer,
+            100
+        );
+    }
+
+    if (loserPlayer) {
+        loserPlayer.losses =
+            safeNumber(
+                loserPlayer.losses,
+                0
+            ) + 1;
+
+        loserPlayer.games =
+            safeNumber(
+                loserPlayer.games,
+                0
+            ) + 1;
+
+        addXP(
+            loserPlayer,
+            30
+        );
+    }
+
+    savePlayers();
+
+    broadcastRoom(room);
+    emitGameState(room);
+
+    io.to(
+        `room:${room.code}`
+    ).emit(
+        "game:finished",
+        {
+            winnerId,
+            loserId,
+            reason,
+            timestamp:
+                now()
+        }
+    );
+}
+
+/*
+=========================================================
+ROUND / TURN
+=========================================================
+*/
+
+function prepareNextTurn(
+    room
+) {
+    const game = room.game;
+
+    if (!game) {
+        return;
+    }
+
+    /*
+     * Если атакующий закончил ход
+     * успешно, роли меняются.
+     */
+    const oldAttacker =
+        game.attackerId;
+
+    const oldDefender =
+        game.defenderId;
+
+    game.attackerId =
+        oldDefender;
+
+    game.defenderId =
+        oldAttacker;
+
+    game.turnId =
+        game.attackerId;
+
+    game.phase =
+        "attack";
+
+    game.table = [];
+
+    game.roundNumber++;
+
+    game.lastAction = {
+        type:
+            "new_round",
+
+        attackerId:
+            game.attackerId,
+
+        defenderId:
+            game.defenderId,
+
+        timestamp:
+            now()
+    };
+
+    drawUpToSix(
+        game,
+        room
+    );
+
+    checkGameEnd(room);
+}
+
+function prepareAfterDefenderTakes(
+    room
+) {
+    const game = room.game;
+
+    if (!game) {
+        return;
+    }
+
+    /*
+     * Защищающийся забирает карты.
+     * После этого атакующий начинает
+     * следующий ход снова.
+     */
+
+    const attackerId =
+        game.attackerId;
+
+    const defenderId =
+        game.defenderId;
+
+    const defender =
+        getGamePlayer(
+            game,
+            defenderId
+        );
+
+    for (
+        const pair
+        of game.table
+    ) {
+        if (pair.attack) {
+            defender.hand.push(
+                pair.attack
+            );
+        }
+
+        if (pair.defense) {
+            defender.hand.push(
+                pair.defense
+            );
+        }
+    }
+
+    game.table = [];
+
+    game.turnId =
+        attackerId;
+
+    game.phase =
+        "attack";
+
+    game.lastAction = {
+        type:
+            "defender_took",
+
+        attackerId,
+
+        defenderId,
+
+        timestamp:
+            now()
+    };
+
+    drawUpToSix(
+        game,
+        room
+    );
+
+    checkGameEnd(room);
+}
+
+function checkGameEnd(room) {
+    const game = room.game;
+
+    if (!game) {
+        return false;
+    }
+
+    /*
+     * Пока колода не закончилась,
+     * отсутствие карт не означает победу.
+     */
+    if (game.deck.length > 0) {
+        return false;
+    }
+
+    for (
+        const player
+        of game.players
+    ) {
+        if (
+            player.hand.length === 0
         ) {
-            if (
-                normalizePlate(
-                    plate.number
-                ) === normalized
-            ) {
-                return true;
-            }
+            const opponent =
+                getOpponent(
+                    game,
+                    player.id
+                );
+
+            finishGame(
+                room,
+                player.id,
+                opponent.id,
+                "no_cards"
+            );
+
+            return true;
         }
     }
 
     return false;
 }
 
-function generatePlate() {
-    let plate;
+/*
+=========================================================
+ATTACK
+=========================================================
+*/
 
-    let attempts = 0;
-
-    do {
-        const first =
-            LETTERS[
-                Math.floor(
-                    Math.random() *
-                    LETTERS.length
-                )
-            ];
-
-        const digits =
-            String(
-                Math.floor(
-                    Math.random() *
-                    1000
-                )
-            ).padStart(
-                3,
-                "0"
-            );
-
-        const second =
-            LETTERS[
-                Math.floor(
-                    Math.random() *
-                    LETTERS.length
-                )
-            ];
-
-        const third =
-            LETTERS[
-                Math.floor(
-                    Math.random() *
-                    LETTERS.length
-                )
-            ];
-
-        const region =
-            REGIONS[
-                Math.floor(
-                    Math.random() *
-                    REGIONS.length
-                )
-            ];
-
-        plate =
-            `${first}${digits}${second}${third}${region}`;
-
-        attempts++;
-    } while (
-        isPlateUsed(
-            plate
-        ) &&
-        attempts < 10000
-    );
+function attackWithCard(
+    room,
+    playerId,
+    cardId
+) {
+    const game = room.game;
 
     if (
-        isPlateUsed(
-            plate
-        )
+        !game ||
+        game.status !== "playing"
     ) {
-        throw new Error(
-            "No free plate available"
-        );
+        return {
+            success: false,
+            error:
+                "Игра не запущена"
+        };
     }
 
-    return plate;
-}
+    if (
+        game.phase !== "attack"
+    ) {
+        return {
+            success: false,
+            error:
+                "Сейчас нельзя атаковать"
+        };
+    }
 
-function getCatalogCar(
-    carId
-) {
-    return CARS.find(
-        car =>
-            car.id === carId
-    );
-}
+    if (
+        game.turnId !== playerId
+    ) {
+        return {
+            success: false,
+            error:
+                "Сейчас не ваш ход"
+        };
+    }
 
-function getExclusiveCar(
-    carId
-) {
-    return EXCLUSIVE_CARS.find(
-        car =>
-            car.id === carId
-    );
-}
+    const attacker =
+        getGamePlayer(
+            game,
+            playerId
+        );
 
-function findPlayerCar(
-    player,
-    carId
-) {
-    return (
-        player.cars || []
-    ).find(
-        car =>
-            car.id === carId
-    );
-}
+    if (!attacker) {
+        return {
+            success: false,
+            error:
+                "Игрок не найден"
+        };
+    }
 
-function getCatalogEstate(
-    estateId
-) {
-    return REAL_ESTATE.find(
-        item =>
-            item.id === estateId
-    );
-}
+    const card =
+        findCardInHand(
+            attacker.hand,
+            cardId
+        );
 
-function getCatalogBusiness(
-    businessId
-) {
-    return BUSINESSES.find(
-        item =>
-            item.id === businessId
-    );
+    if (!card) {
+        return {
+            success: false,
+            error:
+                "Карта не найдена"
+        };
+    }
+
+    if (
+        game.table.length >
+            0 &&
+        !canAddAttackCard(
+            game,
+            card
+        )
+    ) {
+        return {
+            success: false,
+            error:
+                "Нельзя подкинуть карту этого значения"
+        };
+    }
+
+    /*
+     * Максимум 6 атакующих карт
+     * одновременно.
+     */
+    if (
+        game.table.length >=
+        MAX_HAND
+    ) {
+        return {
+            success: false,
+            error:
+                "Нельзя подкинуть больше шести карт"
+        };
+    }
+
+    const removed =
+        removeCardFromHand(
+            attacker.hand,
+            cardId
+        );
+
+    if (!removed) {
+        return {
+            success: false,
+            error:
+                "Не удалось взять карту"
+        };
+    }
+
+    game.table.push({
+        id:
+            randomId("pair_"),
+
+        attack:
+            removed,
+
+        defense:
+            null
+    });
+
+    game.phase =
+        "defense";
+
+    game.turnId =
+        game.defenderId;
+
+    game.lastAction = {
+        type:
+            "attack",
+
+        playerId,
+
+        card:
+            publicCard(
+                removed
+            ),
+
+        timestamp:
+            now()
+    };
+
+    room.updatedAt = now();
+
+    return {
+        success: true
+    };
 }
 
 /*
 =========================================================
-BASE
+DEFENSE
+=========================================================
+*/
+
+function defendWithCard(
+    room,
+    playerId,
+    pairId,
+    cardId
+) {
+    const game = room.game;
+
+    if (
+        !game ||
+        game.status !== "playing"
+    ) {
+        return {
+            success: false,
+            error:
+                "Игра не запущена"
+        };
+    }
+
+    if (
+        game.phase !== "defense"
+    ) {
+        return {
+            success: false,
+            error:
+                "Сейчас нельзя защищаться"
+        };
+    }
+
+    if (
+        game.turnId !== playerId
+    ) {
+        return {
+            success: false,
+            error:
+                "Сейчас не ваш ход"
+        };
+    }
+
+    const defender =
+        getGamePlayer(
+            game,
+            playerId
+        );
+
+    if (!defender) {
+        return {
+            success: false,
+            error:
+                "Игрок не найден"
+        };
+    }
+
+    const pair =
+        game.table.find(
+            item =>
+                item.id === pairId
+        );
+
+    if (!pair) {
+        return {
+            success: false,
+            error:
+                "Атакующая карта не найдена"
+        };
+    }
+
+    if (pair.defense) {
+        return {
+            success: false,
+            error:
+                "Эта карта уже побита"
+        };
+    }
+
+    const defense =
+        findCardInHand(
+            defender.hand,
+            cardId
+        );
+
+    if (!defense) {
+        return {
+            success: false,
+            error:
+                "Карта защиты не найдена"
+        };
+    }
+
+    if (
+        !canBeat(
+            pair.attack,
+            defense,
+            game.trump
+        )
+    ) {
+        return {
+            success: false,
+            error:
+                "Этой картой нельзя побить"
+        };
+    }
+
+    const removed =
+        removeCardFromHand(
+            defender.hand,
+            cardId
+        );
+
+    if (!removed) {
+        return {
+            success: false,
+            error:
+                "Не удалось взять карту"
+        };
+    }
+
+    pair.defense =
+        removed;
+
+    game.lastAction = {
+        type:
+            "defense",
+
+        playerId,
+
+        attack:
+            publicCard(
+                pair.attack
+            ),
+
+        defense:
+            publicCard(
+                removed
+            ),
+
+        timestamp:
+            now()
+    };
+
+    /*
+     * Если все карты побиты,
+     * ход возвращается атакующему
+     * для возможного подкидывания.
+     */
+    if (
+        allAttacksDefended(
+            game
+        )
+    ) {
+        game.phase =
+            "attack";
+
+        game.turnId =
+            game.attackerId;
+    } else {
+        game.phase =
+            "defense";
+
+        game.turnId =
+            game.defenderId;
+    }
+
+    room.updatedAt = now();
+
+    return {
+        success: true
+    };
+}
+
+/*
+=========================================================
+TAKE CARDS
+=========================================================
+*/
+
+function takeCards(
+    room,
+    playerId
+) {
+    const game = room.game;
+
+    if (
+        !game ||
+        game.status !== "playing"
+    ) {
+        return {
+            success: false,
+            error:
+                "Игра не запущена"
+        };
+    }
+
+    if (
+        game.defenderId !==
+        playerId
+    ) {
+        return {
+            success: false,
+            error:
+                "Только защищающийся может забрать карты"
+        };
+    }
+
+    if (
+        game.turnId !==
+        playerId
+    ) {
+        return {
+            success: false,
+            error:
+                "Сейчас не ваш ход"
+        };
+    }
+
+    if (
+        !tableHasUncoveredAttack(
+            game
+        )
+    ) {
+        return {
+            success: false,
+            error:
+                "Все карты уже побиты"
+        };
+    }
+
+    prepareAfterDefenderTakes(
+        room
+    );
+
+    return {
+        success: true
+    };
+}
+
+/*
+=========================================================
+END ATTACK
+=========================================================
+*/
+
+function endAttack(
+    room,
+    playerId
+) {
+    const game = room.game;
+
+    if (
+        !game ||
+        game.status !== "playing"
+    ) {
+        return {
+            success: false,
+            error:
+                "Игра не запущена"
+        };
+    }
+
+    if (
+        game.attackerId !==
+        playerId
+    ) {
+        return {
+            success: false,
+            error:
+                "Завершить атаку может только атакующий"
+        };
+    }
+
+    if (
+        game.turnId !==
+        playerId
+    ) {
+        return {
+            success: false,
+            error:
+                "Сейчас не ваш ход"
+        };
+    }
+
+    if (
+        game.table.length === 0
+    ) {
+        return {
+            success: false,
+            error:
+                "Нужно сделать хотя бы одну атаку"
+        };
+    }
+
+    if (
+        !allAttacksDefended(
+            game
+        )
+    ) {
+        return {
+            success: false,
+            error:
+                "Не все карты побиты"
+        };
+    }
+
+    const defender =
+        getGamePlayer(
+            game,
+            game.defenderId
+        );
+
+    /*
+     * Все карты стола уходят
+     * в сброс.
+     */
+    game.table = [];
+
+    game.phase =
+        "attack";
+
+    game.lastAction = {
+        type:
+            "attack_finished",
+
+        playerId,
+
+        timestamp:
+            now()
+    };
+
+    /*
+     * Перед сменой ролей проверяем
+     * возможность закончить игру.
+     */
+    if (
+        game.deck.length === 0
+    ) {
+        const attacker =
+            getGamePlayer(
+                game,
+                game.attackerId
+            );
+
+        if (
+            attacker.hand.length === 0
+        ) {
+            finishGame(
+                room,
+                attacker.id,
+                defender.id,
+                "no_cards"
+            );
+
+            return {
+                success: true
+            };
+        }
+
+        if (
+            defender.hand.length === 0
+        ) {
+            finishGame(
+                room,
+                defender.id,
+                attacker.id,
+                "no_cards"
+            );
+
+            return {
+                success: true
+            };
+        }
+    }
+
+    prepareNextTurn(room);
+
+    return {
+        success: true
+    };
+}
+
+/*
+=========================================================
+ROOM GAME VALIDATION
+=========================================================
+*/
+
+function canStartRoom(room) {
+    if (!room) {
+        return {
+            success: false,
+            error:
+                "Комната не найдена"
+        };
+    }
+
+    if (
+        room.players.length !== 2
+    ) {
+        return {
+            success: false,
+            error:
+                "Нужны два игрока"
+        };
+    }
+
+    for (
+        const player
+        of room.players
+    ) {
+        if (!player.connected) {
+            return {
+                success: false,
+                error:
+                    "Оба игрока должны быть подключены"
+            };
+        }
+    }
+
+    return {
+        success: true
+    };
+}
+
+function startRoomGame(room) {
+    const check =
+        canStartRoom(room);
+
+    if (!check.success) {
+        return check;
+    }
+
+    if (
+        room.game &&
+        room.game.status ===
+            "playing"
+    ) {
+        return {
+            success: false,
+            error:
+                "Игра уже идет"
+        };
+    }
+
+    try {
+        createGame(room);
+
+        broadcastRoom(room);
+        emitGameState(room);
+
+        io.to(
+            `room:${room.code}`
+        ).emit(
+            "game:started",
+            publicGameState(
+                room
+            )
+        );
+
+        return {
+            success: true
+        };
+    } catch (error) {
+        console.error(
+            "[GAME] START ERROR:",
+            error
+        );
+
+        return {
+            success: false,
+            error:
+                "Не удалось начать игру"
+        };
+    }
+}
+
+/*
+=========================================================
+HTTP BASE
 =========================================================
 */
 
@@ -1343,16 +3299,22 @@ app.get(
     (req, res) => {
         res.json({
             success: true,
+
             game:
                 "Heavy Lux Card",
+
+            version:
+                GAME_VERSION,
+
             status:
                 "online",
-            version:
-                "5.1.0",
+
             ai:
                 false,
+
             factions:
                 false,
+
             pvp:
                 true
         });
@@ -1364,10 +3326,15 @@ app.get(
     (req, res) => {
         res.json({
             success: true,
+
             status:
                 "online",
+
+            game:
+                "Heavy Lux Card",
+
             version:
-                "5.1.0",
+                GAME_VERSION,
 
             players:
                 Object.keys(
@@ -1423,8 +3390,7 @@ app.post(
                 return res
                     .status(401)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Telegram authorization failed"
                     });
@@ -1436,27 +3402,21 @@ app.post(
                 );
 
             res.json({
-                success:
-                    true,
+                success: true,
 
                 player:
                     publicPlayer(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "AUTH ERROR:",
+                "[AUTH]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
                     "Internal server error"
             });
@@ -1478,8 +3438,7 @@ app.get(
         }
 
         res.json({
-            success:
-                true,
+            success: true,
 
             player:
                 publicPlayer(
@@ -1491,7 +3450,7 @@ app.get(
 
 /*
 =========================================================
-CAR CATALOG
+CATALOG API
 =========================================================
 */
 
@@ -1499,8 +3458,7 @@ app.get(
     "/api/car-colors",
     (req, res) => {
         res.json({
-            success:
-                true,
+            success: true,
             colors:
                 CAR_COLORS
         });
@@ -1511,8 +3469,7 @@ app.get(
     "/api/cars",
     (req, res) => {
         res.json({
-            success:
-                true,
+            success: true,
             cars:
                 CARS
         });
@@ -1523,8 +3480,7 @@ app.get(
     "/api/dealership",
     (req, res) => {
         res.json({
-            success:
-                true,
+            success: true,
             cars:
                 CARS,
             colors:
@@ -1537,8 +3493,7 @@ app.get(
     "/api/exclusive-cars",
     (req, res) => {
         res.json({
-            success:
-                true,
+            success: true,
 
             category:
                 "Heavy Exclusive Cars",
@@ -1551,6 +3506,42 @@ app.get(
 
             colors:
                 CAR_COLORS
+        });
+    }
+);
+
+app.get(
+    "/api/plates",
+    (req, res) => {
+        res.json({
+            success: true,
+
+            plates:
+                BEAUTIFUL_PLATES
+        });
+    }
+);
+
+app.get(
+    "/api/real-estate",
+    (req, res) => {
+        res.json({
+            success: true,
+
+            realEstate:
+                REAL_ESTATE
+        });
+    }
+);
+
+app.get(
+    "/api/businesses",
+    (req, res) => {
+        res.json({
+            success: true,
+
+            businesses:
+                BUSINESSES
         });
     }
 );
@@ -1584,8 +3575,7 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Автомобиль не найден"
                     });
@@ -1600,22 +3590,22 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Выберите цвет автомобиля"
                     });
             }
 
             if (
-                player.balance <
-                car.price
+                !removeMoney(
+                    player,
+                    car.price
+                )
             ) {
                 return res
                     .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Недостаточно HC",
                         required:
@@ -1627,7 +3617,7 @@ app.post(
 
             const playerCar = {
                 id:
-                    crypto.randomUUID(),
+                    randomId("car_"),
 
                 catalogId:
                     car.id,
@@ -1663,7 +3653,7 @@ app.post(
                     color.hex,
 
                 purchasedAt:
-                    Date.now(),
+                    now(),
 
                 registered:
                     false,
@@ -1684,21 +3674,17 @@ app.post(
                     false
             };
 
-            player.balance -=
-                car.price;
-
             player.cars.push(
                 playerCar
             );
 
             player.updated_at =
-                Date.now();
+                now();
 
             savePlayers();
 
             res.json({
-                success:
-                    true,
+                success: true,
 
                 message:
                     "Автомобиль приобретён",
@@ -1711,19 +3697,14 @@ app.post(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "BUY CAR ERROR:",
+                "[BUY CAR]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
                     "Ошибка покупки автомобиля"
             });
@@ -1760,8 +3741,7 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Эксклюзивный автомобиль не найден"
                     });
@@ -1776,22 +3756,22 @@ app.post(
                 return res
                     .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Выберите цвет автомобиля"
                     });
             }
 
             if (
-                player.balance <
-                car.price
+                !removeMoney(
+                    player,
+                    car.price
+                )
             ) {
                 return res
                     .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Недостаточно HC",
                         required:
@@ -1803,7 +3783,7 @@ app.post(
 
             const playerCar = {
                 id:
-                    crypto.randomUUID(),
+                    randomId("car_"),
 
                 catalogId:
                     car.id,
@@ -1817,17 +3797,17 @@ app.post(
                 name:
                     car.name,
 
-                tuning:
-                    car.tuning,
-
-                tuningAtelier:
-                    true,
-
                 price:
                     car.price,
 
                 category:
                     car.category,
+
+                tuning:
+                    car.tuning,
+
+                tuningAtelier:
+                    true,
 
                 colorId:
                     color.id,
@@ -1839,7 +3819,7 @@ app.post(
                     color.hex,
 
                 purchasedAt:
-                    Date.now(),
+                    now(),
 
                 registered:
                     false,
@@ -1860,24 +3840,20 @@ app.post(
                     false
             };
 
-            player.balance -=
-                car.price;
-
             player.cars.push(
                 playerCar
             );
 
             player.updated_at =
-                Date.now();
+                now();
 
             savePlayers();
 
             res.json({
-                success:
-                    true,
+                success: true,
 
                 message:
-                    "Эксклюзивный автомобиль приобретён в тюнинг-ателье",
+                    "Эксклюзивный автомобиль приобретён",
 
                 car:
                     playerCar,
@@ -1887,19 +3863,14 @@ app.post(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "BUY EXCLUSIVE CAR ERROR:",
+                "[BUY EXCLUSIVE]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
                     "Ошибка покупки эксклюзивного автомобиля"
             });
@@ -1927,8 +3898,7 @@ app.get(
         }
 
         res.json({
-            success:
-                true,
+            success: true,
 
             cars:
                 player.cars || [],
@@ -1947,6 +3917,88 @@ GIBDD
 =========================================================
 */
 
+function registerCar(
+    player,
+    carId
+) {
+    const car =
+        findPlayerCar(
+            player,
+            carId
+        );
+
+    if (!car) {
+        return {
+            success: false,
+            status: 404,
+            error:
+                "Автомобиль не найден"
+        };
+    }
+
+    if (car.registered) {
+        return {
+            success: false,
+            status: 400,
+            error:
+                "Автомобиль уже зарегистрирован"
+        };
+    }
+
+    if (
+        !removeMoney(
+            player,
+            GIBDD_REGISTRATION_PRICE
+        )
+    ) {
+        return {
+            success: false,
+            status: 400,
+            error:
+                "Недостаточно HC",
+            required:
+                GIBDD_REGISTRATION_PRICE,
+            balance:
+                player.balance
+        };
+    }
+
+    let plate;
+
+    try {
+        plate =
+            generatePlate();
+    } catch {
+        addMoney(
+            player,
+            GIBDD_REGISTRATION_PRICE
+        );
+
+        return {
+            success: false,
+            status: 500,
+            error:
+                "Не удалось выдать государственный номер"
+        };
+    }
+
+    car.registered = true;
+    car.plate = plate;
+    car.registrationDate = now();
+    car.gibdd = true;
+    car.technicalInspection = true;
+
+    player.updated_at = now();
+
+    savePlayers();
+
+    return {
+        success: true,
+        car,
+        plate
+    };
+}
+
 app.get(
     "/api/gibdd",
     (req, res) => {
@@ -1960,25 +4012,8 @@ app.get(
             return;
         }
 
-        const cars =
-            (
-                player.cars ||
-                []
-            ).map(
-                car => ({
-                    ...car,
-
-                    registrationAvailable:
-                        !car.registered,
-
-                    registrationPrice:
-                        GIBDD_REGISTRATION_PRICE
-                })
-            );
-
         res.json({
-            success:
-                true,
+            success: true,
 
             department:
                 "ГИБДД",
@@ -1986,96 +4021,21 @@ app.get(
             registrationPrice:
                 GIBDD_REGISTRATION_PRICE,
 
-            cars
+            cars:
+                (
+                    player.cars ||
+                    []
+                ).map(
+                    car => ({
+                        ...car,
+
+                        registrationAvailable:
+                            !car.registered
+                    })
+                )
         });
     }
 );
-
-function registerCar(
-    player,
-    carId
-) {
-    const car =
-        findPlayerCar(
-            player,
-            carId
-        );
-
-    if (!car) {
-        return {
-            success:
-                false,
-            status:
-                404,
-            error:
-                "Автомобиль не найден"
-        };
-    }
-
-    if (
-        car.registered
-    ) {
-        return {
-            success:
-                false,
-            status:
-                400,
-            error:
-                "Автомобиль уже зарегистрирован"
-        };
-    }
-
-    if (
-        player.balance <
-        GIBDD_REGISTRATION_PRICE
-    ) {
-        return {
-            success:
-                false,
-            status:
-                400,
-            error:
-                "Недостаточно HC",
-            required:
-                GIBDD_REGISTRATION_PRICE,
-            balance:
-                player.balance
-        };
-    }
-
-    const plate =
-        generatePlate();
-
-    player.balance -=
-        GIBDD_REGISTRATION_PRICE;
-
-    car.registered =
-        true;
-
-    car.plate =
-        plate;
-
-    car.registrationDate =
-        Date.now();
-
-    car.gibdd =
-        true;
-
-    car.technicalInspection =
-        true;
-
-    player.updated_at =
-        Date.now();
-
-    savePlayers();
-
-    return {
-        success:
-            true,
-        car,
-        plate
-    };
-}
 
 app.post(
     "/api/gibdd/register",
@@ -2097,27 +4057,29 @@ app.post(
                     req.body?.carId
                 );
 
-            if (
-                !result.success
-            ) {
+            if (!result.success) {
                 return res
                     .status(
-                        result.status
+                        result.status ||
+                        400
                     )
-                    .json(
-                        result
-                    );
+                    .json({
+                        success:
+                            false,
+                        error:
+                            result.error,
+                        required:
+                            result.required,
+                        balance:
+                            result.balance
+                    });
             }
 
             res.json({
-                success:
-                    true,
+                success: true,
 
                 message:
                     "Автомобиль зарегистрирован в ГИБДД",
-
-                department:
-                    "ГИБДД",
 
                 plate:
                     result.plate,
@@ -2130,21 +4092,16 @@ app.post(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "GIBDD ERROR:",
+                "[GIBDD]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
-                    "Ошибка регистрации автомобиля"
+                    "Ошибка регистрации"
             });
         }
     }
@@ -2152,86 +4109,24 @@ app.post(
 
 /*
 =========================================================
-OLD MREO COMPATIBILITY
+BEAUTIFUL PLATES
 =========================================================
 */
-
-app.post(
-    "/api/mreo/register",
-    (req, res) => {
-        res.status(
-            410
-        ).json({
-            success:
-                false,
-            error:
-                "MREO больше не используется. Используйте ГИБДД."
-        });
-    }
-);
-
-/*
-=========================================================
-PLATES
-=========================================================
-*/
-
-app.get(
-    "/api/plates",
-    (req, res) => {
-        res.json({
-            success:
-                true,
-            plates:
-                BEAUTIFUL_PLATES
-        });
-    }
-);
 
 app.get(
     "/api/beautiful-plates",
     (req, res) => {
         res.json({
-            success:
-                true,
+            success: true,
+
             plates:
                 BEAUTIFUL_PLATES
         });
     }
 );
 
-app.get(
-    "/api/my-plates",
-    (req, res) => {
-        const player =
-            requirePlayer(
-                req,
-                res
-            );
-
-        if (!player) {
-            return;
-        }
-
-        res.json({
-            success:
-                true,
-
-            plates:
-                player.beautifulPlates ||
-                []
-        });
-    }
-);
-
-/*
-=========================================================
-BUY BEAUTIFUL PLATE
-=========================================================
-*/
-
 app.post(
-    "/api/plates/buy",
+    "/api/beautiful-plates/buy",
     (req, res) => {
         try {
             const player =
@@ -2244,113 +4139,110 @@ app.post(
                 return;
             }
 
-            const plate =
+            const catalogPlate =
                 BEAUTIFUL_PLATES.find(
-                    item =>
-                        item.id ===
+                    plate =>
+                        plate.id ===
                         req.body?.plateId
                 );
 
-            if (!plate) {
+            if (!catalogPlate) {
                 return res
                     .status(404)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Номер не найден"
                     });
             }
 
             if (
-                player.balance <
-                plate.price
-            ) {
-                return res
-                    .status(400)
-                    .json({
-                        success:
-                            false,
-                        error:
-                            "Недостаточно HC"
-                    });
-            }
-
-            if (
                 isPlateUsed(
-                    plate.number
+                    catalogPlate.number
                 )
             ) {
                 return res
                     .status(409)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Этот номер уже занят"
                     });
             }
 
-            player.balance -=
-                plate.price;
+            if (
+                !removeMoney(
+                    player,
+                    catalogPlate.price
+                )
+            ) {
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Недостаточно HC",
+                        required:
+                            catalogPlate.price,
+                        balance:
+                            player.balance
+                    });
+            }
+
+            const ownedPlate = {
+                id:
+                    randomId("plate_"),
+
+                catalogId:
+                    catalogPlate.id,
+
+                number:
+                    catalogPlate.number,
+
+                price:
+                    catalogPlate.price,
+
+                rarity:
+                    catalogPlate.rarity,
+
+                purchasedAt:
+                    now(),
+
+                installedOn:
+                    null
+            };
 
             player.beautifulPlates.push(
-                {
-                    id:
-                        crypto.randomUUID(),
-
-                    plateId:
-                        plate.id,
-
-                    number:
-                        plate.number,
-
-                    price:
-                        plate.price,
-
-                    rarity:
-                        plate.rarity,
-
-                    purchasedAt:
-                        Date.now(),
-
-                    installedOn:
-                        null
-                }
+                ownedPlate
             );
 
             player.updated_at =
-                Date.now();
+                now();
 
             savePlayers();
 
             res.json({
-                success:
-                    true,
+                success: true,
 
                 message:
                     "Красивый номер приобретён",
 
-                plate,
+                plate:
+                    ownedPlate,
 
                 player:
                     publicPlayer(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "BUY PLATE ERROR:",
+                "[PLATE BUY]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
                     "Ошибка покупки номера"
             });
@@ -2358,14 +4250,8 @@ app.post(
     }
 );
 
-/*
-=========================================================
-INSTALL BEAUTIFUL PLATE
-=========================================================
-*/
-
 app.post(
-    "/api/plates/install",
+    "/api/beautiful-plates/install",
     (req, res) => {
         try {
             const player =
@@ -2388,28 +4274,27 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Автомобиль не найден"
                     });
             }
 
-            if (
-                !car.registered
-            ) {
+            if (!car.registered) {
                 return res
                     .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Сначала зарегистрируйте автомобиль в ГИБДД"
                     });
             }
 
             const plate =
-                player.beautifulPlates.find(
+                (
+                    player.beautifulPlates ||
+                    []
+                ).find(
                     item =>
                         item.id ===
                         req.body?.plateId
@@ -2419,17 +4304,15 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
-                            "Номер вам не принадлежит"
+                            "Красивый номер не найден"
                     });
             }
 
             /*
-             * Один красивый номер
-             * может стоять только
-             * на одной машине.
+             * Снимаем красивый номер
+             * с другого автомобиля.
              */
             for (
                 const otherCar
@@ -2441,44 +4324,37 @@ app.post(
                 ) {
                     otherCar.beautifulPlate =
                         null;
-                }
-            }
 
-            /*
-             * На одной машине
-             * может быть только
-             * один красивый номер.
-             */
-            for (
-                const ownedPlate
-                of player.beautifulPlates
-            ) {
-                if (
-                    ownedPlate.id ===
-                    plate.id
-                ) {
-                    ownedPlate.installedOn =
-                        car.id;
-                } else if (
-                    ownedPlate.installedOn ===
-                    car.id
-                ) {
-                    ownedPlate.installedOn =
-                        null;
+                    /*
+                     * Возвращаем обычный
+                     * государственный номер.
+                     */
+                    if (
+                        otherCar.plate &&
+                        otherCar.registered
+                    ) {
+                        otherCar.displayPlate =
+                            otherCar.plate;
+                    }
                 }
             }
 
             car.beautifulPlate =
                 plate.number;
 
+            car.displayPlate =
+                plate.number;
+
+            plate.installedOn =
+                car.id;
+
             player.updated_at =
-                Date.now();
+                now();
 
             savePlayers();
 
             res.json({
-                success:
-                    true,
+                success: true,
 
                 message:
                     "Красивый номер установлен",
@@ -2492,128 +4368,16 @@ app.post(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "INSTALL PLATE ERROR:",
+                "[PLATE INSTALL]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
                     "Ошибка установки номера"
-            });
-        }
-    }
-);
-
-/*
-=========================================================
-REMOVE BEAUTIFUL PLATE
-=========================================================
-*/
-
-app.post(
-    "/api/plates/remove",
-    (req, res) => {
-        try {
-            const player =
-                requirePlayer(
-                    req,
-                    res
-                );
-
-            if (!player) {
-                return;
-            }
-
-            const car =
-                findPlayerCar(
-                    player,
-                    req.body?.carId
-                );
-
-            if (!car) {
-                return res
-                    .status(404)
-                    .json({
-                        success:
-                            false,
-                        error:
-                            "Автомобиль не найден"
-                    });
-            }
-
-            if (
-                !car.beautifulPlate
-            ) {
-                return res
-                    .status(400)
-                    .json({
-                        success:
-                            false,
-                        error:
-                            "На автомобиле нет красивого номера"
-                    });
-            }
-
-            const number =
-                car.beautifulPlate;
-
-            car.beautifulPlate =
-                null;
-
-            const plate =
-                player.beautifulPlates.find(
-                    item =>
-                        item.number ===
-                        number
-                );
-
-            if (plate) {
-                plate.installedOn =
-                    null;
-            }
-
-            player.updated_at =
-                Date.now();
-
-            savePlayers();
-
-            res.json({
-                success:
-                    true,
-
-                message:
-                    "Красивый номер снят",
-
-                car,
-
-                player:
-                    publicPlayer(
-                        player
-                    )
-            });
-        } catch (
-            error
-        ) {
-            console.error(
-                "REMOVE PLATE ERROR:",
-                error
-            );
-
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
-                error:
-                    "Ошибка снятия номера"
             });
         }
     }
@@ -2626,20 +4390,7 @@ REAL ESTATE
 */
 
 app.get(
-    "/api/real-estate",
-    (req, res) => {
-        res.json({
-            success:
-                true,
-
-            realEstate:
-                REAL_ESTATE
-        });
-    }
-);
-
-app.get(
-    "/api/my-real-estate",
+    "/api/real-estate/owned",
     (req, res) => {
         const player =
             requirePlayer(
@@ -2652,12 +4403,10 @@ app.get(
         }
 
         res.json({
-            success:
-                true,
+            success: true,
 
             realEstate:
-                player.realEstate ||
-                []
+                player.realEstate || []
         });
     }
 );
@@ -2685,8 +4434,7 @@ app.post(
                 return res
                     .status(404)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Объект недвижимости не найден"
                     });
@@ -2700,35 +4448,36 @@ app.post(
                 )
             ) {
                 return res
-                    .status(409)
+                    .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Этот объект уже принадлежит вам"
                     });
             }
 
             if (
-                player.balance <
-                estate.price
+                !removeMoney(
+                    player,
+                    estate.price
+                )
             ) {
                 return res
                     .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
-                            "Недостаточно HC"
+                            "Недостаточно HC",
+                        required:
+                            estate.price,
+                        balance:
+                            player.balance
                     });
             }
 
-            player.balance -=
-                estate.price;
-
-            const property = {
+            const owned = {
                 id:
-                    crypto.randomUUID(),
+                    randomId("estate_"),
 
                 catalogId:
                     estate.id,
@@ -2739,49 +4488,47 @@ app.post(
                 type:
                     estate.type,
 
-                price:
-                    estate.price,
-
                 category:
                     estate.category,
 
+                price:
+                    estate.price,
+
                 purchasedAt:
-                    Date.now()
+                    now()
             };
 
             player.realEstate.push(
-                property
+                owned
             );
 
             player.updated_at =
-                Date.now();
+                now();
 
             savePlayers();
 
             res.json({
-                success:
-                    true,
+                success: true,
 
-                property,
+                message:
+                    "Недвижимость приобретена",
+
+                estate:
+                    owned,
 
                 player:
                     publicPlayer(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "BUY ESTATE ERROR:",
+                "[REAL ESTATE BUY]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
                     "Ошибка покупки недвижимости"
             });
@@ -2791,124 +4538,12 @@ app.post(
 
 /*
 =========================================================
-BUSINESS HELPERS
-=========================================================
-*/
-
-function calculateBusinessIncome(
-    business
-) {
-    const now =
-        Date.now();
-
-    const last =
-        Number(
-            business.lastIncomeUpdate ||
-            business.purchasedAt ||
-            now
-        );
-
-    let elapsed =
-        now - last;
-
-    if (
-        elapsed < 0
-    ) {
-        elapsed = 0;
-    }
-
-    elapsed =
-        Math.min(
-            elapsed,
-            BUSINESS_MAX_STORAGE_MS
-        );
-
-    const hours =
-        elapsed /
-        (60 * 60 * 1000);
-
-    return Math.floor(
-        hours *
-        Number(
-            business.incomePerHour ||
-            0
-        )
-    );
-}
-
-function updateBusinessIncome(
-    business
-) {
-    if (!business) {
-        return 0;
-    }
-
-    const income =
-        calculateBusinessIncome(
-            business
-        );
-
-    if (
-        income <= 0
-    ) {
-        return 0;
-    }
-
-    business.storedIncome =
-        Number(
-            business.storedIncome ||
-            0
-        ) + income;
-
-    /*
-     * Важный момент:
-     * после расчёта переносим
-     * точку отсчёта только
-     * на фактически начисленный
-     * интервал.
-     *
-     * Остаток времени не теряется.
-     */
-    const hoursAdded =
-        income /
-        Number(
-            business.incomePerHour ||
-            1
-        );
-
-    business.lastIncomeUpdate +=
-        hoursAdded *
-        60 *
-        60 *
-        1000;
-
-    return income;
-}
-
-/*
-=========================================================
-BUSINESS CATALOG
+BUSINESS
 =========================================================
 */
 
 app.get(
-    "/api/businesses",
-    (req, res) => {
-        res.json({
-            success:
-                true,
-
-            maxStorageHours:
-                BUSINESS_MAX_STORAGE_HOURS,
-
-            businesses:
-                BUSINESSES
-        });
-    }
-);
-
-app.get(
-    "/api/my-businesses",
+    "/api/businesses/owned",
     (req, res) => {
         const player =
             requirePlayer(
@@ -2920,50 +4555,32 @@ app.get(
             return;
         }
 
-        let changed =
-            false;
+        const businesses =
+            (
+                player.businesses ||
+                []
+            ).map(
+                business => ({
+                    ...business,
 
-        for (
-            const business
-            of player.businesses
-        ) {
-            const income =
-                updateBusinessIncome(
-                    business
-                );
+                    catalog:
+                        getCatalogBusiness(
+                            business.catalogId
+                        ),
 
-            if (
-                income > 0
-            ) {
-                changed = true;
-            }
-        }
-
-        if (changed) {
-            player.updated_at =
-                Date.now();
-
-            savePlayers();
-        }
+                    availableIncome:
+                        calculateBusinessIncome(
+                            business
+                        )
+                })
+            );
 
         res.json({
-            success:
-                true,
-
-            maxStorageHours:
-                BUSINESS_MAX_STORAGE_HOURS,
-
-            businesses:
-                player.businesses
+            success: true,
+            businesses
         });
     }
 );
-
-/*
-=========================================================
-BUY BUSINESS
-=========================================================
-*/
 
 app.post(
     "/api/businesses/buy",
@@ -2979,17 +4596,16 @@ app.post(
                 return;
             }
 
-            const catalog =
+            const business =
                 getCatalogBusiness(
                     req.body?.businessId
                 );
 
-            if (!catalog) {
+            if (!business) {
                 return res
                     .status(404)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
                             "Бизнес не найден"
                     });
@@ -2999,127 +4615,117 @@ app.post(
                 Object.values(
                     players
                 ).reduce(
-                    (
-                        total,
-                        p
-                    ) =>
-                        total +
+                    (sum, otherPlayer) =>
+                        sum +
                         (
-                            p.businesses ||
+                            otherPlayer.businesses ||
                             []
                         ).filter(
                             item =>
                                 item.catalogId ===
-                                catalog.id
+                                business.id
                         ).length,
                     0
                 );
 
             if (
                 totalOwned >=
-                catalog.maxCount
-            ) {
-                return res
-                    .status(409)
-                    .json({
-                        success:
-                            false,
-                        error:
-                            "Все объекты этого типа уже проданы"
-                    });
-            }
-
-            if (
-                player.balance <
-                catalog.price
+                business.maxCount
             ) {
                 return res
                     .status(400)
                     .json({
-                        success:
-                            false,
+                        success: false,
                         error:
-                            "Недостаточно HC"
+                            "Все предприятия этого типа уже проданы"
                     });
             }
 
-            player.balance -=
-                catalog.price;
+            if (
+                !removeMoney(
+                    player,
+                    business.price
+                )
+            ) {
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Недостаточно HC",
+                        required:
+                            business.price,
+                        balance:
+                            player.balance
+                    });
+            }
 
-            const business = {
+            const owned = {
                 id:
-                    crypto.randomUUID(),
+                    randomId("business_"),
 
                 catalogId:
-                    catalog.id,
+                    business.id,
 
                 name:
-                    catalog.name,
+                    business.name,
 
-                category:
-                    catalog.category,
-
-                purchasePrice:
-                    catalog.price,
+                price:
+                    business.price,
 
                 incomePerHour:
-                    catalog.incomePerHour,
+                    business.incomePerHour,
 
-                storedIncome:
-                    0,
+                category:
+                    business.category,
 
                 purchasedAt:
-                    Date.now(),
+                    now(),
 
-                lastIncomeUpdate:
-                    Date.now()
+                lastCollection:
+                    now(),
+
+                totalCollected:
+                    0
             };
 
             player.businesses.push(
-                business
+                owned
             );
 
             player.updated_at =
-                Date.now();
+                now();
 
             savePlayers();
 
             res.json({
-                success:
-                    true,
+                success: true,
 
-                business,
+                message:
+                    "Бизнес приобретён",
+
+                business:
+                    owned,
 
                 player:
                     publicPlayer(
                         player
                     )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "BUY BUSINESS ERROR:",
+                "[BUSINESS BUY]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
                     "Ошибка покупки бизнеса"
             });
         }
     }
 );
-
-/*
-=========================================================
-COLLECT BUSINESS
-=========================================================
-*/
 
 app.post(
     "/api/businesses/collect",
@@ -3135,90 +4741,42 @@ app.post(
                 return;
             }
 
-            const business =
-                player.businesses.find(
-                    item =>
-                        item.id ===
-                        req.body?.businessId
+            const result =
+                collectBusinessIncome(
+                    player,
+                    req.body?.businessId
                 );
 
-            if (!business) {
+            if (!result.success) {
                 return res
                     .status(404)
-                    .json({
-                        success:
-                            false,
-                        error:
-                            "Бизнес не найден"
-                    });
+                    .json(result);
             }
-
-            updateBusinessIncome(
-                business
-            );
-
-            const amount =
-                Number(
-                    business.storedIncome ||
-                    0
-                );
-
-            if (
-                amount <= 0
-            ) {
-                return res
-                    .status(400)
-                    .json({
-                        success:
-                            false,
-                        error:
-                            "Доход ещё не накоплен",
-                        amount:
-                            0
-                    });
-            }
-
-            player.balance +=
-                amount;
-
-            business.storedIncome =
-                0;
-
-            business.lastIncomeUpdate =
-                Date.now();
-
-            player.updated_at =
-                Date.now();
-
-            savePlayers();
 
             res.json({
-                success:
-                    true,
+                success: true,
 
-                collected:
-                    amount,
+                income:
+                    result.income,
 
-                balance:
-                    player.balance,
+                business:
+                    result.business,
 
-                business
+                player:
+                    publicPlayer(
+                        player
+                    )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "COLLECT ERROR:",
+                "[BUSINESS COLLECT]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
-                    "Ошибка сбора дохода"
+                    "Ошибка получения дохода"
             });
         }
     }
@@ -3226,12 +4784,89 @@ app.post(
 
 /*
 =========================================================
-COLLECT ALL BUSINESSES
+ECONOMY
 =========================================================
 */
 
+app.get(
+    "/api/economy",
+    (req, res) => {
+        const player =
+            requirePlayer(
+                req,
+                res
+            );
+
+        if (!player) {
+            return;
+        }
+
+        res.json({
+            success: true,
+
+            balance:
+                player.balance,
+
+            xp:
+                player.xp,
+
+            level:
+                player.level,
+
+            title:
+                player.title
+        });
+    }
+);
+
+/*
+=========================================================
+ROOM HTTP API
+=========================================================
+*/
+
+app.get(
+    "/api/rooms",
+    (req, res) => {
+        const result = [];
+
+        for (
+            const room
+            of rooms.values()
+        ) {
+            if (
+                room.players.length >= 2
+            ) {
+                continue;
+            }
+
+            result.push({
+                code:
+                    room.code,
+
+                status:
+                    room.status,
+
+                players:
+                    room.players.length,
+
+                maxPlayers:
+                    2,
+
+                createdAt:
+                    room.createdAt
+            });
+        }
+
+        res.json({
+            success: true,
+            rooms: result
+        });
+    }
+);
+
 app.post(
-    "/api/businesses/collect-all",
+    "/api/rooms/create",
     (req, res) => {
         try {
             const player =
@@ -3244,66 +4879,213 @@ app.post(
                 return;
             }
 
-            let total =
-                0;
-
-            for (
-                const business
-                of player.businesses
-            ) {
-                updateBusinessIncome(
-                    business
+            const existing =
+                findRoomByPlayer(
+                    player.telegram_id
                 );
 
-                total +=
-                    Number(
-                        business.storedIncome ||
-                        0
-                    );
-
-                business.storedIncome =
-                    0;
-
-                business.lastIncomeUpdate =
-                    Date.now();
+            if (existing) {
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Вы уже находитесь в комнате",
+                        room:
+                            publicRoom(
+                                existing
+                            )
+                    });
             }
 
-            player.balance +=
-                total;
+            const roomPlayer = {
+                id:
+                    randomId("rp_"),
 
-            player.updated_at =
-                Date.now();
+                telegram_id:
+                    player.telegram_id,
 
-            savePlayers();
+                first_name:
+                    player.first_name,
+
+                last_name:
+                    player.last_name,
+
+                username:
+                    player.username,
+
+                socketId:
+                    null,
+
+                connected:
+                    false,
+
+                ready:
+                    false,
+
+                disconnectedAt:
+                    null
+            };
+
+            const room =
+                createRoom(
+                    roomPlayer
+                );
 
             res.json({
-                success:
-                    true,
+                success: true,
 
-                collected:
-                    total,
-
-                balance:
-                    player.balance,
-
-                businesses:
-                    player.businesses
+                room:
+                    publicRoom(
+                        room
+                    )
             });
-        } catch (
-            error
-        ) {
+        } catch (error) {
             console.error(
-                "COLLECT ALL ERROR:",
+                "[ROOM CREATE]",
                 error
             );
 
-            res.status(
-                500
-            ).json({
-                success:
-                    false,
+            res.status(500).json({
+                success: false,
                 error:
-                    "Ошибка сбора дохода"
+                    "Ошибка создания комнаты"
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/rooms/join",
+    (req, res) => {
+        try {
+            const player =
+                requirePlayer(
+                    req,
+                    res
+                );
+
+            if (!player) {
+                return;
+            }
+
+            const code =
+                normalizeString(
+                    req.body?.roomCode
+                ).toUpperCase();
+
+            const room =
+                getRoom(code);
+
+            if (!room) {
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        error:
+                            "Комната не найдена"
+                    });
+            }
+
+            const existing =
+                room.players.find(
+                    item =>
+                        String(
+                            item.telegram_id
+                        ) ===
+                        String(
+                            player.telegram_id
+                        )
+                );
+
+            if (existing) {
+                return res.json({
+                    success: true,
+
+                    room:
+                        publicRoom(
+                            room
+                        )
+                });
+            }
+
+            if (
+                room.players.length >= 2
+            ) {
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Комната уже заполнена"
+                    });
+            }
+
+            if (
+                room.status ===
+                "playing"
+            ) {
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        error:
+                            "Игра уже началась"
+                    });
+            }
+
+            room.players.push({
+                id:
+                    randomId("rp_"),
+
+                telegram_id:
+                    player.telegram_id,
+
+                first_name:
+                    player.first_name,
+
+                last_name:
+                    player.last_name,
+
+                username:
+                    player.username,
+
+                socketId:
+                    null,
+
+                connected:
+                    false,
+
+                ready:
+                    false,
+
+                disconnectedAt:
+                    null
+            });
+
+            room.updatedAt = now();
+            room.lastActivity = now();
+
+            broadcastRoom(room);
+
+            res.json({
+                success: true,
+
+                room:
+                    publicRoom(
+                        room
+                    )
+            });
+        } catch (error) {
+            console.error(
+                "[ROOM JOIN]",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                error:
+                    "Ошибка входа в комнату"
             });
         }
     }
@@ -3311,1933 +5093,17 @@ app.post(
 
 /*
 =========================================================
-36 CARD DURAK
+SOCKET AUTH
 =========================================================
 */
 
-const SUITS = [
-    "♠",
-    "♥",
-    "♦",
-    "♣"
-];
-
-const RANKS = [
-    {
-        name: "6",
-        value: 6
-    },
-    {
-        name: "7",
-        value: 7
-    },
-    {
-        name: "8",
-        value: 8
-    },
-    {
-        name: "9",
-        value: 9
-    },
-    {
-        name: "10",
-        value: 10
-    },
-    {
-        name: "В",
-        value: 11
-    },
-    {
-        name: "Д",
-        value: 12
-    },
-    {
-        name: "К",
-        value: 13
-    }
-];
-
-function shuffle(
-    array
-) {
-    for (
-        let i =
-            array.length - 1;
-        i > 0;
-        i--
-    ) {
-        const j =
-            Math.floor(
-                Math.random() *
-                (i + 1)
-            );
-
-        [
-            array[i],
-            array[j]
-        ] = [
-            array[j],
-            array[i]
-        ];
-    }
-
-    return array;
-}
-
-function createDeck() {
-    const deck = [];
-
-    let id = 0;
-
-    for (
-        const suit
-        of SUITS
-    ) {
-        for (
-            const rank
-            of RANKS
-        ) {
-            deck.push({
-                id:
-                    `card_${id++}`,
-
-                suit,
-
-                rank:
-                    rank.name,
-
-                value:
-                    rank.value
-            });
-        }
-    }
-
-    return shuffle(
-        deck
-    );
-}
-
-/*
-=========================================================
-ROOMS
-=========================================================
-*/
-
-const rooms =
-    new Map();
-
-function generateRoomCode() {
-    const chars =
-        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-    let code;
-
-    do {
-        code = "";
-
-        for (
-            let i = 0;
-            i <
-            ROOM_CODE_LENGTH;
-            i++
-        ) {
-            code +=
-                chars[
-                    Math.floor(
-                        Math.random() *
-                        chars.length
-                    )
-                ];
-        }
-    } while (
-        rooms.has(code)
-    );
-
-    return code;
-}
-
-function createRoom(
-    playerId,
-    socket
-) {
-    const room = {
-        code:
-            generateRoomCode(),
-
-        status:
-            "waiting",
-
-        phase:
-            "waiting",
-
-        players: [
-            {
-                id:
-                    playerId,
-
-                socketId:
-                    socket.id,
-
-                ready:
-                    false,
-
-                disconnected:
-                    false,
-
-                disconnectedAt:
-                    null
-            }
-        ],
-
-        deck:
-            [],
-
-        trumpSuit:
-            null,
-
-        hands:
-            {},
-
-        table:
-            [],
-
-        attacker:
-            null,
-
-        defender:
-            null,
-
-        /*
-         * Лимит текущего захода.
-         * Он фиксируется в начале
-         * каждого захода.
-         */
-        roundLimit:
-            MAX_HAND,
-
-        finished:
-            false,
-
-        winner:
-            null,
-
-        createdAt:
-            Date.now(),
-
-        lastActivity:
-            Date.now()
-    };
-
-    rooms.set(
-        room.code,
-        room
-    );
-
-    return room;
-}
-
-function findRoomByPlayer(
-    playerId
-) {
-    for (
-        const room
-        of rooms.values()
-    ) {
-        if (
-            room.players.some(
-                player =>
-                    player.id ===
-                    playerId
-            )
-        ) {
-            return room;
-        }
-    }
-
-    return null;
-}
-
-function touchRoom(
-    room
-) {
-    if (room) {
-        room.lastActivity =
-            Date.now();
-    }
-}
-
-/*
-=========================================================
-ROOM PUBLIC
-=========================================================
-*/
-
-function publicRoom(
-    room
-) {
-    return {
-        code:
-            room.code,
-
-        status:
-            room.status,
-
-        phase:
-            room.phase,
-
-        playerCount:
-            room.players.length,
-
-        maxPlayers:
-            2,
-
-        players:
-            room.players.map(
-                player => {
-                    const p =
-                        getPlayerById(
-                            player.id
-                        );
-
-                    return {
-                        id:
-                            player.id,
-
-                        first_name:
-                            p?.first_name ||
-                            "Игрок",
-
-                        last_name:
-                            p?.last_name ||
-                            "",
-
-                        username:
-                            p?.username ||
-                            "",
-
-                        ready:
-                            player.ready,
-
-                        disconnected:
-                            player.disconnected
-                    };
-                }
-            )
-    };
-}
-
-function publicRoomGame(
-    room,
-    playerId
-) {
-    const ownHand =
-        room.hands[
-            playerId
-        ] || [];
-
-    const opponent =
-        room.players.find(
-            player =>
-                player.id !==
-                playerId
-        );
-
-    const opponentHand =
-        opponent
-            ? (
-                room.hands[
-                    opponent.id
-                ] || []
-            )
-            : [];
-
-    return {
-        roomCode:
-            room.code,
-
-        status:
-            room.status,
-
-        phase:
-            room.phase,
-
-        attacker:
-            room.attacker,
-
-        defender:
-            room.defender,
-
-        trumpSuit:
-            room.trumpSuit,
-
-        deckCount:
-            room.deck.length,
-
-        playerHand:
-            ownHand,
-
-        opponentCount:
-            opponentHand.length,
-
-        table:
-            room.table,
-
-        roundLimit:
-            room.roundLimit,
-
-        winner:
-            room.winner,
-
-        canAttack:
-            room.phase ===
-                "attack" &&
-            room.attacker ===
-                playerId,
-
-        canDefend:
-            room.phase ===
-                "defense" &&
-            room.defender ===
-                playerId,
-
-        canContinueAttack:
-            room.phase ===
-                "attack_continue" &&
-            room.attacker ===
-                playerId,
-
-        canTake:
-            room.phase ===
-                "defense" &&
-            room.defender ===
-                playerId
-    };
-}
-
-function sendRoomState(
-    room
-) {
-    if (!room) {
-        return;
-    }
-
-    touchRoom(
-        room
-    );
-
-    for (
-        const player
-        of room.players
-    ) {
-        const socket =
-            io.sockets.sockets.get(
-                player.socketId
-            );
-
-        if (!socket) {
-            continue;
-        }
-
-        socket.emit(
-            "room_state",
-            publicRoom(
-                room
-            )
-        );
-
-        socket.emit(
-            "game_state",
-            publicRoomGame(
-                room,
-                player.id
-            )
-        );
-    }
-}
-
-/*
-=========================================================
-GAME HELPERS
-=========================================================
-*/
-
-function isTrump(
-    room,
-    card
-) {
-    return (
-        card &&
-        card.suit ===
-            room.trumpSuit
-    );
-}
-
-function canBeat(
-    room,
-    attack,
-    defense
-) {
-    if (
-        !attack ||
-        !defense
-    ) {
-        return false;
-    }
-
-    const attackTrump =
-        isTrump(
-            room,
-            attack
-        );
-
-    const defenseTrump =
-        isTrump(
-            room,
-            defense
-        );
-
-    if (
-        defenseTrump &&
-        !attackTrump
-    ) {
-        return true;
-    }
-
-    if (
-        attackTrump &&
-        !defenseTrump
-    ) {
-        return false;
-    }
-
-    return (
-        attack.suit ===
-            defense.suit &&
-        defense.value >
-            attack.value
-    );
-}
-
-function tableRanks(
-    room
-) {
-    const ranks = [];
-
-    for (
-        const pair
-        of room.table
-    ) {
-        if (
-            pair.attack
-        ) {
-            ranks.push(
-                pair.attack.rank
-            );
-        }
-
-        if (
-            pair.defense
-        ) {
-            ranks.push(
-                pair.defense.rank
-            );
-        }
-    }
-
-    return ranks;
-}
-
-function canAddCard(
-    room,
-    card
-) {
-    if (!card) {
-        return false;
-    }
-
-    /*
-     * Лимит текущего захода
-     * зафиксирован в roundLimit.
-     */
-    if (
-        room.table.length >=
-        room.roundLimit
-    ) {
-        return false;
-    }
-
-    /*
-     * Первая карта захода.
-     */
-    if (
-        room.table.length ===
-        0
-    ) {
-        return true;
-    }
-
-    /*
-     * Подкидывать можно
-     * только по существующим
-     * номиналам на столе.
-     */
-    return tableRanks(
-        room
-    ).includes(
-        card.rank
-    );
-}
-
-function allBeaten(
-    room
-) {
-    if (
-        room.table.length ===
-        0
-    ) {
-        return false;
-    }
-
-    return room.table.every(
-        pair =>
-            !!pair.defense
-    );
-}
-
-function firstUnbeaten(
-    room
-) {
-    return room.table.findIndex(
-        pair =>
-            !pair.defense
-    );
-}
-
-/*
-=========================================================
-BEGIN ROUND
-=========================================================
-*/
-
-function beginAttackRound(
-    room
-) {
-    room.table = [];
-
-    const defender =
-        room.players.find(
-            player =>
-                player.id !==
-                room.attacker
-        );
-
-    room.defender =
-        defender
-            ? defender.id
-            : null;
-
-    const defenderHand =
-        room.defender
-            ? (
-                room.hands[
-                    room.defender
-                ] || []
-            )
-            : [];
-
-    /*
-     * Максимум карт в заходе:
-     * не больше 6 и не больше
-     * количества карт защитника
-     * в момент начала захода.
-     */
-    room.roundLimit =
-        Math.min(
-            MAX_HAND,
-            defenderHand.length
-        );
-
-    room.phase =
-        "attack";
-
-    touchRoom(
-        room
-    );
-}
-
-/*
-=========================================================
-FIRST ATTACKER
-=========================================================
-*/
-
-function determineFirstAttacker(
-    room
-) {
-    const p1 =
-        room.players[0];
-
-    const p2 =
-        room.players[1];
-
-    const h1 =
-        room.hands[
-            p1.id
-        ] || [];
-
-    const h2 =
-        room.hands[
-            p2.id
-        ] || [];
-
-    const trumps1 =
-        h1
-            .filter(
-                card =>
-                    isTrump(
-                        room,
-                        card
-                    )
-            )
-            .sort(
-                (a, b) =>
-                    a.value -
-                    b.value
-            );
-
-    const trumps2 =
-        h2
-            .filter(
-                card =>
-                    isTrump(
-                        room,
-                        card
-                    )
-            )
-            .sort(
-                (a, b) =>
-                    a.value -
-                    b.value
-            );
-
-    if (
-        trumps1.length &&
-        trumps2.length
-    ) {
-        return (
-            trumps1[0].value <=
-            trumps2[0].value
-        )
-            ? p1.id
-            : p2.id;
-    }
-
-    if (
-        trumps1.length
-    ) {
-        return p1.id;
-    }
-
-    if (
-        trumps2.length
-    ) {
-        return p2.id;
-    }
-
-    const min1 =
-        h1.length
-            ? Math.min(
-                ...h1.map(
-                    card =>
-                        card.value
-                )
-            )
-            : Infinity;
-
-    const min2 =
-        h2.length
-            ? Math.min(
-                ...h2.map(
-                    card =>
-                        card.value
-                )
-            )
-            : Infinity;
-
-    return min1 <= min2
-        ? p1.id
-        : p2.id;
-}
-
-/*
-=========================================================
-START GAME
-=========================================================
-*/
-
-function startRoomGame(
-    room
-) {
-    if (
-        room.players.length !==
-        2
-    ) {
-        return false;
-    }
-
-    room.deck =
-        createDeck();
-
-    room.hands = {
-        [room.players[0].id]:
-            [],
-
-        [room.players[1].id]:
-            []
-    };
-
-    for (
-        let i = 0;
-        i < MAX_HAND;
-        i++
-    ) {
-        const c1 =
-            room.deck.shift();
-
-        const c2 =
-            room.deck.shift();
-
-        if (c1) {
-            room.hands[
-                room.players[0].id
-            ].push(c1);
-        }
-
-        if (c2) {
-            room.hands[
-                room.players[1].id
-            ].push(c2);
-        }
-    }
-
-    /*
-     * Последняя карта колоды
-     * определяет козырь.
-     * Она остаётся в колоде.
-     */
-    const trumpCard =
-        room.deck[
-            room.deck.length - 1
+function socketAuthenticate(socket) {
+    const initData =
+        socket.handshake.auth?.initData ||
+        socket.handshake.headers?.[
+            "x-telegram-init-data"
         ];
 
-    room.trumpSuit =
-        trumpCard
-            ? trumpCard.suit
-            : SUITS[0];
-
-    room.attacker =
-        determineFirstAttacker(
-            room
-        );
-
-    room.defender =
-        null;
-
-    room.table =
-        [];
-
-    room.roundLimit =
-        MAX_HAND;
-
-    room.status =
-        "playing";
-
-    room.phase =
-        "attack";
-
-    room.finished =
-        false;
-
-    room.winner =
-        null;
-
-    beginAttackRound(
-        room
-    );
-
-    touchRoom(
-        room
-    );
-
-    return true;
-}
-
-/*
-=========================================================
-REFILL HANDS
-=========================================================
-*/
-
-function refillHands(
-    room
-) {
-    /*
-     * Классический порядок
-     * добора:
-     *
-     * 1. атакующий
-     * 2. защитник
-     *
-     * В нашем формате 2 игрока.
-     */
-    const order = [
-        room.attacker,
-        room.defender
-    ];
-
-    for (
-        const playerId
-        of order
-    ) {
-        if (!playerId) {
-            continue;
-        }
-
-        const hand =
-            room.hands[
-                playerId
-            ];
-
-        if (
-            !Array.isArray(
-                hand
-            )
-        ) {
-            continue;
-        }
-
-        while (
-            hand.length <
-                MAX_HAND &&
-            room.deck.length >
-                0
-        ) {
-            hand.push(
-                room.deck.shift()
-            );
-        }
-    }
-}
-
-/*
-=========================================================
-FINISH ROOM
-=========================================================
-*/
-
-function finishRoom(
-    room,
-    winnerId,
-    reason = "normal"
-) {
-    if (
-        !room ||
-        room.finished
-    ) {
-        return;
-    }
-
-    room.finished =
-        true;
-
-    room.status =
-        "finished";
-
-    room.phase =
-        "finished";
-
-    room.winner =
-        winnerId || null;
-
-    if (
-        winnerId
-    ) {
-        const winner =
-            getPlayerById(
-                winnerId
-            );
-
-        const loserEntry =
-            room.players.find(
-                player =>
-                    player.id !==
-                    winnerId
-            );
-
-        const loser =
-            loserEntry
-                ? getPlayerById(
-                    loserEntry.id
-                )
-                : null;
-
-        if (winner) {
-            winner.wins =
-                Number(
-                    winner.wins ||
-                    0
-                ) + 1;
-
-            winner.games =
-                Number(
-                    winner.games ||
-                    0
-                ) + 1;
-
-            winner.balance =
-                Number(
-                    winner.balance ||
-                    0
-                ) + 500;
-
-            addXP(
-                winner,
-                50
-            );
-        }
-
-        if (loser) {
-            loser.losses =
-                Number(
-                    loser.losses ||
-                    0
-                ) + 1;
-
-            loser.games =
-                Number(
-                    loser.games ||
-                    0
-                ) + 1;
-
-            addXP(
-                loser,
-                15
-            );
-        }
-    } else {
-        /*
-         * Только настоящая ничья.
-         */
-        for (
-            const player
-            of room.players
-        ) {
-            const p =
-                getPlayerById(
-                    player.id
-                );
-
-            if (!p) {
-                continue;
-            }
-
-            p.games =
-                Number(
-                    p.games ||
-                    0
-                ) + 1;
-
-            addXP(
-                p,
-                20
-            );
-        }
-    }
-
-    savePlayers();
-
-    for (
-        const player
-        of room.players
-    ) {
-        const socket =
-            io.sockets.sockets.get(
-                player.socketId
-            );
-
-        if (!socket) {
-            continue;
-        }
-
-        socket.emit(
-            "game_finished",
-            {
-                winner:
-                    winnerId ||
-                    null,
-
-                reason,
-
-                message:
-                    winnerId ===
-                    player.id
-                        ? "Ты победил!"
-                        : winnerId
-                            ? "Ты проиграл"
-                            : "Ничья",
-
-                player:
-                    publicPlayer(
-                        getPlayerById(
-                            player.id
-                        )
-                    )
-            }
-        );
-    }
-
-    sendRoomState(
-        room
-    );
-}
-
-/*
-=========================================================
-GAME OVER CHECK
-=========================================================
-*/
-
-function checkGameOver(
-    room
-) {
-    if (
-        room.finished
-    ) {
-        return true;
-    }
-
-    /*
-     * Пока колода не пуста,
-     * окончательная победа
-     * не фиксируется.
-     */
-    if (
-        room.deck.length >
-        0
-    ) {
-        return false;
-    }
-
-    if (
-        room.players.length !==
-        2
-    ) {
-        return false;
-    }
-
-    const p1 =
-        room.players[0];
-
-    const p2 =
-        room.players[1];
-
-    if (
-        !p1 ||
-        !p2
-    ) {
-        return false;
-    }
-
-    const h1 =
-        room.hands[
-            p1.id
-        ] || [];
-
-    const h2 =
-        room.hands[
-            p2.id
-        ] || [];
-
-    /*
-     * Оба без карт.
-     */
-    if (
-        h1.length === 0 &&
-        h2.length === 0
-    ) {
-        finishRoom(
-            room,
-            null,
-            "draw"
-        );
-
-        return true;
-    }
-
-    /*
-     * Первый без карт.
-     */
-    if (
-        h1.length === 0
-    ) {
-        finishRoom(
-            room,
-            p1.id,
-            "normal"
-        );
-
-        return true;
-    }
-
-    /*
-     * Второй без карт.
-     */
-    if (
-        h2.length === 0
-    ) {
-        finishRoom(
-            room,
-            p2.id,
-            "normal"
-        );
-
-        return true;
-    }
-
-    return false;
-}
-
-/*
-=========================================================
-ATTACK
-=========================================================
-*/
-
-function playerAttack(
-    room,
-    playerId,
-    cardId
-) {
-    if (
-        room.status !==
-        "playing"
-    ) {
-        return;
-    }
-
-    if (
-        room.phase !==
-            "attack" &&
-        room.phase !==
-            "attack_continue"
-    ) {
-        return;
-    }
-
-    if (
-        room.attacker !==
-        playerId
-    ) {
-        return;
-    }
-
-    const hand =
-        room.hands[
-            playerId
-        ];
-
-    if (
-        !Array.isArray(
-            hand
-        )
-    ) {
-        return;
-    }
-
-    const index =
-        hand.findIndex(
-            card =>
-                card.id ===
-                cardId
-        );
-
-    if (
-        index ===
-        -1
-    ) {
-        emitActionError(
-            room,
-            playerId,
-            "Карта не найдена"
-        );
-
-        return;
-    }
-
-    const card =
-        hand[index];
-
-    if (
-        !canAddCard(
-            room,
-            card
-        )
-    ) {
-        emitActionError(
-            room,
-            playerId,
-            "Эту карту нельзя подкинуть"
-        );
-
-        return;
-    }
-
-    /*
-     * Защищающийся не может
-     * получить больше карт,
-     * чем позволяет roundLimit.
-     */
-    if (
-        room.table.length >=
-        room.roundLimit
-    ) {
-        emitActionError(
-            room,
-            playerId,
-            "Больше карт подкинуть нельзя"
-        );
-
-        return;
-    }
-
-    hand.splice(
-        index,
-        1
-    );
-
-    room.table.push({
-        attack:
-            card,
-
-        defense:
-            null
-    });
-
-    room.phase =
-        "defense";
-
-    touchRoom(
-        room
-    );
-
-    sendRoomState(
-        room
-    );
-}
-
-/*
-=========================================================
-DEFENSE
-=========================================================
-*/
-
-function playerDefense(
-    room,
-    playerId,
-    cardId
-) {
-    if (
-        room.status !==
-        "playing"
-    ) {
-        return;
-    }
-
-    if (
-        room.phase !==
-        "defense"
-    ) {
-        return;
-    }
-
-    if (
-        room.defender !==
-        playerId
-    ) {
-        return;
-    }
-
-    const index =
-        firstUnbeaten(
-            room
-        );
-
-    if (
-        index ===
-        -1
-    ) {
-        return;
-    }
-
-    const hand =
-        room.hands[
-            playerId
-        ];
-
-    if (
-        !Array.isArray(
-            hand
-        )
-    ) {
-        return;
-    }
-
-    const cardIndex =
-        hand.findIndex(
-            card =>
-                card.id ===
-                cardId
-        );
-
-    if (
-        cardIndex ===
-        -1
-    ) {
-        emitActionError(
-            room,
-            playerId,
-            "Карта не найдена"
-        );
-
-        return;
-    }
-
-    const defense =
-        hand[
-            cardIndex
-        ];
-
-    const attack =
-        room.table[
-            index
-        ].attack;
-
-    if (
-        !canBeat(
-            room,
-            attack,
-            defense
-        )
-    ) {
-        emitActionError(
-            room,
-            playerId,
-            "Этой картой побить нельзя"
-        );
-
-        return;
-    }
-
-    hand.splice(
-        cardIndex,
-        1
-    );
-
-    room.table[
-        index
-    ].defense =
-        defense;
-
-    /*
-     * Если все карты отбиты,
-     * атакующий получает право
-     * подкинуть ещё или завершить
-     * заход.
-     */
-    if (
-        allBeaten(
-            room
-        )
-    ) {
-        room.phase =
-            "attack_continue";
-    }
-
-    touchRoom(
-        room
-    );
-
-    sendRoomState(
-        room
-    );
-}
-
-/*
-=========================================================
-FINISH ATTACK ROUND
-=========================================================
-*/
-
-function finishAttackRound(
-    room,
-    playerId
-) {
-    if (
-        room.status !==
-        "playing"
-    ) {
-        return;
-    }
-
-    if (
-        room.phase !==
-        "attack_continue"
-    ) {
-        return;
-    }
-
-    if (
-        room.attacker !==
-        playerId
-    ) {
-        return;
-    }
-
-    if (
-        !allBeaten(
-            room
-        )
-    ) {
-        emitActionError(
-            room,
-            playerId,
-            "Не все карты отбиты"
-        );
-
-        return;
-    }
-
-    const oldAttacker =
-        room.attacker;
-
-    const oldDefender =
-        room.defender;
-
-    /*
-     * Завершённый заход.
-     */
-    room.table =
-        [];
-
-    /*
-     * Сначала проверяем
-     * возможную победу после
-     * сыгранных карт.
-     *
-     * Но только если колода
-     * уже пуста.
-     */
-    if (
-        room.deck.length ===
-        0
-    ) {
-        const attackerHand =
-            room.hands[
-                oldAttacker
-            ] || [];
-
-        if (
-            attackerHand.length ===
-            0
-        ) {
-            finishRoom(
-                room,
-                oldAttacker,
-                "normal"
-            );
-
-            return;
-        }
-    }
-
-    /*
-     * Новый атакующий —
-     * бывший защитник.
-     */
-    room.attacker =
-        oldDefender;
-
-    room.defender =
-        oldAttacker;
-
-    /*
-     * Добор происходит
-     * по старому порядку:
-     * сначала старый атакующий,
-     * затем старый защитник.
-     */
-    room.attacker =
-        oldAttacker;
-
-    room.defender =
-        oldDefender;
-
-    refillHands(
-        room
-    );
-
-    /*
-     * Теперь меняем роли.
-     */
-    room.attacker =
-        oldDefender;
-
-    room.defender =
-        oldAttacker;
-
-    /*
-     * Если после добора
-     * кто-то закончил игру.
-     */
-    if (
-        checkGameOver(
-            room
-        )
-    ) {
-        return;
-    }
-
-    beginAttackRound(
-        room
-    );
-
-    touchRoom(
-        room
-    );
-
-    sendRoomState(
-        room
-    );
-}
-
-/*
-=========================================================
-TAKE CARDS
-=========================================================
-*/
-
-function takeCards(
-    room,
-    playerId
-) {
-    if (
-        room.status !==
-        "playing"
-    ) {
-        return;
-    }
-
-    if (
-        room.phase !==
-        "defense"
-    ) {
-        return;
-    }
-
-    if (
-        room.defender !==
-        playerId
-    ) {
-        return;
-    }
-
-    const hand =
-        room.hands[
-            playerId
-        ];
-
-    if (
-        !Array.isArray(
-            hand
-        )
-    ) {
-        return;
-    }
-
-    /*
-     * Защитник забирает
-     * все карты стола.
-     */
-    for (
-        const pair
-        of room.table
-    ) {
-        if (
-            pair.attack
-        ) {
-            hand.push(
-                pair.attack
-            );
-        }
-
-        if (
-            pair.defense
-        ) {
-            hand.push(
-                pair.defense
-            );
-        }
-    }
-
-    room.table =
-        [];
-
-    /*
-     * Атакующий сохраняет
-     * право атаки.
-     */
-    const attackerId =
-        room.attacker;
-
-    const defenderId =
-        room.defender;
-
-    /*
-     * Добор:
-     * сначала атакующий,
-     * затем защитник.
-     */
-    room.attacker =
-        attackerId;
-
-    room.defender =
-        defenderId;
-
-    refillHands(
-        room
-    );
-
-    /*
-     * Если колода пуста,
-     * после взятия проверяем
-     * окончание партии.
-     */
-    if (
-        checkGameOver(
-            room
-        )
-    ) {
-        return;
-    }
-
-    /*
-     * Роли НЕ меняются.
-     */
-    room.attacker =
-        attackerId;
-
-    room.defender =
-        defenderId;
-
-    beginAttackRound(
-        room
-    );
-
-    touchRoom(
-        room
-    );
-
-    sendRoomState(
-        room
-    );
-}
-
-/*
-=========================================================
-ERROR
-=========================================================
-*/
-
-function emitActionError(
-    room,
-    playerId,
-    message
-) {
-    const player =
-        room.players.find(
-            item =>
-                item.id ===
-                playerId
-        );
-
-    if (!player) {
-        return;
-    }
-
-    const socket =
-        io.sockets.sockets.get(
-            player.socketId
-        );
-
-    if (!socket) {
-        return;
-    }
-
-    socket.emit(
-        "action_error",
-        {
-            message
-        }
-    );
-}
-
-/*
-=========================================================
-RESET WAITING ROOM
-=========================================================
-*/
-
-function resetRoomToWaiting(
-    room
-) {
-    room.status =
-        "waiting";
-
-    room.phase =
-        "waiting";
-
-    room.finished =
-        false;
-
-    room.winner =
-        null;
-
-    room.deck =
-        [];
-
-    room.table =
-        [];
-
-    room.hands =
-        {};
-
-    room.attacker =
-        null;
-
-    room.defender =
-        null;
-
-    room.trumpSuit =
-        null;
-
-    room.roundLimit =
-        MAX_HAND;
-
-    for (
-        const player
-        of room.players
-    ) {
-        player.ready =
-            false;
-
-        player.disconnected =
-            false;
-
-        player.disconnectedAt =
-            null;
-    }
-
-    touchRoom(
-        room
-    );
-}
-
-/*
-=========================================================
-ROOM PLAYER REMOVE
-=========================================================
-*/
-
-function removePlayerFromRoom(
-    room,
-    playerId
-) {
-    room.players =
-        room.players.filter(
-            player =>
-                player.id !==
-                playerId
-        );
-
-    if (
-        room.hands &&
-        room.hands[
-            playerId
-        ]
-    ) {
-        delete room.hands[
-            playerId
-        ];
-    }
-
-    touchRoom(
-        room
-    );
-}
-
-/*
-=========================================================
-ROOM RECONNECT
-=========================================================
-*/
-
-function reconnectPlayer(
-    room,
-    playerId,
-    socket
-) {
-    const player =
-        room.players.find(
-            item =>
-                item.id ===
-                playerId
-        );
-
-    if (!player) {
-        return false;
-    }
-
-    /*
-     * Если старый socket всё ещё
-     * существует — он больше
-     * не считается активным.
-     */
-    player.socketId =
-        socket.id;
-
-    player.disconnected =
-        false;
-
-    player.disconnectedAt =
-        null;
-
-    touchRoom(
-        room
-    );
-
-    return true;
-}
-
-/*
-=========================================================
-SOCKET AUTH HELPER
-=========================================================
-*/
-
-function authenticateSocket(
-    socket,
-    initData
-) {
     const user =
         validateTelegramInitData(
             initData
@@ -5248,14 +5114,10 @@ function authenticateSocket(
     }
 
     const player =
-        createPlayer(
-            user
-        );
+        createPlayer(user);
 
-    socket.playerId =
-        String(
-            player.telegram_id
-        );
+    socket.telegramUser = user;
+    socket.player = player;
 
     return player;
 }
@@ -5270,89 +5132,190 @@ io.on(
     "connection",
     socket => {
         console.log(
-            "SOCKET CONNECT:",
-            socket.id
+            `[SOCKET] connected ${socket.id}`
+        );
+
+        const player =
+            socketAuthenticate(
+                socket
+            );
+
+        if (!player) {
+            socket.emit(
+                "auth:error",
+                {
+                    error:
+                        "Telegram authorization required"
+                }
+            );
+
+            socket.disconnect(true);
+
+            return;
+        }
+
+        socket.emit(
+            "auth:success",
+            {
+                player:
+                    publicPlayer(
+                        player
+                    )
+            }
         );
 
         /*
-        ================================================
-        AUTH
-        ================================================
+         * Восстанавливаем игрока
+         * в существующей комнате.
+         */
+        const existingRoom =
+            findRoomByPlayer(
+                player.telegram_id
+            );
+
+        if (existingRoom) {
+            const roomPlayer =
+                existingRoom.players.find(
+                    item =>
+                        String(
+                            item.telegram_id
+                        ) ===
+                        String(
+                            player.telegram_id
+                        )
+                );
+
+            if (roomPlayer) {
+                roomPlayer.socketId =
+                    socket.id;
+
+                roomPlayer.connected =
+                    true;
+
+                roomPlayer.disconnectedAt =
+                    null;
+
+                socket.join(
+                    `room:${existingRoom.code}`
+                );
+
+                socket.currentRoom =
+                    existingRoom.code;
+
+                existingRoom.updatedAt =
+                    now();
+
+                existingRoom.lastActivity =
+                    now();
+
+                socket.emit(
+                    "room:reconnected",
+                    publicRoom(
+                        existingRoom
+                    )
+                );
+
+                broadcastRoom(
+                    existingRoom
+                );
+
+                emitGameState(
+                    existingRoom
+                );
+            }
+        }
+
+        /*
+        =================================================
+        CREATE ROOM
+        =================================================
         */
 
         socket.on(
-            "authenticate",
-            data => {
+            "room:create",
+            () => {
                 try {
-                    const player =
-                        authenticateSocket(
-                            socket,
-                            data?.initData
+                    const oldRoom =
+                        findRoomByPlayer(
+                            player.telegram_id
                         );
 
-                    if (!player) {
+                    if (oldRoom) {
                         socket.emit(
-                            "server_error",
+                            "room:error",
                             {
-                                message:
-                                    "Ошибка Telegram авторизации"
+                                error:
+                                    "Вы уже находитесь в комнате"
                             }
                         );
 
                         return;
                     }
 
-                    const existingRoom =
-                        findRoomByPlayer(
-                            socket.playerId
+                    const roomPlayer = {
+                        id:
+                            randomId(
+                                "rp_"
+                            ),
+
+                        telegram_id:
+                            player.telegram_id,
+
+                        first_name:
+                            player.first_name,
+
+                        last_name:
+                            player.last_name,
+
+                        username:
+                            player.username,
+
+                        socketId:
+                            socket.id,
+
+                        connected:
+                            true,
+
+                        ready:
+                            false,
+
+                        disconnectedAt:
+                            null
+                    };
+
+                    const room =
+                        createRoom(
+                            roomPlayer
                         );
 
-                    if (
-                        existingRoom
-                    ) {
-                        reconnectPlayer(
-                            existingRoom,
-                            socket.playerId,
-                            socket
-                        );
+                    socket.join(
+                        `room:${room.code}`
+                    );
 
-                        socket.emit(
-                            "room_reconnected",
-                            {
-                                room:
-                                    publicRoom(
-                                        existingRoom
-                                    )
-                            }
-                        );
-
-                        sendRoomState(
-                            existingRoom
-                        );
-                    }
+                    socket.currentRoom =
+                        room.code;
 
                     socket.emit(
-                        "authenticated",
-                        {
-                            player:
-                                publicPlayer(
-                                    player
-                                )
-                        }
+                        "room:created",
+                        publicRoom(
+                            room
+                        )
                     );
-                } catch (
-                    error
-                ) {
+
+                    broadcastRoom(
+                        room
+                    );
+                } catch (error) {
                     console.error(
-                        "SOCKET AUTH ERROR:",
+                        "[SOCKET ROOM CREATE]",
                         error
                     );
 
                     socket.emit(
-                        "server_error",
+                        "room:error",
                         {
-                            message:
-                                "Ошибка авторизации"
+                            error:
+                                "Не удалось создать комнату"
                         }
                     );
                 }
@@ -5360,120 +5323,258 @@ io.on(
         );
 
         /*
-        ================================================
-        CREATE ROOM
-        ================================================
+        =================================================
+        JOIN ROOM
+        =================================================
         */
 
         socket.on(
-            "create_room",
-            () => {
-                if (
-                    !socket.playerId
-                ) {
-                    socket.emit(
-                        "server_error",
-                        {
-                            message:
-                                "Сначала авторизуйтесь"
-                        }
-                    );
+            "room:join",
+            payload => {
+                try {
+                    const code =
+                        normalizeString(
+                            payload?.roomCode ||
+                            payload?.code
+                        ).toUpperCase();
 
-                    return;
-                }
+                    const room =
+                        getRoom(code);
 
-                const existing =
-                    findRoomByPlayer(
-                        socket.playerId
-                    );
+                    if (!room) {
+                        socket.emit(
+                            "room:error",
+                            {
+                                error:
+                                    "Комната не найдена"
+                            }
+                        );
 
-                if (existing) {
-                    reconnectPlayer(
-                        existing,
-                        socket.playerId,
-                        socket
-                    );
+                        return;
+                    }
 
-                    socket.emit(
-                        "room_created",
-                        {
-                            room:
-                                publicRoom(
-                                    existing
+                    const existing =
+                        room.players.find(
+                            item =>
+                                String(
+                                    item.telegram_id
+                                ) ===
+                                String(
+                                    player.telegram_id
                                 )
+                        );
+
+                    if (existing) {
+                        existing.socketId =
+                            socket.id;
+
+                        existing.connected =
+                            true;
+
+                        existing.disconnectedAt =
+                            null;
+
+                        socket.join(
+                            `room:${room.code}`
+                        );
+
+                        socket.currentRoom =
+                            room.code;
+
+                        broadcastRoom(
+                            room
+                        );
+
+                        emitGameState(
+                            room
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        room.players.length >=
+                        2
+                    ) {
+                        socket.emit(
+                            "room:error",
+                            {
+                                error:
+                                    "Комната заполнена"
+                            }
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        room.status ===
+                        "playing"
+                    ) {
+                        socket.emit(
+                            "room:error",
+                            {
+                                error:
+                                    "Игра уже началась"
+                            }
+                        );
+
+                        return;
+                    }
+
+                    const roomPlayer = {
+                        id:
+                            randomId(
+                                "rp_"
+                            ),
+
+                        telegram_id:
+                            player.telegram_id,
+
+                        first_name:
+                            player.first_name,
+
+                        last_name:
+                            player.last_name,
+
+                        username:
+                            player.username,
+
+                        socketId:
+                            socket.id,
+
+                        connected:
+                            true,
+
+                        ready:
+                            false,
+
+                        disconnectedAt:
+                            null
+                    };
+
+                    room.players.push(
+                        roomPlayer
+                    );
+
+                    room.updatedAt =
+                        now();
+
+                    room.lastActivity =
+                        now();
+
+                    socket.join(
+                        `room:${room.code}`
+                    );
+
+                    socket.currentRoom =
+                        room.code;
+
+                    broadcastRoom(
+                        room
+                    );
+
+                    socket.emit(
+                        "room:joined",
+                        publicRoom(
+                            room
+                        )
+                    );
+
+                    /*
+                     * Когда второй игрок
+                     * вошел, можно начинать
+                     * игру автоматически,
+                     * если оба подключены.
+                     */
+                    if (
+                        room.players.length ===
+                            2 &&
+                        room.players.every(
+                            p =>
+                                p.connected
+                        )
+                    ) {
+                        startRoomGame(
+                            room
+                        );
+                    }
+                } catch (error) {
+                    console.error(
+                        "[SOCKET ROOM JOIN]",
+                        error
+                    );
+
+                    socket.emit(
+                        "room:error",
+                        {
+                            error:
+                                "Не удалось войти в комнату"
                         }
                     );
+                }
+            }
+        );
 
-                    sendRoomState(
-                        existing
+        /*
+        =================================================
+        ROOM STATE
+        =================================================
+        */
+
+        socket.on(
+            "room:state",
+            () => {
+                const room =
+                    getRoom(
+                        socket.currentRoom
                     );
 
+                if (!room) {
                     return;
                 }
-
-                const room =
-                    createRoom(
-                        socket.playerId,
-                        socket
-                    );
 
                 socket.emit(
-                    "room_created",
-                    {
-                        room:
-                            publicRoom(
-                                room
-                            )
-                    }
+                    "room:update",
+                    publicRoom(
+                        room
+                    )
                 );
 
-                sendRoomState(
-                    room
-                );
+                if (room.game) {
+                    socket.emit(
+                        "game:state",
+                        privateGameState(
+                            room,
+                            findRoomPlayerId(
+                                room,
+                                player.telegram_id
+                            )
+                        )
+                    );
+                }
             }
         );
 
         /*
-        ================================================
-        JOIN ROOM
-        ================================================
+        =================================================
+        READY
+        =================================================
         */
 
         socket.on(
-            "join_room",
-            data => {
-                if (
-                    !socket.playerId
-                ) {
-                    socket.emit(
-                        "server_error",
-                        {
-                            message:
-                                "Сначала авторизуйтесь"
-                        }
-                    );
-
-                    return;
-                }
-
-                const code =
-                    String(
-                        data?.roomCode ||
-                        ""
-                    )
-                        .trim()
-                        .toUpperCase();
-
+            "room:ready",
+            payload => {
                 const room =
-                    rooms.get(
-                        code
+                    getRoom(
+                        socket.currentRoom
                     );
 
                 if (!room) {
                     socket.emit(
-                        "action_error",
+                        "room:error",
                         {
-                            message:
+                            error:
                                 "Комната не найдена"
                         }
                     );
@@ -5481,476 +5582,404 @@ io.on(
                     return;
                 }
 
-                /*
-                 * Повторный вход
-                 * в ту же комнату.
-                 */
-                if (
-                    room.players.some(
-                        player =>
-                            player.id ===
-                            socket.playerId
-                    )
-                ) {
-                    reconnectPlayer(
+                const roomPlayer =
+                    findRoomPlayer(
                         room,
-                        socket.playerId,
-                        socket
+                        player.telegram_id
                     );
 
-                    socket.emit(
-                        "room_joined",
-                        {
-                            room:
-                                publicRoom(
-                                    room
-                                )
-                        }
-                    );
-
-                    sendRoomState(
-                        room
-                    );
-
+                if (!roomPlayer) {
                     return;
                 }
 
-                if (
-                    room.players.length >=
-                    2
-                ) {
-                    socket.emit(
-                        "action_error",
-                        {
-                            message:
-                                "Комната заполнена"
-                        }
-                    );
+                roomPlayer.ready =
+                    payload?.ready !==
+                    false;
 
-                    return;
-                }
+                room.updatedAt =
+                    now();
 
-                if (
-                    room.status !==
-                    "waiting"
-                ) {
-                    socket.emit(
-                        "action_error",
-                        {
-                            message:
-                                "Игра уже началась"
-                        }
-                    );
-
-                    return;
-                }
-
-                room.players.push({
-                    id:
-                        socket.playerId,
-
-                    socketId:
-                        socket.id,
-
-                    ready:
-                        false,
-
-                    disconnected:
-                        false,
-
-                    disconnectedAt:
-                        null
-                });
-
-                touchRoom(
-                    room
-                );
-
-                socket.emit(
-                    "room_joined",
-                    {
-                        room:
-                            publicRoom(
-                                room
-                            )
-                    }
-                );
-
-                /*
-                 * Текущая версия проекта
-                 * запускает игру автоматически
-                 * после входа второго игрока.
-                 */
-                room.players.forEach(
-                    player => {
-                        player.ready =
-                            true;
-                    }
-                );
-
-                startRoomGame(
-                    room
-                );
-
-                sendRoomState(
+                broadcastRoom(
                     room
                 );
             }
         );
 
         /*
-        ================================================
-        READY
-        ================================================
+        =================================================
+        START GAME
+        =================================================
         */
 
         socket.on(
-            "ready_room",
+            "game:start",
             () => {
-                if (
-                    !socket.playerId
-                ) {
-                    return;
-                }
-
                 const room =
-                    findRoomByPlayer(
-                        socket.playerId
+                    getRoom(
+                        socket.currentRoom
                     );
 
                 if (!room) {
                     return;
                 }
 
-                const player =
-                    room.players.find(
-                        item =>
-                            item.id ===
-                            socket.playerId
-                    );
-
-                if (!player) {
-                    return;
-                }
-
-                player.ready =
-                    true;
-
-                touchRoom(
-                    room
-                );
-
-                if (
-                    room.players.length ===
-                        2 &&
-                    room.players.every(
-                        item =>
-                            item.ready
-                    ) &&
-                    room.status ===
-                        "waiting"
-                ) {
+                const result =
                     startRoomGame(
                         room
                     );
+
+                if (!result.success) {
+                    socket.emit(
+                        "game:error",
+                        {
+                            error:
+                                result.error
+                        }
+                    );
+                }
+            }
+        );
+
+        /*
+        =================================================
+        ATTACK
+        =================================================
+        */
+
+        socket.on(
+            "game:attack",
+            payload => {
+                const room =
+                    getRoom(
+                        socket.currentRoom
+                    );
+
+                if (!room) {
+                    return;
                 }
 
-                sendRoomState(
+                const roomPlayer =
+                    findRoomPlayer(
+                        room,
+                        player.telegram_id
+                    );
+
+                if (!roomPlayer) {
+                    return;
+                }
+
+                const result =
+                    attackWithCard(
+                        room,
+                        roomPlayer.id,
+                        payload?.cardId
+                    );
+
+                if (!result.success) {
+                    socket.emit(
+                        "game:error",
+                        {
+                            error:
+                                result.error
+                        }
+                    );
+
+                    return;
+                }
+
+                broadcastRoom(
+                    room
+                );
+
+                emitGameState(
                     room
                 );
             }
         );
 
         /*
-        ================================================
-        PLAY CARD
-        ================================================
+        =================================================
+        DEFENSE
+        =================================================
         */
 
         socket.on(
-            "play_card",
-            data => {
-                if (
-                    !socket.playerId
-                ) {
-                    return;
-                }
-
+            "game:defend",
+            payload => {
                 const room =
-                    findRoomByPlayer(
-                        socket.playerId
+                    getRoom(
+                        socket.currentRoom
                     );
 
                 if (!room) {
                     return;
                 }
 
-                if (
-                    room.phase ===
-                        "attack" ||
-                    room.phase ===
-                        "attack_continue"
-                ) {
-                    playerAttack(
+                const roomPlayer =
+                    findRoomPlayer(
                         room,
-                        socket.playerId,
-                        data?.cardId
+                        player.telegram_id
                     );
 
+                if (!roomPlayer) {
                     return;
                 }
 
-                if (
-                    room.phase ===
-                    "defense"
-                ) {
-                    playerDefense(
+                const result =
+                    defendWithCard(
                         room,
-                        socket.playerId,
-                        data?.cardId
-                    );
-                }
-            }
-        );
-
-        /*
-        ================================================
-        FINISH ROUND
-        ================================================
-        */
-
-        socket.on(
-            "finish_round",
-            () => {
-                if (
-                    !socket.playerId
-                ) {
-                    return;
-                }
-
-                const room =
-                    findRoomByPlayer(
-                        socket.playerId
+                        roomPlayer.id,
+                        payload?.pairId,
+                        payload?.cardId
                     );
 
-                if (!room) {
-                    return;
-                }
-
-                finishAttackRound(
-                    room,
-                    socket.playerId
-                );
-            }
-        );
-
-        /*
-        ================================================
-        TAKE CARDS
-        ================================================
-        */
-
-        socket.on(
-            "take_cards",
-            () => {
-                if (
-                    !socket.playerId
-                ) {
-                    return;
-                }
-
-                const room =
-                    findRoomByPlayer(
-                        socket.playerId
-                    );
-
-                if (!room) {
-                    return;
-                }
-
-                takeCards(
-                    room,
-                    socket.playerId
-                );
-            }
-        );
-
-        /*
-        ================================================
-        LEAVE ROOM
-        ================================================
-        */
-
-        socket.on(
-            "leave_room",
-            () => {
-                if (
-                    !socket.playerId
-                ) {
-                    return;
-                }
-
-                const room =
-                    findRoomByPlayer(
-                        socket.playerId
-                    );
-
-                if (!room) {
-                    return;
-                }
-
-                /*
-                 * Если игрок сознательно
-                 * вышел во время игры:
-                 *
-                 * вышедший проигрывает,
-                 * соперник побеждает.
-                 */
-                if (
-                    room.status ===
-                    "playing"
-                ) {
-                    const opponent =
-                        room.players.find(
-                            player =>
-                                player.id !==
-                                socket.playerId
-                        );
-
-                    if (
-                        opponent
-                    ) {
-                        finishRoom(
-                            room,
-                            opponent.id,
-                            "leave"
-                        );
-                    }
-
-                    removePlayerFromRoom(
-                        room,
-                        socket.playerId
-                    );
-
+                if (!result.success) {
                     socket.emit(
-                        "room_left"
+                        "game:error",
+                        {
+                            error:
+                                result.error
+                        }
                     );
-
-                    if (
-                        room.players.length ===
-                        0
-                    ) {
-                        rooms.delete(
-                            room.code
-                        );
-                    } else {
-                        /*
-                         * Победитель остаётся
-                         * в комнате, но старая
-                         * партия уже закончена.
-                         *
-                         * Комната становится
-                         * новой waiting-комнатой.
-                         */
-                        resetRoomToWaiting(
-                            room
-                        );
-
-                        sendRoomState(
-                            room
-                        );
-                    }
 
                     return;
                 }
 
-                /*
-                 * Выход из waiting-комнаты.
-                 */
-                removePlayerFromRoom(
-                    room,
-                    socket.playerId
+                broadcastRoom(
+                    room
                 );
 
-                socket.emit(
-                    "room_left"
+                emitGameState(
+                    room
                 );
-
-                if (
-                    room.players.length ===
-                    0
-                ) {
-                    rooms.delete(
-                        room.code
-                    );
-                } else {
-                    resetRoomToWaiting(
-                        room
-                    );
-
-                    sendRoomState(
-                        room
-                    );
-                }
             }
         );
 
         /*
-        ================================================
+        =================================================
+        TAKE
+        =================================================
+        */
+
+        socket.on(
+            "game:take",
+            () => {
+                const room =
+                    getRoom(
+                        socket.currentRoom
+                    );
+
+                if (!room) {
+                    return;
+                }
+
+                const roomPlayer =
+                    findRoomPlayer(
+                        room,
+                        player.telegram_id
+                    );
+
+                if (!roomPlayer) {
+                    return;
+                }
+
+                const result =
+                    takeCards(
+                        room,
+                        roomPlayer.id
+                    );
+
+                if (!result.success) {
+                    socket.emit(
+                        "game:error",
+                        {
+                            error:
+                                result.error
+                        }
+                    );
+
+                    return;
+                }
+
+                broadcastRoom(
+                    room
+                );
+
+                emitGameState(
+                    room
+                );
+            }
+        );
+
+        /*
+        =================================================
+        END ATTACK
+        =================================================
+        */
+
+        socket.on(
+            "game:endAttack",
+            () => {
+                const room =
+                    getRoom(
+                        socket.currentRoom
+                    );
+
+                if (!room) {
+                    return;
+                }
+
+                const roomPlayer =
+                    findRoomPlayer(
+                        room,
+                        player.telegram_id
+                    );
+
+                if (!roomPlayer) {
+                    return;
+                }
+
+                const result =
+                    endAttack(
+                        room,
+                        roomPlayer.id
+                    );
+
+                if (!result.success) {
+                    socket.emit(
+                        "game:error",
+                        {
+                            error:
+                                result.error
+                        }
+                    );
+
+                    return;
+                }
+
+                broadcastRoom(
+                    room
+                );
+
+                emitGameState(
+                    room
+                );
+            }
+        );
+
+        /*
+        =================================================
+        CHAT
+        =================================================
+        */
+
+        socket.on(
+            "room:chat",
+            payload => {
+                const room =
+                    getRoom(
+                        socket.currentRoom
+                    );
+
+                if (!room) {
+                    return;
+                }
+
+                const text =
+                    normalizeString(
+                        payload?.text
+                    );
+
+                if (!text) {
+                    return;
+                }
+
+                const safeText =
+                    text.slice(
+                        0,
+                        500
+                    );
+
+                const message = {
+                    id:
+                        randomId(
+                            "msg_"
+                        ),
+
+                    telegram_id:
+                        player.telegram_id,
+
+                    first_name:
+                        player.first_name,
+
+                    username:
+                        player.username,
+
+                    text:
+                        safeText,
+
+                    timestamp:
+                        now()
+                };
+
+                room.chat.push(
+                    message
+                );
+
+                if (
+                    room.chat.length >
+                    MAX_ROOM_CHAT_MESSAGES
+                ) {
+                    room.chat =
+                        room.chat.slice(
+                            -MAX_ROOM_CHAT_MESSAGES
+                        );
+                }
+
+                room.updatedAt =
+                    now();
+
+                io.to(
+                    `room:${room.code}`
+                ).emit(
+                    "room:chat",
+                    message
+                );
+            }
+        );
+
+        /*
+        =================================================
+        LEAVE ROOM
+        =================================================
+        */
+
+        socket.on(
+            "room:leave",
+            () => {
+                leaveRoomBySocket(
+                    socket,
+                    false
+                );
+            }
+        );
+
+        /*
+        =================================================
         DISCONNECT
-        ================================================
+        =================================================
         */
 
         socket.on(
             "disconnect",
-            () => {
+            reason => {
                 console.log(
-                    "SOCKET DISCONNECT:",
-                    socket.id
+                    `[SOCKET] disconnected ${socket.id}: ${reason}`
                 );
 
-                if (
-                    !socket.playerId
-                ) {
-                    return;
-                }
-
-                const room =
-                    findRoomByPlayer(
-                        socket.playerId
-                    );
-
-                if (!room) {
-                    return;
-                }
-
-                const player =
-                    room.players.find(
-                        item =>
-                            item.id ===
-                            socket.playerId
-                    );
-
-                if (!player) {
-                    return;
-                }
-
-                /*
-                 * Не объявляем поражение
-                 * мгновенно.
-                 */
-                player.disconnected =
-                    true;
-
-                player.disconnectedAt =
-                    Date.now();
-
-                touchRoom(
-                    room
-                );
-
-                sendRoomState(
-                    room
+                leaveRoomBySocket(
+                    socket,
+                    true
                 );
             }
         );
@@ -5959,123 +5988,316 @@ io.on(
 
 /*
 =========================================================
-ROOM CLEANUP / RECONNECT TIMEOUT
+ROOM PLAYER HELPERS
 =========================================================
 */
 
-setInterval(
-    () => {
-        const now =
-            Date.now();
+function findRoomPlayer(
+    room,
+    telegramId
+) {
+    if (!room) {
+        return null;
+    }
 
-        for (
-            const [
-                code,
-                room
-            ]
-            of rooms.entries()
+    return room.players.find(
+        item =>
+            String(
+                item.telegram_id
+            ) ===
+            String(
+                telegramId
+            )
+    ) || null;
+}
+
+function findRoomPlayerId(
+    room,
+    telegramId
+) {
+    const player =
+        findRoomPlayer(
+            room,
+            telegramId
+        );
+
+    return player
+        ? player.id
+        : null;
+}
+
+function leaveRoomBySocket(
+    socket,
+    disconnected
+) {
+    const code =
+        socket.currentRoom;
+
+    if (!code) {
+        return;
+    }
+
+    const room =
+        getRoom(code);
+
+    if (!room) {
+        socket.currentRoom =
+            null;
+
+        return;
+    }
+
+    const roomPlayer =
+        room.players.find(
+            item =>
+                item.socketId ===
+                socket.id
+        );
+
+    if (!roomPlayer) {
+        socket.currentRoom =
+            null;
+
+        return;
+    }
+
+    if (disconnected) {
+        /*
+         * При disconnect не удаляем
+         * игрока мгновенно.
+         * Это позволяет переподключиться.
+         */
+        roomPlayer.connected =
+            false;
+
+        roomPlayer.socketId =
+            null;
+
+        roomPlayer.disconnectedAt =
+            now();
+
+        room.updatedAt =
+            now();
+
+        room.lastActivity =
+            now();
+
+        broadcastRoom(
+            room
+        );
+
+        return;
+    }
+
+    /*
+     * Явный выход.
+     */
+    const game =
+        room.game;
+
+    if (
+        game &&
+        game.status ===
+            "playing"
+    ) {
+        const quitter =
+            game.players.find(
+                item =>
+                    item.id ===
+                    roomPlayer.id
+            );
+
+        const opponent =
+            game.players.find(
+                item =>
+                    item.id !==
+                    roomPlayer.id
+            );
+
+        if (
+            quitter &&
+            opponent
         ) {
-            /*
-             * Игра идёт.
-             */
+            finishGame(
+                room,
+                opponent.id,
+                quitter.id,
+                "opponent_left"
+            );
+        }
+    }
+
+    removeRoomPlayer(
+        room,
+        roomPlayer.telegram_id
+    );
+
+    socket.leave(
+        `room:${room.code}`
+    );
+
+    socket.currentRoom =
+        null;
+
+    room.updatedAt =
+        now();
+
+    room.lastActivity =
+        now();
+
+    if (
+        room.players.length ===
+        0
+    ) {
+        rooms.delete(
+            room.code
+        );
+
+        return;
+    }
+
+    if (
+        room.game &&
+        room.game.status ===
+            "playing"
+    ) {
+        room.status =
+            "finished";
+    } else {
+        room.status =
+            "waiting";
+    }
+
+    broadcastRoom(
+        room
+    );
+}
+
+/*
+=========================================================
+ROOM CLEANUP
+=========================================================
+*/
+
+function cleanupRooms() {
+    const current =
+        now();
+
+    for (
+        const room
+        of rooms.values()
+    ) {
+        /*
+         * Удаляем комнаты,
+         * в которых все вышли.
+         */
+        if (
+            room.players.length ===
+            0
+        ) {
+            rooms.delete(
+                room.code
+            );
+
+            continue;
+        }
+
+        /*
+         * Если игрок отключился
+         * более чем на минуту,
+         * он считается вышедшим.
+         */
+        for (
+            const roomPlayer
+            of [
+                ...room.players
+            ]
+        ) {
             if (
-                room.status ===
-                "playing"
+                !roomPlayer.connected &&
+                roomPlayer.disconnectedAt &&
+                current -
+                    roomPlayer.disconnectedAt >=
+                    ROOM_RECONNECT_TIMEOUT
             ) {
-                const disconnectedPlayer =
-                    room.players.find(
-                        player =>
-                            player.disconnected &&
-                            player.disconnectedAt &&
-                            now -
-                                player.disconnectedAt >=
-                                ROOM_RECONNECT_TIMEOUT
-                    );
+                const game =
+                    room.game;
 
                 if (
-                    disconnectedPlayer
+                    game &&
+                    game.status ===
+                        "playing"
                 ) {
+                    const quitter =
+                        game.players.find(
+                            item =>
+                                item.id ===
+                                roomPlayer.id
+                        );
+
                     const opponent =
-                        room.players.find(
-                            player =>
-                                player.id !==
-                                    disconnectedPlayer.id &&
-                                !player.disconnected
+                        game.players.find(
+                            item =>
+                                item.id !==
+                                roomPlayer.id
                         );
 
                     if (
+                        quitter &&
                         opponent
                     ) {
-                        finishRoom(
+                        finishGame(
                             room,
                             opponent.id,
+                            quitter.id,
                             "disconnect_timeout"
                         );
-
-                        /*
-                         * Удаляем отключившегося
-                         * из комнаты после
-                         * фиксации поражения.
-                         */
-                        removePlayerFromRoom(
-                            room,
-                            disconnectedPlayer.id
-                        );
-
-                        if (
-                            room.players.length ===
-                            0
-                        ) {
-                            rooms.delete(
-                                code
-                            );
-                        } else {
-                            resetRoomToWaiting(
-                                room
-                            );
-
-                            sendRoomState(
-                                room
-                            );
-                        }
                     }
                 }
-            }
 
-            /*
-             * Полностью пустые комнаты.
-             */
-            if (
-                room.players.length ===
-                0
-            ) {
-                rooms.delete(
-                    code
-                );
-
-                continue;
-            }
-
-            /*
-             * Старые waiting-комнаты.
-             */
-            if (
-                now -
-                    room.lastActivity >
-                ROOM_CLEANUP_TIMEOUT
-            ) {
-                rooms.delete(
-                    code
+                removeRoomPlayer(
+                    room,
+                    roomPlayer.telegram_id
                 );
             }
         }
-    },
-    5000
+
+        if (
+            room.players.length ===
+            0
+        ) {
+            rooms.delete(
+                room.code
+            );
+
+            continue;
+        }
+
+        /*
+         * Долго неактивные комнаты.
+         */
+        if (
+            current -
+                room.lastActivity >
+            ROOM_CLEANUP_TIMEOUT
+        ) {
+            rooms.delete(
+                room.code
+            );
+
+            continue;
+        }
+    }
+}
+
+setInterval(
+    cleanupRooms,
+    30 * 1000
 );
 
 /*
 =========================================================
-EXPRESS ERROR HANDLER
+GLOBAL ERROR HANDLING
 =========================================================
 */
 
@@ -6087,23 +6309,16 @@ app.use(
         next
     ) => {
         console.error(
-            "EXPRESS ERROR:",
+            "[EXPRESS ERROR]",
             err
         );
 
-        if (
-            res.headersSent
-        ) {
-            return next(
-                err
-            );
+        if (res.headersSent) {
+            return next(err);
         }
 
-        res.status(
-            500
-        ).json({
-            success:
-                false,
+        res.status(500).json({
+            success: false,
             error:
                 "Internal server error"
         });
@@ -6112,7 +6327,7 @@ app.use(
 
 /*
 =========================================================
-START
+START SERVER
 =========================================================
 */
 
@@ -6120,15 +6335,15 @@ server.listen(
     PORT,
     () => {
         console.log(
-            "========================================"
+            "================================================="
         );
 
         console.log(
-            "       HEAVY LUX CARD SERVER"
+            "HEAVY LUX CARD"
         );
 
         console.log(
-            "========================================"
+            `VERSION: ${GAME_VERSION}`
         );
 
         console.log(
@@ -6136,71 +6351,23 @@ server.listen(
         );
 
         console.log(
-            "VERSION: 5.1.0"
+            "PLAYER VS PLAYER: ON"
         );
 
         console.log(
-            `BOT TOKEN: ${
-                BOT_TOKEN
-                    ? "configured"
-                    : "NOT CONFIGURED"
-            }`
+            "AI: OFF"
         );
 
         console.log(
-            `CARS: ${CARS.length}`
+            "FACTIONS: OFF"
         );
 
         console.log(
-            `EXCLUSIVE CARS: ${EXCLUSIVE_CARS.length}`
+            `PLAYERS: ${Object.keys(players).length}`
         );
 
         console.log(
-            `CAR COLORS: ${CAR_COLORS.length}`
-        );
-
-        console.log(
-            `REAL ESTATE: ${REAL_ESTATE.length}`
-        );
-
-        console.log(
-            `BUSINESSES: ${BUSINESSES.length}`
-        );
-
-        console.log(
-            `BEAUTIFUL PLATES: ${BEAUTIFUL_PLATES.length}`
-        );
-
-        console.log(
-            "GIBDD: ENABLED"
-        );
-
-        console.log(
-            "ONLINE PVP: ENABLED"
-        );
-
-        console.log(
-            "AI: DISABLED"
-        );
-
-        console.log(
-            "FACTIONS: DISABLED"
-        );
-
-        console.log(
-            "TUNING ATELIER: ENABLED"
-        );
-
-        console.log(
-            "ROOM RECONNECT: ENABLED"
-        );
-
-        console.log(
-            "FULL DURAK ROUND LOGIC: ENABLED"
-        );
-
-        console.log(
-            "========================================"
+            "================================================="
         );
     }
 );
