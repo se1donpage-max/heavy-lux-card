@@ -3,8 +3,14 @@
 <head>
 <meta charset="UTF-8">
 
-<meta name="viewport"
-      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta
+    name="viewport"
+    content="width=device-width,
+             initial-scale=1,
+             maximum-scale=1,
+             user-scalable=no,
+             viewport-fit=cover"
+>
 
 <title>Heavy Lux Card</title>
 
@@ -12,779 +18,730 @@
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 
 <style>
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none;
+:root {
+    --bg: #070707;
+    --panel: #111111;
+    --panel2: #181818;
+    --border: #292929;
+    --text: #f5f5f5;
+    --muted: #858585;
+    --gold: #d7ad55;
+    --gold2: #f1d38a;
+    --danger: #b94b4b;
+    --success: #54a66a;
 }
 
-html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:#050505;
-    color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
-    touch-action:none;
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
-body{
-    min-height:100vh;
+html,
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
 }
 
-#app{
-    position:relative;
-    width:100%;
-    height:100vh;
-    overflow:hidden;
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
-/* =========================================================
-   TOP
-========================================================= */
-
-.topbar{
-    position:absolute;
-    top:env(safe-area-inset-top,8px);
-    left:0;
-    right:0;
-    height:52px;
-    padding:8px 14px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    z-index:100;
+button,
+input {
+    font: inherit;
 }
 
-.logo{
-    font-size:12px;
-    font-weight:900;
-    letter-spacing:2px;
+button {
+    border: 0;
+    cursor: pointer;
 }
 
-.info{
-    display:flex;
-    gap:6px;
-}
-
-.info-item{
-    padding:6px 9px;
-    border:1px solid #292929;
-    border-radius:9px;
-    background:#0b0b0b;
-    color:#999;
-    font-size:10px;
-}
-
-.info-item b{
-    color:#fff;
+#app {
+    width: 100%;
+    max-width: 720px;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding:
+        env(safe-area-inset-top)
+        14px
+        calc(85px + env(safe-area-inset-bottom))
+        14px;
 }
 
 /* =========================================================
-   PROFILE
+   COMMON
 ========================================================= */
 
-.profile{
-    position:absolute;
-    top:58px;
-    left:14px;
-    z-index:150;
-
-    display:flex;
-    align-items:center;
-    gap:8px;
-
-    padding:6px 10px;
-
-    background:#090909;
-    border:1px solid #242424;
-    border-radius:10px;
+.hidden {
+    display: none !important;
 }
 
-.profile-avatar{
-    width:27px;
-    height:27px;
-
-    border-radius:50%;
-    border:1px solid #444;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background:#151515;
-
-    font-size:11px;
-    font-weight:900;
+.screen {
+    width: 100%;
 }
 
-.profile-info{
-    display:flex;
-    flex-direction:column;
-    gap:2px;
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 16px 2px;
 }
 
-.profile-name{
-    font-size:10px;
-    font-weight:900;
+.logo {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 2px;
 }
 
-.profile-meta{
-    color:#777;
-    font-size:8px;
+.balance {
+    color: var(--gold2);
+    font-weight: 800;
+    white-space: nowrap;
 }
 
-/* =========================================================
-   TABLE
-========================================================= */
-
-.table{
-    position:absolute;
-    left:50%;
-    top:50%;
-
-    width:min(96vw,700px);
-    height:min(76vh,650px);
-
-    transform:translate(-50%,-50%);
-}
-
-/* =========================================================
-   DECK
-========================================================= */
-
-.deck-area{
-    position:absolute;
-    left:11%;
-    top:50%;
-
-    width:125px;
-    height:130px;
-
-    transform:translate(-50%,-50%);
-
-    z-index:20;
-}
-
-.deck{
-    position:absolute;
-    left:0;
-    top:17px;
-
-    width:66px;
-    height:94px;
-
-    z-index:5;
-
-    transform:rotate(-5deg);
-}
-
-.deck-card{
-    position:absolute;
-    inset:0;
-
-    border-radius:8px;
-    border:2px solid #aaa;
-
+.card {
     background:
-        repeating-linear-gradient(
-            45deg,
-            #0b0b0b 0,
-            #0b0b0b 5px,
-            #242424 5px,
-            #242424 10px
+        linear-gradient(
+            145deg,
+            #171717,
+            #0e0e0e
         );
-
-    box-shadow:0 5px 14px rgba(0,0,0,.65);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 12px;
 }
 
-.deck-card::after{
-    content:"HL";
-
-    position:absolute;
-    left:50%;
-    top:50%;
-
-    transform:translate(-50%,-50%);
-
-    width:38px;
-    height:38px;
-
-    border:1px solid #777;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    font-size:11px;
-    font-weight:900;
-    letter-spacing:2px;
-
-    color:#ddd;
+.section-title {
+    margin: 4px 0 12px;
+    font-size: 17px;
+    font-weight: 900;
 }
 
-.deck-card:nth-child(1){
-    transform:translate(-6px,-5px);
+.muted {
+    color: var(--muted);
 }
 
-.deck-card:nth-child(2){
-    transform:translate(-3px,-2px);
+.gold {
+    color: var(--gold2);
 }
 
-.deck-card:nth-child(3){
-    transform:translate(0,0);
+button.primary,
+button.secondary,
+button.danger,
+button.buy {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 13px;
+    font-weight: 900;
+    margin-top: 10px;
 }
 
-/* =========================================================
-   TRUMP
-========================================================= */
-
-.trump{
-    position:absolute;
-
-    left:58px;
-    top:31px;
-
-    width:66px;
-    height:94px;
-
-    z-index:2;
-
-    transform:rotate(76deg);
-}
-
-/* =========================================================
-   CARD
-========================================================= */
-
-.card{
-    position:absolute;
-
-    width:66px;
-    height:94px;
-
-    border-radius:8px;
-
-    background:#fff;
-    color:#080808;
-
-    border:1px solid #ccc;
-
-    box-shadow:0 7px 16px rgba(0,0,0,.55);
-
-    overflow:hidden;
-
-    font-weight:900;
-}
-
-.card.red{
-    color:#111;
-}
-
-.card.back{
+button.primary,
+button.buy {
     background:
-        repeating-linear-gradient(
-            45deg,
-            #0b0b0b 0,
-            #0b0b0b 5px,
-            #242424 5px,
-            #242424 10px
+        linear-gradient(
+            135deg,
+            var(--gold2),
+            var(--gold)
         );
-
-    border:2px solid #999;
+    color: #080808;
 }
 
-.card.back::after{
-    content:"HL";
-
-    position:absolute;
-    left:50%;
-    top:50%;
-
-    transform:translate(-50%,-50%);
-
-    width:38px;
-    height:38px;
-
-    border:1px solid #777;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    font-size:11px;
-    font-weight:900;
-    letter-spacing:2px;
-
-    color:#ddd;
+button.secondary {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
 }
 
-.card-value{
-    position:absolute;
-    top:5px;
-    left:6px;
-
-    font-size:15px;
+button.danger {
+    background: #2b1111;
+    color: #ff9b9b;
+    border: 1px solid #4d1d1d;
 }
 
-.card-suit{
-    position:absolute;
-    top:23px;
-    left:7px;
-
-    font-size:14px;
+button:disabled {
+    opacity: .45;
+    cursor: default;
 }
 
-.card-center{
-    position:absolute;
-    left:50%;
-    top:52%;
-
-    transform:translate(-50%,-50%);
-
-    font-size:30px;
+.back {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--panel2);
+    color: white;
+    border: 1px solid var(--border);
+    font-size: 20px;
 }
 
-.card-corner{
-    position:absolute;
-    right:5px;
-    bottom:4px;
+.top-title {
+    flex: 1;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 900;
+}
 
-    transform:rotate(180deg);
-
-    font-size:11px;
+.top-spacer {
+    width: 42px;
 }
 
 /* =========================================================
-   OPPONENT
+   HOME
 ========================================================= */
 
-.opponent{
-    position:absolute;
-
-    top:7vh;
-    left:50%;
-
-    transform:translateX(-50%);
-
-    text-align:center;
-
-    z-index:50;
+.hero {
+    padding: 22px 18px;
+    border-radius: 22px;
+    background:
+        radial-gradient(
+            circle at top right,
+            rgba(215,173,85,.15),
+            transparent 40%
+        ),
+        linear-gradient(
+            145deg,
+            #191919,
+            #0c0c0c
+        );
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
 }
 
-.avatar{
-    width:48px;
-    height:48px;
-
-    margin:auto;
-
-    border:1px solid #444;
-    border-radius:50%;
-
-    background:#111;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
-    font-size:20px;
+.hero-name {
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 4px;
 }
 
-.opponent-name{
-    margin-top:5px;
-
-    font-size:12px;
-    font-weight:900;
+.hero-title {
+    color: var(--gold2);
+    font-weight: 700;
 }
 
-.opponent-count{
-    margin-top:3px;
+.hero-balance {
+    margin-top: 18px;
+    font-size: 27px;
+    font-weight: 900;
+}
 
-    color:#777;
+.hero-level {
+    margin-top: 5px;
+    color: var(--muted);
+}
 
-    font-size:10px;
+.progress {
+    height: 7px;
+    background: #252525;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--gold);
+    width: 0%;
+    transition: width .3s ease;
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.menu-button {
+    min-height: 105px;
+    padding: 15px;
+    border-radius: 17px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: white;
+    text-align: left;
+}
+
+.menu-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.menu-name {
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.menu-sub {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
 }
 
 /* =========================================================
-   OPPONENT HAND
+   SHOP
 ========================================================= */
 
-.opponent-hand{
-    position:absolute;
-
-    left:50%;
-    top:0;
-
-    width:260px;
-    height:105px;
-
-    transform:translateX(-50%);
-
-    z-index:35;
+.shop-tabs {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
 }
 
-.opponent-hand .card{
-    width:58px;
-    height:84px;
+.shop-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.shop-tab {
+    flex: 0 0 auto;
+    padding: 11px 14px;
+    border-radius: 12px;
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    font-weight: 800;
+}
+
+.shop-tab.active {
+    color: #111;
+    background: var(--gold2);
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.product {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 15px;
+}
+
+.product-image {
+    height: 125px;
+    border-radius: 13px;
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            rgba(255,255,255,.1),
+            transparent 45%
+        ),
+        linear-gradient(
+            145deg,
+            #242424,
+            #0d0d0d
+        );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 46px;
+    margin-bottom: 13px;
+}
+
+.product-name {
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.product-meta {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.product-price {
+    margin-top: 12px;
+    color: var(--gold2);
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.color-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.color {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    box-shadow: 0 0 0 1px #444;
+}
+
+.color.selected {
+    border-color: var(--gold2);
+}
+
+.plate-preview {
+    font-family:
+        Arial,
+        sans-serif;
+    font-weight: 900;
+    letter-spacing: 2px;
+    background: #eeeeee;
+    color: #111;
+    border-radius: 7px;
+    padding: 10px 13px;
+    display: inline-block;
+    border: 2px solid #777;
+    margin-bottom: 12px;
 }
 
 /* =========================================================
-   PLAYER
+   GARAGE
 ========================================================= */
 
-.player-info{
-    position:absolute;
-
-    bottom:7vh;
-    left:50%;
-
-    transform:translateX(-50%);
-
-    text-align:center;
-
-    z-index:120;
+.car-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.player-name{
-    font-size:12px;
-    font-weight:900;
+.car-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
-.player-count{
-    margin-top:3px;
+.car-name {
+    font-size: 18px;
+    font-weight: 900;
+}
 
-    color:#777;
+.car-color {
+    color: var(--muted);
+    font-size: 13px;
+}
 
-    font-size:10px;
+.car-plate {
+    display: inline-block;
+    width: fit-content;
+    padding: 6px 10px;
+    background: #eeeeee;
+    color: #111;
+    border-radius: 5px;
+    font-weight: 900;
+    letter-spacing: 1px;
 }
 
 /* =========================================================
-   PLAYER HAND
+   ROOM
 ========================================================= */
 
-.hand{
-    position:absolute;
-
-    left:50%;
-    bottom:0;
-
-    width:100%;
-    height:145px;
-
-    transform:translateX(-50%);
-
-    z-index:200;
-
-    pointer-events:none;
+.room-code {
+    text-align: center;
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: var(--gold2);
+    padding: 12px 0;
 }
 
-.hand .card{
-    pointer-events:auto;
-
-    transform-origin:center bottom;
-
-    transition:
-        left .22s ease,
-        bottom .22s ease,
-        transform .22s ease,
-        box-shadow .2s ease;
+.players-list {
+    display: grid;
+    gap: 8px;
 }
 
-.hand .card.allowed{
-    box-shadow:
-        0 0 0 2px #fff,
-        0 8px 20px rgba(255,255,255,.18);
+.player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel2);
+    padding: 12px;
+    border-radius: 12px;
 }
 
-.hand .card.not-allowed{
-    opacity:.38;
+.online {
+    color: var(--success);
 }
 
-.hand .card.selected{
-    bottom:18px!important;
-
-    box-shadow:
-        0 0 0 2px #fff,
-        0 12px 25px rgba(255,255,255,.25);
+.offline {
+    color: var(--danger);
 }
 
 /* =========================================================
-   TABLE CARDS
+   GAME
 ========================================================= */
 
-.attack-zone,
-.defense-zone{
-    position:absolute;
-
-    left:50%;
-    top:50%;
-
-    width:340px;
-    height:250px;
-
-    transform:translate(-50%,-50%);
-
-    z-index:60;
+.game-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 7px;
+    margin-bottom: 12px;
 }
 
-.played-card{
-    position:absolute;
+.game-stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 10px 5px;
+    text-align: center;
+}
 
-    width:66px;
-    height:94px;
+.game-stat-label {
+    color: var(--muted);
+    font-size: 10px;
+}
 
-    transition:
-        left .32s cubic-bezier(.2,.8,.2,1),
-        top .32s cubic-bezier(.2,.8,.2,1),
-        transform .32s ease,
-        opacity .25s ease;
+.game-stat-value {
+    margin-top: 4px;
+    font-weight: 900;
+}
+
+.table {
+    min-height: 250px;
+    border-radius: 22px;
+    border: 1px solid var(--border);
+    background:
+        radial-gradient(
+            circle,
+            #1d2b1f,
+            #0d130e
+        );
+    padding: 18px;
+    margin-bottom: 13px;
+}
+
+.table-title {
+    text-align: center;
+    color: #b8c5b9;
+    font-size: 12px;
+    margin-bottom: 14px;
+}
+
+.table-pairs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+
+.pair {
+    position: relative;
+    width: 72px;
+    height: 110px;
+}
+
+.play-card {
+    width: 72px;
+    height: 100px;
+    border-radius: 9px;
+    background: #f7f7f7;
+    color: #111;
+    border: 2px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,.35);
+}
+
+.play-card.red {
+    color: #b11d1d;
+}
+
+.play-card .value {
+    font-size: 20px;
+    font-weight: 900;
+}
+
+.play-card .suit {
+    font-size: 22px;
+}
+
+.defense-card {
+    position: absolute;
+    top: 25px;
+    left: 25px;
+    z-index: 2;
+}
+
+.hand {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 2px 15px;
+    scrollbar-width: none;
+}
+
+.hand::-webkit-scrollbar {
+    display: none;
+}
+
+.hand-card {
+    flex: 0 0 64px;
+    height: 92px;
+    border-radius: 9px;
+    background: #f7f7f7;
+    color: #111;
+    border: 2px solid #ddd;
+    padding: 7px;
+    text-align: left;
+    box-shadow: 0 5px 14px rgba(0,0,0,.3);
+}
+
+.hand-card.red {
+    color: #b11d1d;
+}
+
+.hand-card .value {
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.hand-card .suit {
+    font-size: 20px;
+}
+
+.hand-card.active {
+    transform: translateY(-7px);
+    border-color: var(--gold2);
+}
+
+.game-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.game-actions button {
+    margin: 0;
+}
+
+.message {
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--panel2);
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 10px;
 }
 
 /* =========================================================
-   CONTROLS
+   MODAL
 ========================================================= */
 
-.controls{
-    position:absolute;
-
-    left:50%;
-    bottom:17vh;
-
-    transform:translateX(-50%);
-
-    display:flex;
-    gap:7px;
-
-    z-index:400;
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.72);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 1000;
+    padding: 12px;
 }
 
-button{
-    border:1px solid #333;
-    border-radius:10px;
-
-    background:#0c0c0c;
-    color:#fff;
-
-    padding:10px 16px;
-
-    font-size:11px;
-    font-weight:900;
+.modal-box {
+    width: 100%;
+    max-width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: #101010;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 18px;
 }
 
-button.primary{
-    background:#fff;
-    color:#000;
+.modal-title {
+    font-size: 20px;
+    font-weight: 900;
 }
 
-button.danger{
-    background:#171717;
+.modal-text {
+    margin-top: 8px;
+    color: var(--muted);
+    line-height: 1.45;
 }
 
-button:active{
-    transform:scale(.95);
+.close-modal {
+    width: 100%;
+    margin-top: 12px;
 }
 
 /* =========================================================
-   MESSAGE
+   NAV
 ========================================================= */
 
-.message{
-    position:absolute;
-
-    left:50%;
-    top:15vh;
-
-    transform:translateX(-50%);
-
-    padding:8px 13px;
-
-    border:1px solid #292929;
-    border-radius:10px;
-
-    background:#090909;
-    color:#bbb;
-
-    font-size:10px;
-
-    z-index:500;
-
-    opacity:0;
-
-    transition:opacity .2s ease;
+.bottom-nav {
+    position: fixed;
+    z-index: 500;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding:
+        8px
+        10px
+        calc(8px + env(safe-area-inset-bottom));
+    background: rgba(8,8,8,.94);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(14px);
 }
 
-.message.show{
-    opacity:1;
+.bottom-nav-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+}
+
+.nav-button {
+    min-height: 52px;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.nav-button.active {
+    background: var(--panel2);
+    color: var(--gold2);
 }
 
 /* =========================================================
-   START
+   LOADING
 ========================================================= */
 
-.start{
-    position:absolute;
-
-    inset:0;
-
-    background:#050505;
-
-    z-index:1000;
-
-    display:flex;
-
-    justify-content:center;
-    align-items:center;
+.loading {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
-.start-box{
-    width:82%;
-    max-width:340px;
-
-    text-align:center;
+.loader {
+    width: 38px;
+    height: 38px;
+    border: 3px solid #333;
+    border-top-color: var(--gold2);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 14px;
 }
 
-.start-title{
-    font-size:29px;
-
-    font-weight:900;
-
-    letter-spacing:5px;
-}
-
-.start-sub{
-    margin-top:8px;
-
-    color:#666;
-
-    font-size:10px;
-
-    letter-spacing:3px;
-}
-
-.start-button{
-    width:100%;
-
-    margin-top:30px;
-
-    padding:16px;
-
-    border:0;
-
-    background:#fff;
-    color:#000;
-
-    font-size:14px;
-}
-
-/* =========================================================
-   DRAG
-========================================================= */
-
-.dragging{
-    position:fixed!important;
-
-    z-index:9999!important;
-
-    transition:none!important;
-
-    pointer-events:none!important;
-
-    transform:
-        scale(1.08)
-        rotate(0deg)!important;
-
-    opacity:1!important;
-}
-
-/* =========================================================
-   ANIMATIONS
-========================================================= */
-
-@keyframes dealPlayer{
-
-    from{
-        opacity:0;
-
-        transform:
-            translateY(100px)
-            scale(.55);
-    }
-
-    to{
-        opacity:1;
-    }
-}
-
-@keyframes dealOpponent{
-
-    from{
-        opacity:0;
-
-        transform:
-            translateY(-100px)
-            scale(.55);
-    }
-
-    to{
-        opacity:1;
-    }
-}
-
-@keyframes playCard{
-
-    from{
-        opacity:0;
-
-        transform:
-            scale(.55)
-            rotate(-12deg);
-    }
-
-    to{
-        opacity:1;
-
-        transform:
-            scale(1)
-            rotate(0);
-    }
-}
-
-.deal-player{
-    animation:
-        dealPlayer .22s ease forwards;
-}
-
-.deal-opponent{
-    animation:
-        dealOpponent .22s ease forwards;
-}
-
-.play-animation{
-    animation:
-        playCard .28s ease forwards;
-}
-
-@media(max-width:390px){
-
-    .card{
-        width:59px;
-        height:84px;
-    }
-
-    .played-card{
-        width:59px;
-        height:84px;
-    }
-
-    .hand{
-        height:130px;
-    }
-
-    .attack-zone,
-    .defense-zone{
-        width:310px;
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
 }
 </style>
@@ -794,3374 +751,3419 @@ button:active{
 
 <div id="app">
 
-    <!-- =====================================================
-         TOP
-    ====================================================== -->
-
-    <div class="topbar">
-
-        <div class="logo">
-            HEAVY LUX CARD
+    <div id="loading" class="loading">
+        <div>
+            <div class="loader"></div>
+            <div class="muted">
+                Загрузка Heavy Lux...
+            </div>
         </div>
-
-        <div class="info">
-
-            <div class="info-item">
-                HC <b id="balance">5 000</b>
-            </div>
-
-            <div class="info-item">
-                LVL <b id="level">1</b>
-            </div>
-
-            <div class="info-item">
-                КОЗЫРЬ <b id="trumpInfo">—</b>
-            </div>
-
-            <div class="info-item">
-                КОЛОДА <b id="deckCount">0</b>
-            </div>
-
-        </div>
-
     </div>
 
+    <div id="main" class="hidden">
 
-    <!-- =====================================================
-         PROFILE
-    ====================================================== -->
+        <!-- HOME -->
+        <section
+            id="screen-home"
+            class="screen"
+        >
+            <div class="header">
+                <div class="logo">
+                    HEAVY LUX
+                </div>
 
-    <div class="profile">
+                <div
+                    id="topBalance"
+                    class="balance"
+                >
+                    0 HC
+                </div>
+            </div>
 
-        <div
-            id="profileAvatar"
-            class="profile-avatar">
-            HL
-        </div>
+            <div class="hero">
 
-        <div class="profile-info">
+                <div
+                    id="playerName"
+                    class="hero-name"
+                >
+                    Игрок
+                </div>
+
+                <div
+                    id="playerTitle"
+                    class="hero-title"
+                >
+                    Новичок
+                </div>
+
+                <div
+                    id="heroBalance"
+                    class="hero-balance"
+                >
+                    0 HC
+                </div>
+
+                <div
+                    id="heroLevel"
+                    class="hero-level"
+                >
+                    Уровень 1
+                </div>
+
+                <div class="progress">
+                    <div
+                        id="xpProgress"
+                        class="progress-fill"
+                    ></div>
+                </div>
+
+            </div>
+
+            <div class="menu-grid">
+
+                <button
+                    class="menu-button"
+                    onclick="openScreen('rooms')"
+                >
+                    <div class="menu-icon">
+                        🎴
+                    </div>
+
+                    <div class="menu-name">
+                        ONLINE ИГРА
+                    </div>
+
+                    <div class="menu-sub">
+                        Дурак 1 × 1
+                    </div>
+                </button>
+
+                <button
+                    class="menu-button"
+                    onclick="openShop()"
+                >
+                    <div class="menu-icon">
+                        🛒
+                    </div>
+
+                    <div class="menu-name">
+                        МАГАЗИН
+                    </div>
+
+                    <div class="menu-sub">
+                        Авто и имущество
+                    </div>
+                </button>
+
+                <button
+                    class="menu-button"
+                    onclick="openScreen('garage')"
+                >
+                    <div class="menu-icon">
+                        🚗
+                    </div>
+
+                    <div class="menu-name">
+                        ГАРАЖ
+                    </div>
+
+                    <div class="menu-sub">
+                        Мои автомобили
+                    </div>
+                </button>
+
+                <button
+                    class="menu-button"
+                    onclick="openScreen('estate')"
+                >
+                    <div class="menu-icon">
+                        🏠
+                    </div>
+
+                    <div class="menu-name">
+                        НЕДВИЖИМОСТЬ
+                    </div>
+
+                    <div class="menu-sub">
+                        Моя недвижимость
+                    </div>
+                </button>
+
+                <button
+                    class="menu-button"
+                    onclick="openScreen('business')"
+                >
+                    <div class="menu-icon">
+                        💼
+                    </div>
+
+                    <div class="menu-name">
+                        БИЗНЕСЫ
+                    </div>
+
+                    <div class="menu-sub">
+                        Доход и управление
+                    </div>
+                </button>
+
+                <button
+                    class="menu-button"
+                    onclick="openScreen('profile')"
+                >
+                    <div class="menu-icon">
+                        👤
+                    </div>
+
+                    <div class="menu-name">
+                        ПРОФИЛЬ
+                    </div>
+
+                    <div class="menu-sub">
+                        Статистика
+                    </div>
+                </button>
+
+            </div>
+        </section>
+
+        <!-- SHOP -->
+        <section
+            id="screen-shop"
+            class="screen hidden"
+        >
+
+            <div class="header">
+                <button
+                    class="back"
+                    onclick="openScreen('home')"
+                >
+                    ‹
+                </button>
+
+                <div class="top-title">
+                    МАГАЗИН
+                </div>
+
+                <div
+                    id="shopBalance"
+                    class="balance"
+                >
+                    0 HC
+                </div>
+            </div>
 
             <div
-                id="profileName"
-                class="profile-name">
-                Авторизация...
-            </div>
+                id="shopTabs"
+                class="shop-tabs"
+            >
 
-            <div
-                id="profileMeta"
-                class="profile-meta">
-                Heavy Lux Card
-            </div>
+                <button
+                    class="shop-tab active"
+                    onclick="shopTab('cars',this)"
+                >
+                    Авто
+                </button>
 
-        </div>
+                <button
+                    class="shop-tab"
+                    onclick="shopTab('exclusive',this)"
+                >
+                    Exclusive
+                </button>
 
-    </div>
+                <button
+                    class="shop-tab"
+                    onclick="shopTab('plates',this)"
+                >
+                    Номера
+                </button>
 
+                <button
+                    class="shop-tab"
+                    onclick="shopTab('realEstate',this)"
+                >
+                    Недвижимость
+                </button>
 
-    <!-- =====================================================
-         MESSAGE
-    ====================================================== -->
-
-    <div
-        id="message"
-        class="message">
-    </div>
-
-
-    <!-- =====================================================
-         OPPONENT
-    ====================================================== -->
-
-    <div class="opponent">
-
-        <div class="avatar">
-            AI
-        </div>
-
-        <div class="opponent-name">
-            Heavy AI
-        </div>
-
-        <div class="opponent-count">
-            Карт:
-            <b id="opponentCount">
-                0
-            </b>
-        </div>
-
-    </div>
-
-
-    <!-- =====================================================
-         OPPONENT HAND
-    ====================================================== -->
-
-    <div
-        id="opponentHand"
-        class="opponent-hand">
-    </div>
-
-
-    <!-- =====================================================
-         TABLE
-    ====================================================== -->
-
-    <div class="table">
-
-        <div class="deck-area">
-
-            <div
-                id="deck"
-                class="deck">
-
-                <div class="deck-card"></div>
-                <div class="deck-card"></div>
-                <div class="deck-card"></div>
+                <button
+                    class="shop-tab"
+                    onclick="shopTab('businesses',this)"
+                >
+                    Бизнесы
+                </button>
 
             </div>
 
             <div
-                id="trumpCard"
-                class="card trump">
+                id="shopContent"
+                class="product-grid"
+            ></div>
+
+        </section>
+
+        <!-- GARAGE -->
+        <section
+            id="screen-garage"
+            class="screen hidden"
+        >
+
+            <div class="header">
+                <button
+                    class="back"
+                    onclick="openScreen('home')"
+                >
+                    ‹
+                </button>
+
+                <div class="top-title">
+                    ГАРАЖ
+                </div>
+
+                <div class="top-spacer"></div>
             </div>
 
-        </div>
+            <div id="garageContent"></div>
 
+        </section>
 
-        <div
-            id="attackZone"
-            class="attack-zone">
-        </div>
+        <!-- ESTATE -->
+        <section
+            id="screen-estate"
+            class="screen hidden"
+        >
 
+            <div class="header">
+                <button
+                    class="back"
+                    onclick="openScreen('home')"
+                >
+                    ‹
+                </button>
 
-        <div
-            id="defenseZone"
-            class="defense-zone">
-        </div>
+                <div class="top-title">
+                    НЕДВИЖИМОСТЬ
+                </div>
 
-    </div>
-
-
-    <!-- =====================================================
-         PLAYER HAND
-    ====================================================== -->
-
-    <div
-        id="playerHand"
-        class="hand">
-    </div>
-
-
-    <!-- =====================================================
-         PLAYER INFO
-    ====================================================== -->
-
-    <div class="player-info">
-
-        <div
-            id="playerName"
-            class="player-name">
-            Игрок
-        </div>
-
-        <div class="player-count">
-
-            Карт:
-            <b id="playerCount">
-                0
-            </b>
-
-        </div>
-
-    </div>
-
-
-    <!-- =====================================================
-         CONTROLS
-    ====================================================== -->
-
-    <div class="controls">
-
-        <button
-            id="takeButton"
-            class="danger"
-            style="display:none">
-
-            ВЗЯТЬ
-
-        </button>
-
-
-        <button
-            id="beatButton"
-            class="primary"
-            style="display:none">
-
-            БИТО
-
-        </button>
-
-    </div>
-
-
-    <!-- =====================================================
-         START
-    ====================================================== -->
-
-    <div
-        id="startScreen"
-        class="start">
-
-        <div class="start-box">
-
-            <div class="start-title">
-                HEAVY LUX
+                <div class="top-spacer"></div>
             </div>
 
-            <div class="start-sub">
-                CLASSIC DURAK
+            <div id="estateContent"></div>
+
+        </section>
+
+        <!-- BUSINESS -->
+        <section
+            id="screen-business"
+            class="screen hidden"
+        >
+
+            <div class="header">
+                <button
+                    class="back"
+                    onclick="openScreen('home')"
+                >
+                    ‹
+                </button>
+
+                <div class="top-title">
+                    БИЗНЕСЫ
+                </div>
+
+                <div class="top-spacer"></div>
+            </div>
+
+            <div id="businessContent"></div>
+
+        </section>
+
+        <!-- PROFILE -->
+        <section
+            id="screen-profile"
+            class="screen hidden"
+        >
+
+            <div class="header">
+                <button
+                    class="back"
+                    onclick="openScreen('home')"
+                >
+                    ‹
+                </button>
+
+                <div class="top-title">
+                    ПРОФИЛЬ
+                </div>
+
+                <div class="top-spacer"></div>
+            </div>
+
+            <div id="profileContent"></div>
+
+        </section>
+
+        <!-- ROOMS -->
+        <section
+            id="screen-rooms"
+            class="screen hidden"
+        >
+
+            <div class="header">
+                <button
+                    class="back"
+                    onclick="openScreen('home')"
+                >
+                    ‹
+                </button>
+
+                <div class="top-title">
+                    ONLINE ИГРА
+                </div>
+
+                <div class="top-spacer"></div>
+            </div>
+
+            <div class="card">
+
+                <div class="section-title">
+                    Дурак 1 × 1
+                </div>
+
+                <button
+                    class="primary"
+                    onclick="createRoom()"
+                >
+                    СОЗДАТЬ КОМНАТУ
+                </button>
+
+                <div
+                    style="
+                        text-align:center;
+                        margin:14px 0;
+                        color:#777;
+                    "
+                >
+                    или
+                </div>
+
+                <input
+                    id="roomCodeInput"
+                    maxlength="6"
+                    placeholder="КОД КОМНАТЫ"
+                    autocomplete="off"
+                    style="
+                        width:100%;
+                        height:48px;
+                        border-radius:12px;
+                        border:1px solid #292929;
+                        background:#181818;
+                        color:white;
+                        text-align:center;
+                        font-size:20px;
+                        font-weight:900;
+                        letter-spacing:4px;
+                        outline:none;
+                    "
+                >
+
+                <button
+                    class="secondary"
+                    onclick="joinRoom()"
+                >
+                    ВОЙТИ В КОМНАТУ
+                </button>
+
+            </div>
+
+            <div class="card">
+
+                <div class="section-title">
+                    Открытые комнаты
+                </div>
+
+                <div id="roomsList">
+                    <div class="muted">
+                        Загрузка...
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- ROOM -->
+        <section
+            id="screen-room"
+            class="screen hidden"
+        >
+
+            <div class="header">
+                <button
+                    class="back"
+                    onclick="leaveRoom()"
+                >
+                    ‹
+                </button>
+
+                <div class="top-title">
+                    КОМНАТА
+                </div>
+
+                <div class="top-spacer"></div>
+            </div>
+
+            <div class="card">
+
+                <div
+                    id="roomCode"
+                    class="room-code"
+                >
+                    ------
+                </div>
+
+                <div
+                    id="roomPlayers"
+                    class="players-list"
+                ></div>
+
+                <button
+                    id="readyButton"
+                    class="primary"
+                    onclick="toggleReady()"
+                >
+                    ГОТОВ
+                </button>
+
+            </div>
+
+            <div
+                id="roomMessage"
+                class="message"
+            >
+                Ожидание второго игрока...
+            </div>
+
+        </section>
+
+        <!-- GAME -->
+        <section
+            id="screen-game"
+            class="screen hidden"
+        >
+
+            <div class="header">
+
+                <div class="logo">
+                    HEAVY LUX
+                </div>
+
+                <div
+                    id="gameRound"
+                    class="muted"
+                >
+                    Раунд 1
+                </div>
+
+            </div>
+
+            <div class="game-info">
+
+                <div class="game-stat">
+                    <div class="game-stat-label">
+                        КОЗЫРЬ
+                    </div>
+
+                    <div
+                        id="gameTrump"
+                        class="game-stat-value"
+                    >
+                        —
+                    </div>
+                </div>
+
+                <div class="game-stat">
+                    <div class="game-stat-label">
+                        КОЛОДА
+                    </div>
+
+                    <div
+                        id="gameDeck"
+                        class="game-stat-value"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="game-stat">
+                    <div class="game-stat-label">
+                        ФАЗА
+                    </div>
+
+                    <div
+                        id="gamePhase"
+                        class="game-stat-value"
+                    >
+                        —
+                    </div>
+                </div>
+
+            </div>
+
+            <div
+                id="gameMessage"
+                class="message"
+            >
+                Ожидание...
+            </div>
+
+            <div class="card">
+
+                <div class="section-title">
+                    Стол
+                </div>
+
+                <div
+                    id="gameTable"
+                    class="table"
+                >
+                    <div class="table-title">
+                        КАРТЫ НА СТОЛЕ
+                    </div>
+
+                    <div
+                        id="gamePairs"
+                        class="table-pairs"
+                    ></div>
+                </div>
+
+            </div>
+
+            <div class="card">
+
+                <div class="section-title">
+                    Твои карты
+                </div>
+
+                <div
+                    id="myHand"
+                    class="hand"
+                ></div>
+
+                <div class="game-actions">
+
+                    <button
+                        id="takeButton"
+                        class="danger"
+                        onclick="takeCards()"
+                    >
+                        ВЗЯТЬ
+                    </button>
+
+                    <button
+                        id="endAttackButton"
+                        class="primary"
+                        onclick="endAttack()"
+                    >
+                        ЗАКОНЧИТЬ
+                    </button>
+
+                </div>
+
             </div>
 
             <button
-                id="startButton"
-                class="start-button">
-
-                НАЧАТЬ ИГРУ
-
+                class="secondary"
+                onclick="leaveRoom()"
+            >
+                ВЫЙТИ ИЗ ИГРЫ
             </button>
 
-        </div>
+        </section>
 
     </div>
 
 </div>
 
+<!-- MODAL -->
+
+<div
+    id="modal"
+    class="modal hidden"
+    onclick="closeModal(event)"
+>
+
+    <div
+        class="modal-box"
+        onclick="event.stopPropagation()"
+    >
+
+        <div
+            id="modalTitle"
+            class="modal-title"
+        ></div>
+
+        <div
+            id="modalText"
+            class="modal-text"
+        ></div>
+
+        <button
+            class="secondary close-modal"
+            onclick="hideModal()"
+        >
+            ЗАКРЫТЬ
+        </button>
+
+    </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+
+<div
+    id="bottomNav"
+    class="bottom-nav hidden"
+>
+
+    <div class="bottom-nav-inner">
+
+        <button
+            class="nav-button active"
+            data-screen="home"
+            onclick="openScreen('home')"
+        >
+            🏠<br>
+            Главная
+        </button>
+
+        <button
+            class="nav-button"
+            data-screen="shop"
+            onclick="openShop()"
+        >
+            🛒<br>
+            Магазин
+        </button>
+
+        <button
+            class="nav-button"
+            data-screen="garage"
+            onclick="openScreen('garage')"
+        >
+            🚗<br>
+            Гараж
+        </button>
+
+        <button
+            class="nav-button"
+            data-screen="profile"
+            onclick="openScreen('profile')"
+        >
+            👤<br>
+            Профиль
+        </button>
+
+    </div>
+
+</div>
 
 <script>
+"use strict";
 
 /* =========================================================
    CONFIG
 ========================================================= */
 
-const BACKEND_URL =
-    "https://heavy-lux-card.onrender.com";
-
+/*
+ * Если frontend находится на том же домене,
+ * оставь пустую строку.
+ *
+ * Если frontend размещён отдельно,
+ * укажи адрес backend:
+ *
+ * const API_BASE = "https://YOUR-BACKEND-DOMAIN";
+ */
+const API_BASE = "";
 
 /* =========================================================
    TELEGRAM
 ========================================================= */
 
 const tg =
-    window.Telegram
-        ? window.Telegram.WebApp
-        : null;
+    window.Telegram?.WebApp || null;
 
-if(tg){
-
-    tg.ready();
-
-    tg.expand();
-
+if (tg) {
+    try {
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor("#070707");
+        tg.setBackgroundColor("#070707");
+    } catch {}
 }
 
-
-/* =========================================================
-   SOCKET.IO
-========================================================= */
-
-let socket = null;
-
-try{
-
-    socket =
-        io(
-            BACKEND_URL,
-            {
-                transports:[
-                    "websocket",
-                    "polling"
-                ],
-
-                reconnection:true,
-
-                reconnectionAttempts:10,
-
-                timeout:10000
-            }
-        );
-
-
-    socket.on(
-        "connect",
-        ()=>{
-
-            console.log(
-                "HEAVY LUX SOCKET CONNECTED:",
-                socket.id
-            );
-
-        }
-    );
-
-
-    socket.on(
-        "disconnect",
-        ()=>{
-
-            console.log(
-                "HEAVY LUX SOCKET DISCONNECTED"
-            );
-
-        }
-    );
-
-
-    socket.on(
-        "connect_error",
-        error=>{
-
-            console.error(
-                "SOCKET ERROR:",
-                error
-            );
-
-        }
-    );
-
-}catch(error){
-
-    console.error(
-        "Socket initialization error:",
-        error
-    );
-
-}
-
-
-/* =========================================================
-   PLAYER PROFILE
-========================================================= */
-
-let currentPlayer = null;
-
-
-function formatNumber(number){
-
-    return Number(number || 0)
-        .toLocaleString("ru-RU");
-
-}
-
-
-function updateProfile(player){
-
-    if(!player){
-        return;
-    }
-
-    currentPlayer =
-        player;
-
-
-    const balance =
-        Number(
-            player.balance || 0
-        );
-
-
-    document.getElementById(
-        "balance"
-    ).innerText =
-        formatNumber(balance);
-
-
-    document.getElementById(
-        "level"
-    ).innerText =
-        player.level || 1;
-
-
-    const name =
-        player.first_name ||
-        player.username ||
-        "Игрок";
-
-
-    document.getElementById(
-        "profileName"
-    ).innerText =
-        name;
-
-
-    document.getElementById(
-        "playerName"
-    ).innerText =
-        name;
-
-
-    const title =
-        player.title ||
-        "Новичок";
-
-
-    document.getElementById(
-        "profileMeta"
-    ).innerText =
-        `LVL ${player.level || 1} • ${title}`;
-
-
-    const avatar =
-        document.getElementById(
-            "profileAvatar"
-        );
-
-
-    avatar.innerText =
-        name
-            .substring(0,2)
-            .toUpperCase();
-
-}
-
-
-/* =========================================================
-   TELEGRAM AUTH
-========================================================= */
-
-async function authenticateTelegram(){
-
-    /*
-        Если игра открыта не внутри Telegram,
-        оставляем локальный режим.
-    */
-
-    if(!tg){
-
-        console.warn(
-            "Telegram WebApp unavailable"
-        );
-
-        updateProfile({
-
-            first_name:"Игрок",
-
-            balance:5000,
-
-            level:1,
-
-            title:null
-
-        });
-
-        return;
-
-    }
-
-
-    const initData =
-        tg.initData;
-
-
-    if(!initData){
-
-        console.warn(
-            "Telegram initData is empty"
-        );
-
-
-        showMessage(
-            "Открой игру через Telegram"
-        );
-
-
-        updateProfile({
-
-            first_name:"Игрок",
-
-            balance:5000,
-
-            level:1,
-
-            title:null
-
-        });
-
-
-        return;
-
-    }
-
-
-    try{
-
-        showMessage(
-            "Авторизация..."
-        );
-
-
-        const response =
-            await fetch(
-                `${BACKEND_URL}/api/auth`,
-                {
-
-                    method:"POST",
-
-                    headers:{
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:JSON.stringify({
-                        initData
-                    })
-
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if(!response.ok){
-
-            throw new Error(
-                data.error ||
-                "Authentication failed"
-            );
-
-        }
-
-
-        if(
-            data.success &&
-            data.player
-        ){
-
-            updateProfile(
-                data.player
-            );
-
-
-            console.log(
-                "Telegram authorization successful:",
-                data.player
-            );
-
-
-            if(socket){
-
-                socket.emit(
-                    "authenticate",
-                    {
-                        telegram_id:
-                            data.player.telegram_id
-                    }
-                );
-
-            }
-
-        }
-
-
-    }catch(error){
-
-        console.error(
-            "AUTH ERROR:",
-            error
-        );
-
-
-        showMessage(
-            "Ошибка авторизации"
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   SOCKET AUTH
-========================================================= */
-
-if(socket){
-
-    socket.on(
-        "authenticated",
-        data=>{
-
-            console.log(
-                "Socket authenticated:",
-                data
-            );
-
-        }
-    );
-
-
-    socket.on(
-        "server_error",
-        data=>{
-
-            console.error(
-                "Server error:",
-                data
-            );
-
-            showMessage(
-                data.message ||
-                "Ошибка сервера"
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   CARD DATA
-========================================================= */
-
-const SUITS = [
-
-    "♠",
-    "♥",
-    "♦",
-    "♣"
-
-];
-
-
-const RANKS = [
-
-    {
-        name:"6",
-        value:6
-    },
-
-    {
-        name:"7",
-        value:7
-    },
-
-    {
-        name:"8",
-        value:8
-    },
-
-    {
-        name:"9",
-        value:9
-    },
-
-    {
-        name:"10",
-        value:10
-    },
-
-    {
-        name:"В",
-        value:11
-    },
-
-    {
-        name:"Д",
-        value:12
-    },
-
-    {
-        name:"К",
-        value:13
-    },
-
-    {
-        name:"Т",
-        value:14
-    }
-
-];
-
+const initData =
+    tg?.initData || "";
 
 /* =========================================================
    STATE
 ========================================================= */
 
-let deck = [];
+let player = null;
 
-let playerHand = [];
+let shopData = {
+    cars: [],
+    exclusive: [],
+    plates: [],
+    realEstate: [],
+    businesses: [],
+    colors: []
+};
 
-let cpuHand = [];
+let selectedShopTab = "cars";
 
-let tableAttacks = [];
+let selectedColors = {};
 
-let trumpSuit = null;
+let socket = null;
 
-let attacker = null;
+let room = null;
 
-let defender = null;
+let game = null;
 
-let phase = "waiting";
-
-let roundLimit = 0;
-
-let selectedCardId = null;
-
-let dragState = null;
-
-let gameStarted = false;
-
-let playerName = "Игрок";
-
-let actionLocked = false;
-
-
-/* =========================================================
-   DOM
-========================================================= */
-
-const playerHandEl =
-    document.getElementById(
-        "playerHand"
-    );
-
-
-const opponentHandEl =
-    document.getElementById(
-        "opponentHand"
-    );
-
-
-const attackZone =
-    document.getElementById(
-        "attackZone"
-    );
-
-
-const defenseZone =
-    document.getElementById(
-        "defenseZone"
-    );
-
-
-const trumpCardEl =
-    document.getElementById(
-        "trumpCard"
-    );
-
-
-const messageEl =
-    document.getElementById(
-        "message"
-    );
-
-
-const takeButton =
-    document.getElementById(
-        "takeButton"
-    );
-
-
-const beatButton =
-    document.getElementById(
-        "beatButton"
-    );
-
+let currentScreen = "home";
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-function sleep(ms){
-
-    return new Promise(
-        resolve =>
-            setTimeout(
-                resolve,
-                ms
-            )
-    );
-
+function apiUrl(path) {
+    return `${API_BASE}${path}`;
 }
 
+function money(value) {
+    return Number(value || 0)
+        .toLocaleString("ru-RU")
+        .replace(/\u00A0/g, " ");
+}
 
-function shuffle(array){
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
-    for(
-        let i=array.length-1;
-        i>0;
-        i--
-    ){
+function getName(p) {
+    if (!p) return "Игрок";
 
-        const j =
-            Math.floor(
-                Math.random() *
-                (i+1)
-            );
+    const full =
+        `${p.first_name || ""} ${p.last_name || ""}`
+            .trim();
 
+    return full ||
+        p.username ||
+        "Игрок";
+}
 
-        [
-            array[i],
-            array[j]
-        ] =
-        [
-            array[j],
-            array[i]
-        ];
+function showModal(title, text) {
+    document.getElementById(
+        "modalTitle"
+    ).textContent = title;
 
+    document.getElementById(
+        "modalText"
+    ).innerHTML = escapeHtml(text)
+        .replace(/\n/g, "<br>");
+
+    document.getElementById(
+        "modal"
+    ).classList.remove("hidden");
+}
+
+function hideModal() {
+    document.getElementById(
+        "modal"
+    ).classList.add("hidden");
+}
+
+function closeModal(event) {
+    if (
+        event.target.id === "modal"
+    ) {
+        hideModal();
     }
-
-
-    return array;
-
 }
 
-
-/* =========================================================
-   CREATE DECK
-========================================================= */
-
-function createDeck(){
-
-    const result = [];
-
-    let id = 0;
-
-
-    for(
-        const suit of SUITS
-    ){
-
-        for(
-            const rank of RANKS
-        ){
-
-            result.push({
-
-                id:
-                    `card_${id++}`,
-
-                suit,
-
-                rank:
-                    rank.name,
-
-                value:
-                    rank.value
-
-            });
-
-        }
-
-    }
-
-
-    return shuffle(
-        result
-    );
-
-}
-
-
-/* =========================================================
-   CARD RULES
-========================================================= */
-
-function isTrump(card){
-
-    return (
-        card &&
-        card.suit === trumpSuit
-    );
-
-}
-
-
-function isRed(card){
-
-    return (
-        card.suit === "♥" ||
-        card.suit === "♦"
-    );
-
-}
-
-
-function canBeat(
-    attack,
-    defense
-){
-
-    if(
-        !attack ||
-        !defense
-    ){
-
-        return false;
-
-    }
-
-
-    if(
-        isTrump(defense) &&
-        !isTrump(attack)
-    ){
-
-        return true;
-
-    }
-
-
-    if(
-        !isTrump(defense) &&
-        isTrump(attack)
-    ){
-
-        return false;
-
-    }
-
-
-    return (
-
-        attack.suit ===
-        defense.suit &&
-
-        defense.value >
-        attack.value
-
-    );
-
-}
-
-
-/* =========================================================
-   TABLE RANKS
-========================================================= */
-
-function getTableRanks(){
-
-    const result = [];
-
-
-    for(
-        const pair of tableAttacks
-    ){
-
-        result.push(
-            pair.attack.rank
-        );
-
-
-        if(pair.defense){
-
-            result.push(
-                pair.defense.rank
-            );
-
-        }
-
-    }
-
-
-    return result;
-
-}
-
-
-/* =========================================================
-   CAN ADD
-========================================================= */
-
-function canAddCard(card){
-
-    if(!card){
-
-        return false;
-
-    }
-
-
-    if(
-        tableAttacks.length >=
-        roundLimit
-    ){
-
-        return false;
-
-    }
-
-
-    if(
-        tableAttacks.length === 0
-    ){
-
-        return true;
-
-    }
-
-
-    return getTableRanks()
-        .includes(
-            card.rank
-        );
-
-}
-
-
-/* =========================================================
-   UNBEATEN
-========================================================= */
-
-function getFirstUnbeaten(){
-
-    for(
-        let i=0;
-        i<tableAttacks.length;
-        i++
-    ){
-
-        if(
-            !tableAttacks[i].defense
-        ){
-
-            return i;
-
-        }
-
-    }
-
-
-    return -1;
-
-}
-
-
-function allBeaten(){
-
-    return (
-
-        tableAttacks.length > 0 &&
-
-        getFirstUnbeaten() === -1
-
-    );
-
-}
-
-
-/* =========================================================
-   CARD ELEMENT
-========================================================= */
-
-function createCardElement(card){
-
-    const el =
-        document.createElement(
-            "div"
-        );
-
-
-    el.className =
-        "card" +
-        (
-            isRed(card)
-                ? " red"
-                : ""
-        );
-
-
-    el.dataset.id =
-        card.id;
-
-
-    el.innerHTML = `
-
-        <div class="card-value">
-            ${card.rank}
-        </div>
-
-        <div class="card-suit">
-            ${card.suit}
-        </div>
-
-        <div class="card-center">
-            ${card.suit}
-        </div>
-
-        <div class="card-corner">
-            ${card.rank}${card.suit}
-        </div>
-
-    `;
-
-
-    return el;
-
-}
-
-
-function createBackCard(){
-
-    const el =
-        document.createElement(
-            "div"
-        );
-
-
-    el.className =
-        "card back";
-
-
-    return el;
-
-}
-
-
-/* =========================================================
-   TRUMP
-========================================================= */
-
-function setupTrump(){
-
-    const trump =
-        deck[deck.length-1];
-
-
-    if(!trump){
-
+function notify(text) {
+    if (tg?.showAlert) {
+        tg.showAlert(text);
         return;
-
     }
 
-
-    trumpSuit =
-        trump.suit;
-
-
-    trumpCardEl.className =
-        "card trump" +
-        (
-            isRed(trump)
-                ? " red"
-                : ""
-        );
-
-
-    trumpCardEl.innerHTML = `
-
-        <div class="card-value">
-            ${trump.rank}
-        </div>
-
-        <div class="card-suit">
-            ${trump.suit}
-        </div>
-
-        <div class="card-center">
-            ${trump.suit}
-        </div>
-
-        <div class="card-corner">
-            ${trump.rank}${trump.suit}
-        </div>
-
-    `;
-
-}
-
-
-/* =========================================================
-   INITIAL DEAL
-========================================================= */
-
-async function dealInitial(){
-
-    playerHand = [];
-
-    cpuHand = [];
-
-
-    renderAll();
-
-
-    for(
-        let i=0;
-        i<6;
-        i++
-    ){
-
-        if(
-            deck.length <= 1
-        ){
-
-            break;
-
-        }
-
-
-        playerHand.push(
-            deck.shift()
-        );
-
-
-        renderAll();
-
-        animateLastPlayerCard();
-
-
-        await sleep(120);
-
-
-        if(
-            deck.length <= 1
-        ){
-
-            break;
-
-        }
-
-
-        cpuHand.push(
-            deck.shift()
-        );
-
-
-        renderAll();
-
-        animateLastOpponentCard();
-
-
-        await sleep(120);
-
-    }
-
-
-    renderAll();
-
-}
-
-
-/* =========================================================
-   REFILL
-========================================================= */
-
-async function refillHands(){
-
-    const attackerHand =
-        attacker === "player"
-            ? playerHand
-            : cpuHand;
-
-
-    const defenderHand =
-        defender === "player"
-            ? playerHand
-            : cpuHand;
-
-
-    while(
-        attackerHand.length < 6 &&
-        deck.length > 0
-    ){
-
-        attackerHand.push(
-            deck.shift()
-        );
-
-
-        renderAll();
-
-
-        await sleep(100);
-
-    }
-
-
-    while(
-        defenderHand.length < 6 &&
-        deck.length > 0
-    ){
-
-        defenderHand.push(
-            deck.shift()
-        );
-
-
-        renderAll();
-
-
-        await sleep(100);
-
-    }
-
-}
-
-
-/* =========================================================
-   RENDER
-========================================================= */
-
-function renderAll(){
-
-    renderPlayerHand();
-
-    renderOpponentHand();
-
-    renderTable();
-
-    updateInfo();
-
-    updateAllowedCards();
-
-    updateButtons();
-
-}
-
-
-/* =========================================================
-   PLAYER HAND
-========================================================= */
-
-function renderPlayerHand(){
-
-    playerHandEl.innerHTML = "";
-
-
-    const count =
-        playerHand.length;
-
-
-    playerHand.forEach(
-        (card,index)=>{
-
-            const el =
-                createCardElement(
-                    card
-                );
-
-
-            const spread =
-                Math.min(
-                    52,
-                    300 /
-                    Math.max(
-                        count,
-                        1
-                    )
-                );
-
-
-            const offset =
-                (
-                    index -
-                    (count-1)/2
-                ) * spread;
-
-
-            el.style.left =
-                `calc(50% + ${offset}px - 33px)`;
-
-
-            el.style.bottom =
-                "2px";
-
-
-            const rotation =
-                (
-                    index -
-                    (count-1)/2
-                ) * 3;
-
-
-            el.style.transform =
-                `rotate(${rotation}deg)`;
-
-
-            if(
-                selectedCardId ===
-                card.id
-            ){
-
-                el.classList.add(
-                    "selected"
-                );
-
-            }
-
-
-            addCardInteraction(
-                el,
-                card
-            );
-
-
-            playerHandEl.appendChild(
-                el
-            );
-
-        }
+    showModal(
+        "HEAVY LUX",
+        text
     );
-
 }
-
 
 /* =========================================================
-   OPPONENT HAND
+   HTTP
 ========================================================= */
 
-function renderOpponentHand(){
-
-    opponentHandEl.innerHTML = "";
-
-
-    const count =
-        cpuHand.length;
-
-
-    cpuHand.forEach(
-        (card,index)=>{
-
-            const el =
-                createBackCard();
-
-
-            const offset =
-                (
-                    index -
-                    (count-1)/2
-                ) * 30;
-
-
-            el.style.left =
-                `calc(50% + ${offset}px - 29px)`;
-
-
-            el.style.top =
-                `${Math.abs(
-                    index -
-                    (count-1)/2
-                ) * .8}px`;
-
-
-            el.style.transform =
-                `rotate(${
-                    (
-                        index -
-                        (count-1)/2
-                    ) * 3
-                }deg)`;
-
-
-            opponentHandEl.appendChild(
-                el
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   TABLE
-========================================================= */
-
-function renderTable(){
-
-    attackZone.innerHTML = "";
-
-    defenseZone.innerHTML = "";
-
-
-    tableAttacks.forEach(
-        (pair,index)=>{
-
-            const attack =
-                createCardElement(
-                    pair.attack
-                );
-
-
-            attack.classList.add(
-                "played-card"
-            );
-
-
-            const pos =
-                getAttackPosition(
-                    index
-                );
-
-
-            attack.style.left =
-                `${pos.x}px`;
-
-
-            attack.style.top =
-                `${pos.y}px`;
-
-
-            attackZone.appendChild(
-                attack
-            );
-
-
-            if(pair.defense){
-
-                const defense =
-                    createCardElement(
-                        pair.defense
-                    );
-
-
-                defense.classList.add(
-                    "played-card"
-                );
-
-
-                const dpos =
-                    getDefensePosition(
-                        index
-                    );
-
-
-                defense.style.left =
-                    `${dpos.x}px`;
-
-
-                defense.style.top =
-                    `${dpos.y}px`;
-
-
-                defenseZone.appendChild(
-                    defense
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-function getAttackPosition(index){
-
-    return {
-
-        x:
-            15+
-            (index%4)*80,
-
-        y:
-            25+
-            Math.floor(
-                index/4
-            )*105
-
+async function api(
+    path,
+    options = {}
+) {
+    const headers = {
+        ...(options.headers || {})
     };
 
-}
-
-
-function getDefensePosition(index){
-
-    return {
-
-        x:
-            34+
-            (index%4)*80,
-
-        y:
-            5+
-            Math.floor(
-                index/4
-            )*105
-
-    };
-
-}
-
-
-/* =========================================================
-   CARD INTERACTION
-========================================================= */
-
-function addCardInteraction(
-    el,
-    card
-){
-
-    let moved = false;
-
-    let startX = 0;
-
-    let startY = 0;
-
-
-    el.addEventListener(
-        "pointerdown",
-        event=>{
-
-            if(
-                phase !==
-                    "player_attack" &&
-
-                phase !==
-                    "player_defense"
-            ){
-
-                return;
-
-            }
-
-
-            startX =
-                event.clientX;
-
-
-            startY =
-                event.clientY;
-
-
-            moved = false;
-
-
-            selectedCardId =
-                card.id;
-
-
-            renderPlayerHand();
-
-
-            const fresh =
-                playerHandEl.querySelector(
-                    `[data-id="${card.id}"]`
-                );
-
-
-            if(!fresh){
-
-                return;
-
-            }
-
-
-            fresh.setPointerCapture(
-                event.pointerId
-            );
-
-
-            const rect =
-                fresh.getBoundingClientRect();
-
-
-            dragState = {
-
-                card,
-
-                element:fresh,
-
-                offsetX:
-                    event.clientX -
-                    rect.left,
-
-                offsetY:
-                    event.clientY -
-                    rect.top
-
-            };
-
-
-            fresh.classList.add(
-                "dragging"
-            );
-
-        }
-    );
-
-
-    el.addEventListener(
-        "pointermove",
-        event=>{
-
-            if(
-                !dragState ||
-                dragState.card.id !==
-                card.id
-            ){
-
-                return;
-
-            }
-
-
-            const dx =
-                event.clientX -
-                startX;
-
-
-            const dy =
-                event.clientY -
-                startY;
-
-
-            if(
-                Math.abs(dx)>6 ||
-                Math.abs(dy)>6
-            ){
-
-                moved = true;
-
-            }
-
-
-            dragState.element.style.left =
-                `${
-                    event.clientX -
-                    dragState.offsetX
-                }px`;
-
-
-            dragState.element.style.top =
-                `${
-                    event.clientY -
-                    dragState.offsetY
-                }px`;
-
-
-            dragState.element.style.bottom =
-                "auto";
-
-        }
-    );
-
-
-    el.addEventListener(
-        "pointerup",
-        async event=>{
-
-            if(
-                !dragState ||
-                dragState.card.id !==
-                card.id
-            ){
-
-                return;
-
-            }
-
-
-            const state =
-                dragState;
-
-
-            dragState = null;
-
-
-            state.element.classList.remove(
-                "dragging"
-            );
-
-
-            const table =
-                document
-                    .querySelector(
-                        ".table"
-                    )
-                    .getBoundingClientRect();
-
-
-            const inside =
-                event.clientX >= table.left &&
-                event.clientX <= table.right &&
-                event.clientY >= table.top &&
-                event.clientY <= table.bottom;
-
-
-            if(!moved){
-
-                selectedCardId =
-                    selectedCardId ===
-                    card.id
-                        ? null
-                        : card.id;
-
-
-                renderAll();
-
-
-                return;
-
-            }
-
-
-            if(!inside){
-
-                selectedCardId =
-                    null;
-
-
-                renderAll();
-
-
-                return;
-
-            }
-
-
-            selectedCardId =
-                null;
-
-
-            await playPlayerCard(
-                card
-            );
-
-        }
-    );
-
-
-    el.addEventListener(
-        "pointercancel",
-        ()=>{
-
-            dragState = null;
-
-            selectedCardId = null;
-
-            renderAll();
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   PLAY PLAYER CARD
-========================================================= */
-
-async function playPlayerCard(
-    card
-){
-
-    if(actionLocked){
-
-        return;
-
+    if (initData) {
+        headers[
+            "x-telegram-init-data"
+        ] = initData;
     }
 
+    if (
+        options.body &&
+        typeof options.body !== "string"
+    ) {
+        headers[
+            "Content-Type"
+        ] = "application/json";
 
-    if(
-        phase !==
-            "player_attack" &&
-
-        phase !==
-            "player_defense"
-    ){
-
-        return;
-
+        options.body =
+            JSON.stringify(
+                options.body
+            );
     }
 
+    const response =
+        await fetch(
+            apiUrl(path),
+            {
+                ...options,
+                headers
+            }
+        );
 
-    if(
-        !playerHand.some(
-            c=>c.id===card.id
+    let data;
+
+    try {
+        data =
+            await response.json();
+    } catch {
+        throw new Error(
+            `HTTP ${response.status}`
+        );
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            data.error ||
+            `Ошибка HTTP ${response.status}`
+        );
+    }
+
+    return data;
+}
+
+/* =========================================================
+   AUTH
+========================================================= */
+
+async function authenticate() {
+    if (!initData) {
+        throw new Error(
+            "Telegram initData отсутствует. Открой игру через Telegram."
+        );
+    }
+
+    const result =
+        await api(
+            "/api/auth",
+            {
+                method: "POST",
+                body: {
+                    initData
+                }
+            }
+        );
+
+    if (
+        !result.success ||
+        !result.player
+    ) {
+        throw new Error(
+            result.error ||
+            "Ошибка авторизации"
+        );
+    }
+
+    player =
+        result.player;
+
+    updatePlayerUI();
+}
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+function updatePlayerUI() {
+    if (!player) return;
+
+    const name =
+        getName(player);
+
+    document.getElementById(
+        "playerName"
+    ).textContent = name;
+
+    document.getElementById(
+        "playerTitle"
+    ).textContent =
+        player.title || "Новичок";
+
+    document.getElementById(
+        "heroBalance"
+    ).textContent =
+        `${money(player.balance)} HC`;
+
+    document.getElementById(
+        "topBalance"
+    ).textContent =
+        `${money(player.balance)} HC`;
+
+    document.getElementById(
+        "shopBalance"
+    ).textContent =
+        `${money(player.balance)} HC`;
+
+    document.getElementById(
+        "heroLevel"
+    ).textContent =
+        `Уровень ${player.level || 1}`;
+
+    const level =
+        Number(player.level || 1);
+
+    const xp =
+        Number(player.xp || 0);
+
+    const required =
+        level * 100;
+
+    const percent =
+        level >= 100
+            ? 100
+            : Math.min(
+                100,
+                (xp / required) * 100
+            );
+
+    document.getElementById(
+        "xpProgress"
+    ).style.width =
+        `${percent}%`;
+}
+
+async function refreshPlayer() {
+    const result =
+        await api(
+            "/api/player"
+        );
+
+    if (
+        result.success &&
+        result.player
+    ) {
+        player =
+            result.player;
+
+        updatePlayerUI();
+    }
+
+    return player;
+}
+
+/* =========================================================
+   SHOP DATA
+========================================================= */
+
+async function loadShop() {
+
+    const [
+        dealership,
+        exclusive,
+        plates,
+        estate,
+        businesses
+    ] = await Promise.all([
+        api("/api/dealership"),
+        api("/api/exclusive-cars"),
+        api("/api/plates"),
+        api("/api/real-estate"),
+        api("/api/businesses")
+    ]);
+
+    shopData.cars =
+        dealership.cars || [];
+
+    shopData.colors =
+        dealership.colors || [];
+
+    shopData.exclusive =
+        exclusive.cars || [];
+
+    shopData.plates =
+        plates.plates || [];
+
+    shopData.realEstate =
+        estate.realEstate || [];
+
+    shopData.businesses =
+        businesses.businesses || [];
+
+    renderShop();
+}
+
+/* =========================================================
+   SCREEN
+========================================================= */
+
+function openScreen(screen) {
+
+    const ids = [
+        "home",
+        "shop",
+        "garage",
+        "estate",
+        "business",
+        "profile",
+        "rooms",
+        "room",
+        "game"
+    ];
+
+    ids.forEach(id => {
+        const element =
+            document.getElementById(
+                `screen-${id}`
+            );
+
+        if (element) {
+            element.classList.toggle(
+                "hidden",
+                id !== screen
+            );
+        }
+    });
+
+    currentScreen =
+        screen;
+
+    document
+        .querySelectorAll(
+            ".nav-button"
         )
-    ){
-
-        return;
-
-    }
-
-
-    /* PLAYER ATTACK */
-
-    if(
-        phase ===
-        "player_attack"
-    ){
-
-        if(
-            !canAddCard(card)
-        ){
-
-            showMessage(
-                tableAttacks.length
-                    ? "Такую карту нельзя подкинуть"
-                    : "Эта карта недоступна"
+        .forEach(button => {
+            button.classList.toggle(
+                "active",
+                button.dataset.screen ===
+                screen
             );
-
-
-            renderAll();
-
-
-            return;
-
-        }
-
-
-        removeFromHand(
-            playerHand,
-            card.id
-        );
-
-
-        tableAttacks.push({
-
-            attack:card,
-
-            defense:null
-
         });
 
+    const showNav =
+        [
+            "home",
+            "shop",
+            "garage",
+            "profile"
+        ].includes(screen);
 
-        renderAll();
-
-
-        showMessage(
-            "Ты походил"
+    document
+        .getElementById(
+            "bottomNav"
+        )
+        .classList.toggle(
+            "hidden",
+            !showNav
         );
 
+    window.scrollTo({
+        top: 0,
+        behavior: "instant"
+    });
 
-        await sleep(450);
-
-
-        phase =
-            "cpu_defense";
-
-
-        renderAll();
-
-
-        await cpuDefense();
-
-
-        return;
-
+    if (screen === "garage") {
+        renderGarage();
     }
 
-
-    /* PLAYER DEFENSE */
-
-    if(
-        phase ===
-        "player_defense"
-    ){
-
-        const index =
-            getFirstUnbeaten();
-
-
-        if(index === -1){
-
-            return;
-
-        }
-
-
-        const target =
-            tableAttacks[index].attack;
-
-
-        if(
-            !canBeat(
-                target,
-                card
-            )
-        ){
-
-            showMessage(
-                "Этой картой побить нельзя"
-            );
-
-
-            renderAll();
-
-
-            return;
-
-        }
-
-
-        removeFromHand(
-            playerHand,
-            card.id
-        );
-
-
-        tableAttacks[index].defense =
-            card;
-
-
-        renderAll();
-
-
-        showMessage(
-            "Ты отбился"
-        );
-
-
-        await sleep(450);
-
-
-        if(allBeaten()){
-
-            phase =
-                "cpu_attack";
-
-
-            renderAll();
-
-
-            await cpuContinueAttack();
-
-        }
-
+    if (screen === "estate") {
+        renderEstate();
     }
 
+    if (screen === "business") {
+        renderBusinesses();
+    }
+
+    if (screen === "profile") {
+        renderProfile();
+    }
 }
 
-
 /* =========================================================
-   CPU DEFENSE
+   SHOP
 ========================================================= */
 
-async function cpuDefense(){
+async function openShop() {
 
-    if(
-        phase !==
-        "cpu_defense"
-    ){
+    openScreen("shop");
 
-        return;
+    document.getElementById(
+        "shopContent"
+    ).innerHTML =
+        `
+        <div class="card">
+            <div class="muted">
+                Загрузка магазина...
+            </div>
+        </div>
+        `;
 
+    try {
+        await loadShop();
+    } catch (error) {
+        document.getElementById(
+            "shopContent"
+        ).innerHTML =
+            `
+            <div class="card">
+                <div style="color:#ff8b8b">
+                    ${escapeHtml(error.message)}
+                </div>
+            </div>
+            `;
     }
+}
 
+function shopTab(
+    tab,
+    button
+) {
+    selectedShopTab =
+        tab;
 
-    if(actionLocked){
-
-        return;
-
-    }
-
-
-    const index =
-        getFirstUnbeaten();
-
-
-    if(index === -1){
-
-        phase =
-            "player_attack";
-
-
-        renderAll();
-
-
-        return;
-
-    }
-
-
-    const target =
-        tableAttacks[index].attack;
-
-
-    const available =
-        cpuHand.filter(
-            card =>
-                canBeat(
-                    target,
-                    card
+    document
+        .querySelectorAll(
+            ".shop-tab"
+        )
+        .forEach(
+            item =>
+                item.classList.remove(
+                    "active"
                 )
         );
 
-
-    if(
-        available.length === 0
-    ){
-
-        await cpuTakeCards();
-
-        return;
-
-    }
-
-
-    available.sort(
-        (a,b)=>{
-
-            const at =
-                isTrump(a);
-
-
-            const bt =
-                isTrump(b);
-
-
-            if(at !== bt){
-
-                return at
-                    ? 1
-                    : -1;
-
-            }
-
-
-            return a.value -
-                   b.value;
-
-        }
-    );
-
-
-    const card =
-        available[0];
-
-
-    await sleep(500);
-
-
-    removeFromHand(
-        cpuHand,
-        card.id
-    );
-
-
-    tableAttacks[index].defense =
-        card;
-
-
-    renderAll();
-
-
-    showMessage(
-        "Компьютер отбился"
-    );
-
-
-    await sleep(500);
-
-
-    if(allBeaten()){
-
-        phase =
-            "player_attack";
-
-
-        renderAll();
-
-
-        showMessage(
-            "Твой ход — подкинь или БИТО"
+    if (button) {
+        button.classList.add(
+            "active"
         );
-
-    }else{
-
-        await cpuDefense();
-
     }
 
+    renderShop();
 }
 
+function renderShop() {
 
-/* =========================================================
-   CPU CONTINUE ATTACK
-========================================================= */
-
-async function cpuContinueAttack(){
-
-    if(
-        phase !==
-        "cpu_attack"
-    ){
-
-        return;
-
-    }
-
-
-    if(
-        !allBeaten()
-    ){
-
-        phase =
-            "player_defense";
-
-
-        renderAll();
-
-
-        return;
-
-    }
-
-
-    const candidates =
-        cpuHand.filter(
-            card =>
-                canAddCard(card)
+    const container =
+        document.getElementById(
+            "shopContent"
         );
 
-
-    if(
-        candidates.length === 0
-    ){
-
-        await finishSuccessfulRound();
+    if (
+        selectedShopTab ===
+        "cars"
+    ) {
+        renderCars(
+            container,
+            shopData.cars,
+            false
+        );
 
         return;
-
     }
 
+    if (
+        selectedShopTab ===
+        "exclusive"
+    ) {
+        renderCars(
+            container,
+            shopData.exclusive,
+            true
+        );
 
-    candidates.sort(
-        (a,b)=>{
+        return;
+    }
 
-            const at =
-                isTrump(a);
+    if (
+        selectedShopTab ===
+        "plates"
+    ) {
+        renderPlates(
+            container
+        );
 
+        return;
+    }
 
-            const bt =
-                isTrump(b);
+    if (
+        selectedShopTab ===
+        "realEstate"
+    ) {
+        renderRealEstate(
+            container
+        );
 
+        return;
+    }
 
-            if(at !== bt){
-
-                return at
-                    ? 1
-                    : -1;
-
-            }
-
-
-            return a.value -
-                   b.value;
-
-        }
-    );
-
-
-    const card =
-        candidates[0];
-
-
-    await sleep(600);
-
-
-    removeFromHand(
-        cpuHand,
-        card.id
-    );
-
-
-    tableAttacks.push({
-
-        attack:card,
-
-        defense:null
-
-    });
-
-
-    renderAll();
-
-
-    showMessage(
-        "Компьютер подкинул"
-    );
-
-
-    await sleep(450);
-
-
-    phase =
-        "player_defense";
-
-
-    renderAll();
-
+    if (
+        selectedShopTab ===
+        "businesses"
+    ) {
+        renderBusinessShop(
+            container
+        );
+    }
 }
 
-
 /* =========================================================
-   CPU TAKE
+   CARS
 ========================================================= */
 
-async function cpuTakeCards(){
+function renderCars(
+    container,
+    cars,
+    exclusive
+) {
 
-    actionLocked = true;
+    if (!cars.length) {
+        container.innerHTML =
+            `
+            <div class="card">
+                <div class="muted">
+                    Каталог пуст.
+                </div>
+            </div>
+            `;
 
+        return;
+    }
 
-    showMessage(
-        "Компьютер забирает карты"
-    );
+    container.innerHTML =
+        cars.map(car => {
 
+            const selected =
+                selectedColors[
+                    car.id
+                ] ||
+                shopData.colors[0]?.id ||
+                "";
 
-    await sleep(600);
+            const colors =
+                shopData.colors
+                    .map(color => `
+                        <button
+                            class="color ${
+                                selected === color.id
+                                    ? "selected"
+                                    : ""
+                            }"
+                            title="${escapeHtml(color.name)}"
+                            style="
+                                background:${color.hex}
+                            "
+                            onclick="
+                                selectColor(
+                                    '${escapeHtml(car.id)}',
+                                    '${escapeHtml(color.id)}'
+                                )
+                            "
+                        ></button>
+                    `)
+                    .join("");
 
+            return `
+                <div class="product">
 
-    for(
-        const pair of tableAttacks
-    ){
+                    <div class="product-image">
+                        🚘
+                    </div>
 
-        cpuHand.push(
-            pair.attack
+                    <div class="product-name">
+                        ${escapeHtml(car.name)}
+                    </div>
+
+                    <div class="product-meta">
+                        ${escapeHtml(
+                            car.category ||
+                            ""
+                        )}
+
+                        ${
+                            car.tuning
+                                ? ` • ${escapeHtml(car.tuning)}`
+                                : ""
+                        }
+                    </div>
+
+                    <div class="product-price">
+                        ${money(car.price)} HC
+                    </div>
+
+                    ${
+                        !exclusive
+                            ? `
+                            <div class="product-meta">
+                                Цвет автомобиля
+                            </div>
+
+                            <div class="color-row">
+                                ${colors}
+                            </div>
+                            `
+                            : `
+                            <div class="product-meta">
+                                Exclusive Tuning Atelier
+                            </div>
+                            `
+                    }
+
+                    <button
+                        class="buy"
+                        onclick="
+                            buyCar(
+                                '${escapeHtml(car.id)}',
+                                ${exclusive}
+                            )
+                        "
+                    >
+                        КУПИТЬ
+                    </button>
+
+                </div>
+            `;
+        })
+        .join("");
+}
+
+function selectColor(
+    carId,
+    colorId
+) {
+    selectedColors[
+        carId
+    ] = colorId;
+
+    renderShop();
+}
+
+/* =========================================================
+   BUY CAR
+========================================================= */
+
+async function buyCar(
+    carId,
+    exclusive
+) {
+
+    const colorId =
+        selectedColors[
+            carId
+        ] ||
+        shopData.colors[0]?.id;
+
+    if (
+        !exclusive &&
+        !colorId
+    ) {
+        notify(
+            "Сначала выберите цвет автомобиля."
         );
 
+        return;
+    }
 
-        if(pair.defense){
+    const endpoint =
+        exclusive
+            ? "/api/exclusive-cars/buy"
+            : "/api/cars/buy";
 
-            cpuHand.push(
-                pair.defense
+    try {
+
+        const result =
+            await api(
+                endpoint,
+                {
+                    method: "POST",
+                    body: {
+                        carId,
+                        colorId
+                    }
+                }
             );
 
+        if (result.player) {
+            player =
+                result.player;
         }
 
-    }
+        updatePlayerUI();
 
-
-    tableAttacks = [];
-
-
-    actionLocked = false;
-
-
-    renderAll();
-
-
-    await sleep(350);
-
-
-    await refillHands();
-
-
-    if(
-        checkGameOver()
-    ){
-
-        return;
-
-    }
-
-
-    attacker =
-        "player";
-
-
-    defender =
-        "cpu";
-
-
-    phase =
-        "player_attack";
-
-
-    roundLimit =
-        cpuHand.length;
-
-
-    renderAll();
-
-
-    showMessage(
-        "Твой ход продолжается"
-    );
-
-}
-
-
-/* =========================================================
-   PLAYER TAKE
-========================================================= */
-
-takeButton.addEventListener(
-    "click",
-    async()=>{
-
-        if(
-            phase !==
-            "player_defense"
-        ){
-
-            return;
-
-        }
-
-
-        await playerTakeCards();
-
-    }
-);
-
-
-async function playerTakeCards(){
-
-    if(
-        actionLocked ||
-        phase !==
-        "player_defense"
-    ){
-
-        return;
-
-    }
-
-
-    actionLocked = true;
-
-
-    showMessage(
-        "Ты забираешь карты"
-    );
-
-
-    await sleep(350);
-
-
-    for(
-        const pair of tableAttacks
-    ){
-
-        playerHand.push(
-            pair.attack
+        notify(
+            result.message ||
+            "Автомобиль приобретён."
         );
 
+        await loadShop();
 
-        if(pair.defense){
+    } catch (error) {
+        notify(
+            error.message
+        );
+    }
+}
 
-            playerHand.push(
-                pair.defense
+/* =========================================================
+   PLATES
+========================================================= */
+
+function renderPlates(
+    container
+) {
+
+    if (!shopData.plates.length) {
+        container.innerHTML =
+            `
+            <div class="card">
+                <div class="muted">
+                    Номера отсутствуют.
+                </div>
+            </div>
+            `;
+
+        return;
+    }
+
+    container.innerHTML =
+        shopData.plates
+            .map(plate => `
+                <div class="product">
+
+                    <div class="plate-preview">
+                        ${escapeHtml(
+                            plate.number
+                        )}
+                    </div>
+
+                    <div class="product-name">
+                        ${escapeHtml(
+                            plate.rarity ||
+                            "Красивый номер"
+                        )}
+                    </div>
+
+                    <div class="product-meta">
+                        Государственный красивый номер
+                    </div>
+
+                    <div class="product-price">
+                        ${money(plate.price)} HC
+                    </div>
+
+                    <button
+                        class="buy"
+                        onclick="
+                            buyPlate(
+                                '${escapeHtml(plate.id)}'
+                            )
+                        "
+                    >
+                        КУПИТЬ
+                    </button>
+
+                </div>
+            `)
+            .join("");
+}
+
+async function buyPlate(
+    plateId
+) {
+
+    try {
+
+        const result =
+            await api(
+                "/api/beautiful-plates/buy",
+                {
+                    method: "POST",
+                    body: {
+                        plateId
+                    }
+                }
             );
 
+        if (result.player) {
+            player =
+                result.player;
         }
 
+        updatePlayerUI();
+
+        notify(
+            result.message ||
+            "Номер приобретён."
+        );
+
+        await loadShop();
+
+    } catch (error) {
+        notify(
+            error.message
+        );
     }
-
-
-    tableAttacks = [];
-
-
-    actionLocked = false;
-
-
-    renderAll();
-
-
-    await sleep(350);
-
-
-    await refillHands();
-
-
-    if(
-        checkGameOver()
-    ){
-
-        return;
-
-    }
-
-
-    attacker =
-        "cpu";
-
-
-    defender =
-        "player";
-
-
-    phase =
-        "cpu_attack";
-
-
-    roundLimit =
-        playerHand.length;
-
-
-    renderAll();
-
-
-    await sleep(500);
-
-
-    await cpuStartAttack();
-
 }
 
-
 /* =========================================================
-   PLAYER FINISH
+   REAL ESTATE
 ========================================================= */
 
-beatButton.addEventListener(
-    "click",
-    async()=>{
+function renderRealEstate(
+    container
+) {
 
-        if(
-            phase !==
-            "player_attack"
-        ){
+    container.innerHTML =
+        shopData.realEstate
+            .map(item => `
+                <div class="product">
 
-            return;
+                    <div class="product-image">
+                        🏠
+                    </div>
 
-        }
+                    <div class="product-name">
+                        ${escapeHtml(
+                            item.name
+                        )}
+                    </div>
 
+                    <div class="product-meta">
+                        ${escapeHtml(
+                            item.type ||
+                            ""
+                        )}
+                        •
+                        ${escapeHtml(
+                            item.category ||
+                            ""
+                        )}
+                    </div>
 
-        if(
-            !allBeaten()
-        ){
+                    <div class="product-price">
+                        ${money(item.price)} HC
+                    </div>
 
-            showMessage(
-                "Сначала нужно отбить все карты"
+                    <button
+                        class="buy"
+                        onclick="
+                            buyEstate(
+                                '${escapeHtml(item.id)}'
+                            )
+                        "
+                    >
+                        КУПИТЬ
+                    </button>
+
+                </div>
+            `)
+            .join("");
+}
+
+async function buyEstate(
+    estateId
+) {
+
+    try {
+
+        const result =
+            await api(
+                "/api/real-estate/buy",
+                {
+                    method: "POST",
+                    body: {
+                        estateId
+                    }
+                }
             );
 
-
-            return;
-
+        if (result.player) {
+            player =
+                result.player;
         }
 
+        updatePlayerUI();
 
-        await finishSuccessfulRound();
-
-    }
-);
-
-
-/* =========================================================
-   SUCCESSFUL ROUND
-========================================================= */
-
-async function finishSuccessfulRound(){
-
-    if(actionLocked){
-
-        return;
-
-    }
-
-
-    if(!allBeaten()){
-
-        return;
-
-    }
-
-
-    actionLocked = true;
-
-
-    showMessage(
-        "Бито"
-    );
-
-
-    await sleep(650);
-
-
-    tableAttacks = [];
-
-
-    renderAll();
-
-
-    await sleep(250);
-
-
-    await refillHands();
-
-
-    actionLocked = false;
-
-
-    if(
-        checkGameOver()
-    ){
-
-        return;
-
-    }
-
-
-    if(
-        attacker === "player"
-    ){
-
-        attacker =
-            "cpu";
-
-
-        defender =
-            "player";
-
-
-        phase =
-            "cpu_attack";
-
-
-        roundLimit =
-            playerHand.length;
-
-
-        renderAll();
-
-
-        await sleep(500);
-
-
-        await cpuStartAttack();
-
-    }else{
-
-        attacker =
-            "player";
-
-
-        defender =
-            "cpu";
-
-
-        phase =
-            "player_attack";
-
-
-        roundLimit =
-            cpuHand.length;
-
-
-        renderAll();
-
-
-        showMessage(
-            "Твой ход"
+        notify(
+            result.message ||
+            "Недвижимость приобретена."
         );
 
-    }
+        await refreshPlayer();
+        renderEstate();
 
+    } catch (error) {
+        notify(
+            error.message
+        );
+    }
 }
 
-
 /* =========================================================
-   CPU START ATTACK
+   BUSINESS SHOP
 ========================================================= */
 
-async function cpuStartAttack(){
+function renderBusinessShop(
+    container
+) {
 
-    if(
-        phase !==
-        "cpu_attack"
-    ){
+    container.innerHTML =
+        shopData.businesses
+            .map(item => `
+                <div class="product">
 
-        return;
+                    <div class="product-image">
+                        💼
+                    </div>
 
-    }
+                    <div class="product-name">
+                        ${escapeHtml(
+                            item.name
+                        )}
+                    </div>
 
+                    <div class="product-meta">
+                        ${escapeHtml(
+                            item.category ||
+                            ""
+                        )}
+                    </div>
 
-    if(actionLocked){
+                    <div class="product-meta">
+                        Доход:
+                        ${money(
+                            item.incomePerHour
+                        )}
+                        HC / час
+                    </div>
 
-        return;
+                    <div class="product-price">
+                        ${money(item.price)} HC
+                    </div>
 
-    }
+                    <button
+                        class="buy"
+                        onclick="
+                            buyBusiness(
+                                '${escapeHtml(item.id)}'
+                            )
+                        "
+                    >
+                        КУПИТЬ
+                    </button>
 
+                </div>
+            `)
+            .join("");
+}
 
-    if(cpuHand.length === 0){
+async function buyBusiness(
+    businessId
+) {
 
-        checkGameOver();
+    try {
 
-        return;
+        const result =
+            await api(
+                "/api/businesses/buy",
+                {
+                    method: "POST",
+                    body: {
+                        businessId
+                    }
+                }
+            );
 
-    }
-
-
-    const candidates =
-        cpuHand.slice();
-
-
-    candidates.sort(
-        (a,b)=>{
-
-            const at =
-                isTrump(a);
-
-
-            const bt =
-                isTrump(b);
-
-
-            if(at !== bt){
-
-                return at
-                    ? 1
-                    : -1;
-
-            }
-
-
-            return a.value -
-                   b.value;
-
+        if (result.player) {
+            player =
+                result.player;
         }
-    );
 
+        updatePlayerUI();
 
-    const card =
-        candidates[0];
-
-
-    await sleep(550);
-
-
-    removeFromHand(
-        cpuHand,
-        card.id
-    );
-
-
-    tableAttacks.push({
-
-        attack:card,
-
-        defense:null
-
-    });
-
-
-    renderAll();
-
-
-    showMessage(
-        "Компьютер атакует"
-    );
-
-
-    await sleep(450);
-
-
-    phase =
-        "player_defense";
-
-
-    renderAll();
-
-}
-
-
-/* =========================================================
-   ALLOWED
-========================================================= */
-
-function updateAllowedCards(){
-
-    const elements =
-        playerHandEl.querySelectorAll(
-            ".card"
+        notify(
+            result.message ||
+            "Бизнес приобретён."
         );
 
+        renderBusinesses();
 
-    elements.forEach(
-        el=>{
+    } catch (error) {
+        notify(
+            error.message
+        );
+    }
+}
 
-            const card =
-                playerHand.find(
-                    c =>
-                        c.id ===
-                        el.dataset.id
-                );
+/* =========================================================
+   GARAGE
+========================================================= */
 
+function renderGarage() {
 
-            if(!card){
+    const container =
+        document.getElementById(
+            "garageContent"
+        );
 
-                return;
+    const cars =
+        player?.cars || [];
 
-            }
+    if (!cars.length) {
 
+        container.innerHTML =
+            `
+            <div class="card">
+                <div class="section-title">
+                    Гараж пуст
+                </div>
 
-            let allowed = false;
+                <div class="muted">
+                    Купите первый автомобиль
+                    в магазине.
+                </div>
 
+                <button
+                    class="primary"
+                    onclick="openShop()"
+                >
+                    ОТКРЫТЬ МАГАЗИН
+                </button>
+            </div>
+            `;
 
-            if(
-                phase ===
-                "player_attack"
-            ){
+        return;
+    }
 
-                allowed =
-                    canAddCard(card);
+    container.innerHTML =
+        cars.map(car => `
+            <div class="card car-card">
 
-            }else if(
-                phase ===
-                "player_defense"
-            ){
+                <div class="car-head">
 
-                const index =
-                    getFirstUnbeaten();
+                    <div>
+                        <div class="car-name">
+                            ${escapeHtml(
+                                car.name
+                            )}
+                        </div>
 
+                        <div class="car-color">
+                            ${escapeHtml(
+                                car.colorName ||
+                                ""
+                            )}
 
-                if(index !== -1){
+                            ${
+                                car.tuning
+                                    ? ` • ${escapeHtml(car.tuning)}`
+                                    : ""
+                            }
+                        </div>
+                    </div>
 
-                    allowed =
-                        canBeat(
-                            tableAttacks[index].attack,
-                            card
-                        );
+                    <div class="gold">
+                        ${money(car.price)} HC
+                    </div>
 
+                </div>
+
+                <div>
+                    ${
+                        car.displayPlate ||
+                        car.plate
+                            ? `
+                            <span class="car-plate">
+                                ${escapeHtml(
+                                    car.displayPlate ||
+                                    car.plate
+                                )}
+                            </span>
+                            `
+                            : `
+                            <span class="muted">
+                                Без номера
+                            </span>
+                            `
+                    }
+                </div>
+
+                <div class="muted">
+                    ${
+                        car.registered
+                            ? "✓ Зарегистрирован в ГИБДД"
+                            : "⚠ Не зарегистрирован в ГИБДД"
+                    }
+                </div>
+
+                ${
+                    !car.registered
+                        ? `
+                        <button
+                            class="secondary"
+                            onclick="
+                                registerCar(
+                                    '${escapeHtml(car.id)}'
+                                )
+                            "
+                        >
+                            ЗАРЕГИСТРИРОВАТЬ — 25 000 HC
+                        </button>
+                        `
+                        : ""
                 }
 
-            }
-
-
-            if(allowed){
-
-                el.classList.add(
-                    "allowed"
-                );
-
-                el.classList.remove(
-                    "not-allowed"
-                );
-
-            }else{
-
-                el.classList.remove(
-                    "allowed"
-                );
-
-
-                if(
-                    phase ===
-                        "player_attack" ||
-
-                    phase ===
-                        "player_defense"
-                ){
-
-                    el.classList.add(
-                        "not-allowed"
-                    );
-
-                }
-
-            }
-
-        }
-    );
-
+            </div>
+        `)
+        .join("");
 }
 
+async function registerCar(
+    carId
+) {
+
+    try {
+
+        const result =
+            await api(
+                "/api/gibdd/register",
+                {
+                    method: "POST",
+                    body: {
+                        carId
+                    }
+                }
+            );
+
+        if (result.player) {
+            player =
+                result.player;
+        }
+
+        updatePlayerUI();
+        renderGarage();
+
+        notify(
+            result.message ||
+            `Автомобиль зарегистрирован. Номер: ${result.plate || ""}`
+        );
+
+    } catch (error) {
+        notify(
+            error.message
+        );
+    }
+}
 
 /* =========================================================
-   BUTTONS
+   ESTATE OWNED
 ========================================================= */
 
-function updateButtons(){
+function renderEstate() {
 
-    takeButton.style.display =
-        phase ===
-        "player_defense"
-            ? "block"
-            : "none";
+    const container =
+        document.getElementById(
+            "estateContent"
+        );
 
+    const items =
+        player?.realEstate || [];
 
-    beatButton.style.display =
-        (
-            phase ===
-            "player_attack" &&
+    if (!items.length) {
 
-            allBeaten()
+        container.innerHTML =
+            `
+            <div class="card">
+
+                <div class="section-title">
+                    У вас пока нет недвижимости
+                </div>
+
+                <div class="muted">
+                    Откройте магазин и приобретите
+                    первый объект.
+                </div>
+
+                <button
+                    class="primary"
+                    onclick="
+                        openShop();
+                        setTimeout(
+                            () => {
+                                const buttons =
+                                    document.querySelectorAll(
+                                        '.shop-tab'
+                                    );
+
+                                if (buttons[3]) {
+                                    buttons[3].click();
+                                }
+                            },
+                            50
+                        )
+                    "
+                >
+                    НЕДВИЖИМОСТЬ В МАГАЗИНЕ
+                </button>
+
+            </div>
+            `;
+
+        return;
+    }
+
+    container.innerHTML =
+        items.map(item => `
+            <div class="card">
+
+                <div class="section-title">
+                    🏠
+                    ${escapeHtml(
+                        item.name
+                    )}
+                </div>
+
+                <div class="muted">
+                    ${escapeHtml(
+                        item.type ||
+                        ""
+                    )}
+                    •
+                    ${escapeHtml(
+                        item.category ||
+                        ""
+                    )}
+                </div>
+
+                <div class="gold"
+                     style="margin-top:10px">
+                    Стоимость:
+                    ${money(item.price)} HC
+                </div>
+
+            </div>
+        `)
+        .join("");
+}
+
+/* =========================================================
+   BUSINESSES
+========================================================= */
+
+async function renderBusinesses() {
+
+    const container =
+        document.getElementById(
+            "businessContent"
+        );
+
+    container.innerHTML =
+        `
+        <div class="card">
+            <div class="muted">
+                Загрузка бизнеса...
+            </div>
+        </div>
+        `;
+
+    try {
+
+        const result =
+            await api(
+                "/api/businesses/owned"
+            );
+
+        const businesses =
+            result.businesses || [];
+
+        if (!businesses.length) {
+
+            container.innerHTML =
+                `
+                <div class="card">
+
+                    <div class="section-title">
+                        У вас нет бизнеса
+                    </div>
+
+                    <div class="muted">
+                        Приобретите предприятие
+                        в магазине.
+                    </div>
+
+                    <button
+                        class="primary"
+                        onclick="
+                            openShop();
+                            setTimeout(
+                                () => {
+                                    const buttons =
+                                        document.querySelectorAll(
+                                            '.shop-tab'
+                                        );
+
+                                    if (buttons[4]) {
+                                        buttons[4].click();
+                                    }
+                                },
+                                50
+                            )
+                        "
+                    >
+                        ОТКРЫТЬ БИЗНЕСЫ
+                    </button>
+
+                </div>
+                `;
+
+            return;
+        }
+
+        container.innerHTML =
+            businesses.map(item => `
+                <div class="card">
+
+                    <div class="section-title">
+                        💼
+                        ${escapeHtml(
+                            item.name
+                        )}
+                    </div>
+
+                    <div class="muted">
+                        Доход:
+                        ${money(
+                            item.catalog?.incomePerHour ||
+                            item.incomePerHour
+                        )}
+                        HC / час
+                    </div>
+
+                    <div
+                        class="gold"
+                        style="margin-top:10px"
+                    >
+                        Доступно:
+                        ${money(
+                            item.availableIncome
+                        )} HC
+                    </div>
+
+                    <button
+                        class="primary"
+                        onclick="
+                            collectBusiness(
+                                '${escapeHtml(item.id)}'
+                            )
+                        "
+                    >
+                        ЗАБРАТЬ ДОХОД
+                    </button>
+
+                </div>
+            `)
+            .join("");
+
+    } catch (error) {
+
+        container.innerHTML =
+            `
+            <div class="card">
+                <div style="color:#ff8b8b">
+                    ${escapeHtml(
+                        error.message
+                    )}
+                </div>
+            </div>
+            `;
+    }
+}
+
+async function collectBusiness(
+    businessId
+) {
+
+    try {
+
+        const result =
+            await api(
+                "/api/businesses/collect",
+                {
+                    method: "POST",
+                    body: {
+                        businessId
+                    }
+                }
+            );
+
+        if (result.player) {
+            player =
+                result.player;
+        }
+
+        updatePlayerUI();
+
+        notify(
+            `Получено ${money(result.income)} HC`
+        );
+
+        renderBusinesses();
+
+    } catch (error) {
+        notify(
+            error.message
+        );
+    }
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+function renderProfile() {
+
+    const container =
+        document.getElementById(
+            "profileContent"
+        );
+
+    container.innerHTML =
+        `
+        <div class="card">
+
+            <div class="section-title">
+                ${escapeHtml(
+                    getName(player)
+                )}
+            </div>
+
+            <div class="gold">
+                ${escapeHtml(
+                    player.title ||
+                    "Новичок"
+                )}
+            </div>
+
+        </div>
+
+        <div class="card">
+
+            <div class="section-title">
+                Статистика
+            </div>
+
+            <div class="players-list">
+
+                <div class="player-row">
+                    <span>
+                        Баланс
+                    </span>
+                    <strong class="gold">
+                        ${money(
+                            player.balance
+                        )} HC
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        Уровень
+                    </span>
+                    <strong>
+                        ${player.level}
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        XP
+                    </span>
+                    <strong>
+                        ${player.xp}
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        Игр
+                    </span>
+                    <strong>
+                        ${player.games}
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        Побед
+                    </span>
+                    <strong class="online">
+                        ${player.wins}
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        Поражений
+                    </span>
+                    <strong class="offline">
+                        ${player.losses}
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        Автомобилей
+                    </span>
+                    <strong>
+                        ${
+                            player.cars?.length || 0
+                        }
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        Недвижимость
+                    </span>
+                    <strong>
+                        ${
+                            player.realEstate?.length || 0
+                        }
+                    </strong>
+                </div>
+
+                <div class="player-row">
+                    <span>
+                        Бизнесов
+                    </span>
+                    <strong>
+                        ${
+                            player.businesses?.length || 0
+                        }
+                    </strong>
+                </div>
+
+            </div>
+
+        </div>
+        `;
+}
+
+/* =========================================================
+   ROOMS
+========================================================= */
+
+async function loadRooms() {
+
+    const container =
+        document.getElementById(
+            "roomsList"
+        );
+
+    try {
+
+        const result =
+            await api(
+                "/api/rooms"
+            );
+
+        const rooms =
+            result.rooms || [];
+
+        if (!rooms.length) {
+
+            container.innerHTML =
+                `
+                <div class="muted">
+                    Сейчас открытых комнат нет.
+                </div>
+                `;
+
+            return;
+        }
+
+        container.innerHTML =
+            rooms.map(item => `
+                <div class="player-row">
+
+                    <div>
+                        <strong>
+                            ${escapeHtml(
+                                item.code
+                            )}
+                        </strong>
+
+                        <div class="muted">
+                            Игроков:
+                            ${item.players}/2
+                        </div>
+                    </div>
+
+                    <button
+                        class="secondary"
+                        style="
+                            width:auto;
+                            padding:8px 13px;
+                            margin:0;
+                        "
+                        onclick="
+                            joinRoomByCode(
+                                '${escapeHtml(item.code)}'
+                            )
+                        "
+                    >
+                        ВОЙТИ
+                    </button>
+
+                </div>
+            `)
+            .join("");
+
+    } catch (error) {
+
+        container.innerHTML =
+            `
+            <div style="color:#ff8b8b">
+                ${escapeHtml(
+                    error.message
+                )}
+            </div>
+            `;
+    }
+}
+
+function createRoom() {
+
+    if (!socket) {
+        connectSocket();
+    }
+
+    socket.emit(
+        "room:create"
+    );
+}
+
+function joinRoom() {
+
+    const input =
+        document.getElementById(
+            "roomCodeInput"
+        );
+
+    const code =
+        String(
+            input.value || ""
         )
-            ? "block"
-            : "none";
+            .trim()
+            .toUpperCase();
 
+    if (!code) {
+        notify(
+            "Введите код комнаты."
+        );
+
+        return;
+    }
+
+    joinRoomByCode(code);
 }
 
+function joinRoomByCode(code) {
 
-/* =========================================================
-   INFO
-========================================================= */
+    if (!socket) {
+        connectSocket();
+    }
 
-function updateInfo(){
-
-    document.getElementById(
-        "deckCount"
-    ).innerText =
-        deck.length;
-
-
-    document.getElementById(
-        "trumpInfo"
-    ).innerText =
-        trumpSuit || "—";
-
-
-    document.getElementById(
-        "playerCount"
-    ).innerText =
-        playerHand.length;
-
-
-    document.getElementById(
-        "opponentCount"
-    ).innerText =
-        cpuHand.length;
-
+    socket.emit(
+        "room:join",
+        {
+            roomCode: code
+        }
+    );
 }
 
-
 /* =========================================================
-   MESSAGE
+   SOCKET
 ========================================================= */
 
-let messageTimer = null;
+function connectSocket() {
 
+    if (socket) {
+        return;
+    }
 
-function showMessage(text){
+    socket =
+        io(
+            API_BASE || undefined,
+            {
+                transports: [
+                    "websocket",
+                    "polling"
+                ],
 
-    messageEl.innerText =
-        text;
+                auth: {
+                    initData
+                },
 
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000
+            }
+        );
 
-    messageEl.classList.add(
-        "show"
-    );
+    socket.on(
+        "connect",
+        () => {
 
-
-    clearTimeout(
-        messageTimer
-    );
-
-
-    messageTimer =
-        setTimeout(
-            ()=>{
-
-                messageEl.classList.remove(
-                    "show"
+            if (room) {
+                socket.emit(
+                    "room:state"
                 );
+            }
+        }
+    );
 
-            },
-            1600
-        );
+    socket.on(
+        "auth:error",
+        data => {
+            notify(
+                data?.error ||
+                "Ошибка авторизации Socket.IO"
+            );
+        }
+    );
 
+    socket.on(
+        "auth:success",
+        data => {
+
+            if (
+                data?.player
+            ) {
+                player =
+                    data.player;
+
+                updatePlayerUI();
+            }
+        }
+    );
+
+    socket.on(
+        "room:created",
+        data => {
+
+            room =
+                data;
+
+            renderRoom();
+
+            openScreen(
+                "room"
+            );
+        }
+    );
+
+    socket.on(
+        "room:joined",
+        data => {
+
+            room =
+                data;
+
+            renderRoom();
+
+            openScreen(
+                "room"
+            );
+        }
+    );
+
+    socket.on(
+        "room:reconnected",
+        data => {
+
+            room =
+                data;
+
+            renderRoom();
+
+            if (
+                room?.game?.status ===
+                "playing"
+            ) {
+                openScreen(
+                    "game"
+                );
+            } else {
+                openScreen(
+                    "room"
+                );
+            }
+        }
+    );
+
+    socket.on(
+        "room:update",
+        data => {
+
+            room =
+                data;
+
+            renderRoom();
+
+            if (
+                room?.game?.status ===
+                "playing"
+            ) {
+                openScreen(
+                    "game"
+                );
+            }
+        }
+    );
+
+    socket.on(
+        "room:error",
+        data => {
+
+            notify(
+                data?.error ||
+                "Ошибка комнаты"
+            );
+        }
+    );
+
+    socket.on(
+        "game:started",
+        data => {
+
+            game =
+                data;
+
+            openScreen(
+                "game"
+            );
+
+            renderGame();
+        }
+    );
+
+    socket.on(
+        "game:state",
+        data => {
+
+            game =
+                data;
+
+            if (
+                data?.status ===
+                "playing"
+            ) {
+                openScreen(
+                    "game"
+                );
+            }
+
+            renderGame();
+        }
+    );
+
+    socket.on(
+        "game:error",
+        data => {
+
+            notify(
+                data?.error ||
+                "Ошибка игры"
+            );
+        }
+    );
+
+    socket.on(
+        "game:finished",
+        data => {
+
+            if (game) {
+                game.status =
+                    "finished";
+
+                game.winnerId =
+                    data?.winnerId ||
+                    null;
+
+                game.loserId =
+                    data?.loserId ||
+                    null;
+            }
+
+            renderGame();
+
+            refreshPlayer()
+                .catch(() => {});
+
+            const myId =
+                game?.myId;
+
+            if (
+                data?.winnerId ===
+                myId
+            ) {
+                notify(
+                    "Победа! Вы выиграли партию."
+                );
+            } else {
+                notify(
+                    "Партия завершена."
+                );
+            }
+        }
+    );
+
+    socket.on(
+        "disconnect",
+        () => {
+            /*
+             * Backend сам оставляет игрока
+             * в комнате на время reconnect.
+             */
+        }
+    );
 }
-
 
 /* =========================================================
-   REMOVE
+   ROOM RENDER
 ========================================================= */
 
-function removeFromHand(
-    hand,
-    id
-){
+function renderRoom() {
 
-    const index =
-        hand.findIndex(
-            card =>
-                card.id === id
-        );
-
-
-    if(index !== -1){
-
-        hand.splice(
-            index,
-            1
-        );
-
+    if (!room) {
+        return;
     }
 
+    document.getElementById(
+        "roomCode"
+    ).textContent =
+        room.code || "------";
+
+    const players =
+        room.players || [];
+
+    document.getElementById(
+        "roomPlayers"
+    ).innerHTML =
+        players.map(item => `
+            <div class="player-row">
+
+                <div>
+                    <strong>
+                        ${escapeHtml(
+                            getName(item)
+                        )}
+                    </strong>
+
+                    <div class="muted">
+                        ${
+                            item.ready
+                                ? "Готов"
+                                : "Ожидание"
+                        }
+                    </div>
+                </div>
+
+                <div class="${
+                    item.connected
+                        ? "online"
+                        : "offline"
+                }">
+                    ${
+                        item.connected
+                            ? "●"
+                            : "○"
+                    }
+                </div>
+
+            </div>
+        `)
+        .join("");
+
+    const count =
+        players.length;
+
+    document.getElementById(
+        "roomMessage"
+    ).textContent =
+        count < 2
+            ? "Отправь код комнаты второму игроку."
+            : "Два игрока подключены.";
+
+    const me =
+        players.find(
+            item =>
+                String(
+                    item.telegram_id
+                ) ===
+                String(
+                    player?.telegram_id
+                )
+        );
+
+    document.getElementById(
+        "readyButton"
+    ).textContent =
+        me?.ready
+            ? "НЕ ГОТОВ"
+            : "ГОТОВ";
 }
 
+function toggleReady() {
+
+    if (!socket) {
+        return;
+    }
+
+    const me =
+        room?.players?.find(
+            item =>
+                String(
+                    item.telegram_id
+                ) ===
+                String(
+                    player?.telegram_id
+                )
+        );
+
+    socket.emit(
+        "room:ready",
+        {
+            ready:
+                !me?.ready
+        }
+    );
+}
+
+function leaveRoom() {
+
+    if (socket) {
+        socket.emit(
+            "room:leave"
+        );
+    }
+
+    room = null;
+    game = null;
+
+    openScreen(
+        "rooms"
+    );
+
+    loadRooms();
+}
 
 /* =========================================================
-   ANIMATION
+   GAME
 ========================================================= */
 
-function animateLastPlayerCard(){
+const SUITS = {
+    hearts: {
+        symbol: "♥",
+        red: true
+    },
 
-    const cards =
-        playerHandEl.querySelectorAll(
-            ".card"
-        );
+    diamonds: {
+        symbol: "♦",
+        red: true
+    },
 
+    clubs: {
+        symbol: "♣",
+        red: false
+    },
 
-    const last =
-        cards[cards.length-1];
+    spades: {
+        symbol: "♠",
+        red: false
+    }
+};
 
+function cardHtml(
+    card,
+    extraClass = ""
+) {
 
-    if(last){
-
-        last.classList.add(
-            "deal-player"
-        );
-
+    if (!card) {
+        return "";
     }
 
+    const suit =
+        SUITS[
+            card.suit
+        ] || {
+            symbol: "?",
+            red: false
+        };
+
+    return `
+        <div
+            class="
+                play-card
+                ${suit.red ? "red" : ""}
+                ${extraClass}
+            "
+        >
+            <div class="value">
+                ${escapeHtml(
+                    card.value
+                )}
+            </div>
+
+            <div class="suit">
+                ${suit.symbol}
+            </div>
+        </div>
+    `;
 }
 
+function renderGame() {
 
-function animateLastOpponentCard(){
-
-    const cards =
-        opponentHandEl.querySelectorAll(
-            ".card"
-        );
-
-
-    const last =
-        cards[cards.length-1];
-
-
-    if(last){
-
-        last.classList.add(
-            "deal-opponent"
-        );
-
+    if (!game) {
+        return;
     }
 
+    document.getElementById(
+        "gameRound"
+    ).textContent =
+        `Раунд ${game.roundNumber || 1}`;
+
+    const trump =
+        SUITS[
+            game.trump
+        ];
+
+    document.getElementById(
+        "gameTrump"
+    ).textContent =
+        trump
+            ? trump.symbol
+            : "—";
+
+    document.getElementById(
+        "gameDeck"
+    ).textContent =
+        game.deckCount ?? 0;
+
+    const phaseNames = {
+        attack: "АТАКА",
+        defense: "ЗАЩИТА"
+    };
+
+    document.getElementById(
+        "gamePhase"
+    ).textContent =
+        phaseNames[
+            game.phase
+        ] ||
+        String(
+            game.phase ||
+            "—"
+        ).toUpperCase();
+
+    const myId =
+        game.myId;
+
+    const myPlayer =
+        game.players?.find(
+            p =>
+                p.id === myId
+        );
+
+    const isMyTurn =
+        game.turnId ===
+        myId;
+
+    const isAttacker =
+        game.attackerId ===
+        myId;
+
+    const isDefender =
+        game.defenderId ===
+        myId;
+
+    let message =
+        "Ожидание...";
+
+    if (
+        game.status ===
+        "finished"
+    ) {
+
+        if (
+            game.winnerId ===
+            myId
+        ) {
+            message =
+                "🏆 Ты победил!";
+        } else if (
+            game.loserId ===
+            myId
+        ) {
+            message =
+                "Поражение.";
+        } else {
+            message =
+                "Партия завершена.";
+        }
+
+    } else if (
+        isMyTurn
+    ) {
+
+        if (
+            game.phase ===
+            "attack"
+        ) {
+            message =
+                isAttacker
+                    ? "Твой ход. Атакуй."
+                    : "Твой ход.";
+        } else {
+            message =
+                isDefender
+                    ? "Твой ход. Защищайся или забирай карты."
+                    : "Ожидание защиты.";
+        }
+
+    } else {
+
+        message =
+            "Ход соперника...";
+    }
+
+    document.getElementById(
+        "gameMessage"
+    ).textContent =
+        message;
+
+    renderTable();
+    renderHand();
+
+    const take =
+        document.getElementById(
+            "takeButton"
+        );
+
+    const end =
+        document.getElementById(
+            "endAttackButton"
+        );
+
+    take.disabled =
+        !(
+            game.status ===
+            "playing" &&
+            game.phase ===
+            "defense" &&
+            isDefender &&
+            isMyTurn
+        );
+
+    end.disabled =
+        !(
+            game.status ===
+            "playing" &&
+            game.phase ===
+            "attack" &&
+            isAttacker &&
+            isMyTurn &&
+            game.table?.length
+        );
 }
 
+function renderTable() {
+
+    const container =
+        document.getElementById(
+            "gamePairs"
+        );
+
+    const table =
+        game?.table || [];
+
+    if (!table.length) {
+
+        container.innerHTML =
+            `
+            <div class="muted">
+                Стол пуст
+            </div>
+            `;
+
+        return;
+    }
+
+    container.innerHTML =
+        table.map(pair => `
+            <div
+                class="pair"
+                onclick="
+                    selectDefensePair(
+                        '${escapeHtml(pair.id)}'
+                    )
+                "
+            >
+                ${cardHtml(pair.attack)}
+
+                ${
+                    pair.defense
+                        ? cardHtml(
+                            pair.defense,
+                            "defense-card"
+                        )
+                        : ""
+                }
+            </div>
+        `)
+        .join("");
+}
+
+let selectedDefensePairId =
+    null;
+
+function selectDefensePair(
+    pairId
+) {
+    selectedDefensePairId =
+        pairId;
+
+    renderGame();
+}
+
+function renderHand() {
+
+    const container =
+        document.getElementById(
+            "myHand"
+        );
+
+    const hand =
+        game?.myHand || [];
+
+    if (!hand.length) {
+
+        container.innerHTML =
+            `
+            <div class="muted">
+                В руке нет карт
+            </div>
+            `;
+
+        return;
+    }
+
+    const myTurn =
+        game.turnId ===
+        game.myId;
+
+    container.innerHTML =
+        hand.map(card => {
+
+            const suit =
+                SUITS[
+                    card.suit
+                ] || {
+                    red: false
+                };
+
+            return `
+                <button
+                    class="
+                        hand-card
+                        ${suit.red ? "red" : ""}
+                        ${
+                            selectedDefensePairId
+                                ? "active"
+                                : ""
+                        }
+                    "
+                    onclick="
+                        playCard(
+                            '${escapeHtml(card.id)}'
+                        )
+                    "
+                >
+
+                    <div class="value">
+                        ${escapeHtml(
+                            card.value
+                        )}
+                    </div>
+
+                    <div class="suit">
+                        ${
+                            SUITS[
+                                card.suit
+                            ]?.symbol ||
+                            "?"
+                        }
+                    </div>
+
+                </button>
+            `;
+        })
+        .join("");
+}
 
 /* =========================================================
-   GAME OVER
+   GAME ACTIONS
 ========================================================= */
 
-function checkGameOver(){
+function playCard(
+    cardId
+) {
 
-    if(
-        deck.length > 0
-    ){
-
-        return false;
-
+    if (!socket || !game) {
+        return;
     }
 
-
-    if(
-        playerHand.length === 0 &&
-        cpuHand.length === 0
-    ){
-
-        endGame(
-            "Ничья"
+    if (
+        game.turnId !==
+        game.myId
+    ) {
+        notify(
+            "Сейчас не твой ход."
         );
 
-
-        return true;
-
+        return;
     }
 
+    if (
+        game.phase ===
+        "attack"
+    ) {
 
-    if(
-        playerHand.length === 0
-    ){
-
-        endGame(
-            "Ты победил!"
+        socket.emit(
+            "game:attack",
+            {
+                cardId
+            }
         );
 
+        return;
+    }
+
+    if (
+        game.phase ===
+        "defense"
+    ) {
+
+        if (
+            !selectedDefensePairId
+        ) {
+            notify(
+                "Сначала выбери атакующую карту на столе."
+            );
+
+            return;
+        }
+
+        socket.emit(
+            "game:defend",
+            {
+                pairId:
+                    selectedDefensePairId,
+
+                cardId
+            }
+        );
+
+        selectedDefensePairId =
+            null;
+    }
+}
+
+function takeCards() {
+
+    if (!socket) {
+        return;
+    }
+
+    socket.emit(
+        "game:take"
+    );
+}
+
+function endAttack() {
+
+    if (!socket) {
+        return;
+    }
+
+    socket.emit(
+        "game:endAttack"
+    );
+}
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+async function startup() {
+
+    try {
+
+        await authenticate();
+
+        document.getElementById(
+            "loading"
+        ).classList.add(
+            "hidden"
+        );
+
+        document.getElementById(
+            "main"
+        ).classList.remove(
+            "hidden"
+        );
+
+        document.getElementById(
+            "bottomNav"
+        ).classList.remove(
+            "hidden"
+        );
+
+        updatePlayerUI();
+
+        openScreen(
+            "home"
+        );
 
         /*
-            Здесь позже добавим:
+         * Подключаем Socket.IO только
+         * после успешной Telegram auth.
+         */
+        connectSocket();
 
-            XP
-            HC
-            wins
-            games
-        */
-
-        return true;
-
-    }
-
-
-    if(
-        cpuHand.length === 0
-    ){
-
-        endGame(
-            "Компьютер победил"
-        );
-
-
-        return true;
-
-    }
-
-
-    return false;
-
-}
-
-
-function endGame(text){
-
-    phase =
-        "finished";
-
-
-    renderAll();
-
-
-    showMessage(
-        text
-    );
-
-
-    setTimeout(
-        ()=>{
-
-            if(tg){
-
-                tg.showAlert(
-                    text
+        /*
+         * Каталог грузим заранее.
+         * Это позволяет открыть магазин
+         * мгновенно после первого клика.
+         */
+        loadShop()
+            .catch(error => {
+                console.error(
+                    "SHOP LOAD:",
+                    error
                 );
+            });
 
-            }else{
-
-                alert(text);
-
-            }
-
-        },
-        500
-    );
-
-}
-
-
-/* =========================================================
-   FIRST ATTACKER
-========================================================= */
-
-function determineFirstAttacker(){
-
-    const playerTrumps =
-        playerHand
-            .filter(
-                c =>
-                    isTrump(c)
-            )
-            .sort(
-                (a,b)=>
-                    a.value -
-                    b.value
-            );
-
-
-    const cpuTrumps =
-        cpuHand
-            .filter(
-                c =>
-                    isTrump(c)
-            )
-            .sort(
-                (a,b)=>
-                    a.value -
-                    b.value
-            );
-
-
-    if(
-        playerTrumps.length &&
-        cpuTrumps.length
-    ){
-
-        return (
-
-            playerTrumps[0].value <=
-            cpuTrumps[0].value
-
-        )
-            ? "player"
-            : "cpu";
-
-    }
-
-
-    if(
-        playerTrumps.length
-    ){
-
-        return "player";
-
-    }
-
-
-    if(
-        cpuTrumps.length
-    ){
-
-        return "cpu";
-
-    }
-
-
-    const playerMin =
-        Math.min(
-            ...playerHand.map(
-                c =>
-                    c.value
-            )
-        );
-
-
-    const cpuMin =
-        Math.min(
-            ...cpuHand.map(
-                c =>
-                    c.value
-            )
-        );
-
-
-    return (
-
-        playerMin <=
-        cpuMin
-
-    )
-        ? "player"
-        : "cpu";
-
-}
-
-
-/* =========================================================
-   START GAME
-========================================================= */
-
-document.getElementById(
-    "startButton"
-).addEventListener(
-    "click",
-    async()=>{
-
-        if(gameStarted){
-
-            return;
-
-        }
-
-
-        gameStarted = true;
-
+    } catch (error) {
 
         document.getElementById(
-            "startScreen"
-        ).style.display =
-            "none";
+            "loading"
+        ).innerHTML =
+            `
+            <div class="card">
+                <div
+                    style="
+                        font-size:20px;
+                        font-weight:900;
+                        margin-bottom:10px;
+                    "
+                >
+                    HEAVY LUX
+                </div>
 
+                <div
+                    style="
+                        color:#ff9292;
+                        line-height:1.5;
+                    "
+                >
+                    ${escapeHtml(
+                        error.message
+                    )}
+                </div>
 
-        if(
-            tg &&
-            tg.initDataUnsafe &&
-            tg.initDataUnsafe.user
-        ){
-
-            const user =
-                tg.initDataUnsafe.user;
-
-
-            playerName =
-                user.first_name ||
-                user.username ||
-                "Игрок";
-
-        }
-
-
-        document.getElementById(
-            "playerName"
-        ).innerText =
-            playerName;
-
-
-        deck =
-            createDeck();
-
-
-        setupTrump();
-
-
-        await dealInitial();
-
-
-        attacker =
-            determineFirstAttacker();
-
-
-        defender =
-            attacker === "player"
-                ? "cpu"
-                : "player";
-
-
-        roundLimit =
-            defender === "player"
-                ? playerHand.length
-                : cpuHand.length;
-
-
-        if(
-            attacker === "player"
-        ){
-
-            phase =
-                "player_attack";
-
-
-            showMessage(
-                "Твой ход"
-            );
-
-        }else{
-
-            phase =
-                "cpu_attack";
-
-
-            showMessage(
-                "Компьютер начинает"
-            );
-
-
-            renderAll();
-
-
-            await sleep(700);
-
-
-            await cpuStartAttack();
-
-        }
-
-
-        renderAll();
-
+                <button
+                    class="primary"
+                    onclick="
+                        location.reload()
+                    "
+                >
+                    ПОВТОРИТЬ
+                </button>
+            </div>
+            `;
     }
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    startup
 );
 
-
 /* =========================================================
-   INITIAL
+   AUTO ROOM REFRESH
 ========================================================= */
 
-renderAll();
+setInterval(
+    () => {
 
-updateInfo();
+        if (
+            currentScreen ===
+            "rooms"
+        ) {
+            loadRooms();
+        }
 
+    },
+    5000
+);
 
-/* =========================================================
-   AUTH ON LOAD
-========================================================= */
-
-authenticateTelegram();
+/*
+ * При открытии страницы сразу
+ * готовим список комнат.
+ */
+setTimeout(
+    () => {
+        loadRooms()
+            .catch(() => {});
+    },
+    2500
+);
 
 </script>
 
